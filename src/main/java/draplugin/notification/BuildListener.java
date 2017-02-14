@@ -119,7 +119,6 @@ public class BuildListener extends RunListener<AbstractBuild> {
         JSONObject message = new JSONObject();
         JSONObject build = new JSONObject();
         JSONObject scm = new JSONObject();
-//        JSONObject artifacts = new JSONObject();
 
         Job job = r.getParent();
         String fullUrl = Jenkins.getInstance().getRootUrl();
@@ -199,8 +198,6 @@ public class BuildListener extends RunListener<AbstractBuild> {
         }
 
         build.put("scm", scm);
-//        build.put("log", "");
-//        build.put("artifacts", artifacts);
 
         //setup the message
         message.put("name", job.getName());
@@ -222,8 +219,7 @@ public class BuildListener extends RunListener<AbstractBuild> {
             if (response.getStatusLine().toString().matches(".*2([0-9]{2}).*")) {
                 this.printStream.println("[IBM Bluemix Toolchains - Webhook Notification] Message successfully posted to webhook.");
             } else {
-                //if gets error status
-                this.printStream.println("[IBM Bluemix Toolchains - Webhook Notification] Error: Message failed, response status: " + response.getStatusLine());
+                this.printStream.println("[IBM Bluemix Toolchains - Webhook Notification] Message failed, response status: " + response.getStatusLine());
             }
         } catch (IOException e) {
             this.printStream.println("[IBM Bluemix Toolchains - Webhook Notification] IOException, could not post to webhook:");
