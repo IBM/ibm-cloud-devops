@@ -23,13 +23,15 @@ import hudson.model.Run;
 public class GatePublisherAction implements Action {
 
     private final String text;
+    private final String riskDashboardLink;
     private final String decision;
     private final String policyName;
 //    private final String buildUrl;
     private final Run<?, ?> build;
 
-    public GatePublisherAction(String text, String decision, String policyName, Run<?, ?> build) {
+    public GatePublisherAction(String text, String riskDashboardLink, String decision, String policyName, Run<?, ?> build) {
         this.text = text;
+        this.riskDashboardLink = riskDashboardLink;
         this.decision = decision;
         this.policyName = policyName;
         this.build = build;
@@ -37,6 +39,10 @@ public class GatePublisherAction implements Action {
 
     public String getText() {
         return text;
+    }
+
+    public String getRiskDashboardLink() {
+        return riskDashboardLink;
     }
 
     public String getDecision() {

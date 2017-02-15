@@ -233,7 +233,7 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
             // check if it can get env vars from previous upload post-build action
             if (Util.isNullOrEmpty(bearerToken)) {
                 // get the Bluemix token
-                String targetAPI = chooseTargetAPI(envVars);
+                String targetAPI = chooseTargetAPI(env);
                 try {
                     bearerToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
                     printStream.println("[DevOps Insight Plugin] Log in successfully, get the Bluemix token");
@@ -268,7 +268,7 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
 
             String cclink = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + this.orgName + "&toolchainId=" + this.toolchainName;
 
-            GatePublisherAction action = new GatePublisherAction(cclink, decision, this.policyName, build);
+            GatePublisherAction action = new GatePublisherAction(reportUrl + decisionId, cclink, decision, this.policyName, build);
             build.addAction(action);
 
             // console output for a "fail" decision
@@ -422,7 +422,7 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
             if (value == null || value.equals("empty")) {
                 return FormValidation.errorWithMarkup("Could not retrieve list of toolchains. Please check your username and password. If you have not created a toolchain, create one <a target='_blank' href='https://console.ng.bluemix.net/devops/create'>here</a>.");
             }
-            return FormValidation.validateRequired(value);
+            return FormValidation.ok();
         }
 
         public FormValidation doCheckPolicyName(@QueryParameter String value)
@@ -430,7 +430,7 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
             if (value == null || value.equals("empty")) {
                return FormValidation.errorWithMarkup("Fail to get the policies, please check your username/password or org name");
             }
-            return FormValidation.validateRequired(value);
+            return FormValidation.ok();
         }
 
         public FormValidation doTestConnection(@AncestorInPath ItemGroup context,

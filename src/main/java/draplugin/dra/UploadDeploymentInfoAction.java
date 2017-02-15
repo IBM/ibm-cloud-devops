@@ -356,7 +356,7 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 			if (value == null || value.equals("empty")) {
 				return FormValidation.errorWithMarkup("Could not retrieve list of toolchains. Please check your username and password. If you have not created a toolchain, create one <a target='_blank' href='https://console.ng.bluemix.net/devops/create'>here</a>.");
 			}
-			return FormValidation.validateRequired(value);
+			return FormValidation.ok();
 		}
 
 		public FormValidation doCheckEnvironmentName(@QueryParameter String value)

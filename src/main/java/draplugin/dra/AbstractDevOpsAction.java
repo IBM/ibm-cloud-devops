@@ -56,9 +56,6 @@ import java.util.regex.Pattern;
  */
 public abstract class AbstractDevOpsAction extends Recorder {
 
-    private final static String TARGET_URL = "https://api.ng.bluemix.net";
-    private final static String TARGET_URL_STAGE1 = "https://api.stage1.ng.bluemix.net";
-
     private static Map<String, String> TARGET_API_MAP = ImmutableMap.of(
             "production", "https://api.ng.bluemix.net",
             "dev", "https://api.stage1.ng.bluemix.net",
@@ -130,23 +127,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
     }
 
-    /**
-     * set the target api url for cf log in
-     * @param envVars - environment variables
-     * @return the target api url
-     */
-    public static String chooseTargetAPI(EnvVars envVars) {
-        // verify if user chooses advanced option to input customized DMLS
-        String targetAPI = envVars.get("TARGET_API");
-        if (!Util.isNullOrEmpty(targetAPI) && targetAPI.contains("stage1")) {
-            // stage1 environment
-            return TARGET_URL_STAGE1;
 
-        } else {
-            // production environment by default
-            return  TARGET_URL;
-        }
-    }
 
     public static String chooseTargetAPI(String environment) {
         if (!Util.isNullOrEmpty(environment)) {
@@ -158,7 +139,6 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
         return TARGET_API_MAP.get("production");
     }
-
 
 
     /**
@@ -571,7 +551,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
                 ListBoxModel model = new ListBoxModel();
 
-                model.add("select", "select");
+                //model.add("select", "select"); why is this here? Need to ask.
                 for (int i = 0; i < jsonArray.size(); i++) {
                     JsonObject obj = jsonArray.get(i).getAsJsonObject();
                     String name = String.valueOf(obj.get("name")).replaceAll("\"", "");

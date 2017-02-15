@@ -19,6 +19,9 @@
             <h4>
                 <a target="_blank" href="${it.text}">Report</a>
             </h4>
+            <h4>
+                Click <a target="_blank" href="${it.riskDashboardLink}">here</a> to view Risk Dashboard.
+            </h4>
 
         </td>
     </tr>

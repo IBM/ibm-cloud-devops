@@ -379,13 +379,16 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
                 decision = "Failed";
             }
 
-            GatePublisherAction action = new GatePublisherAction(reportUrl + decisionId, decision, this.policyName, build);
+            String cclink = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + this.orgName + "&toolchainId=" + this.toolchainName;
+
+            GatePublisherAction action = new GatePublisherAction(reportUrl + decisionId, cclink, decision, this.policyName, build);
             build.addAction(action);
 
             // console output for a "fail" decision
             if (decision.equals("Failed")) {
                 printStream.println("************************************");
                 printStream.println("Check DevOps Insights report here -" + reportUrl + decisionId);
+                printStream.println("Check DevOps Insights V2 report here -" + cclink);
                 printStream.println("DevOps Insights decision to proceed is:  false");
                 printStream.println("************************************");
                 if (willDisrupt) {
@@ -398,6 +401,7 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
             // console output for a "proceed" decision
             printStream.println("************************************");
             printStream.println("Check DevOps Insights report here -" + reportUrl + decisionId);
+            printStream.println("Check DevOps Insights V2 report here -" + cclink);
             printStream.println("DevOps Insights decision to proceed is:  true");
             printStream.println("************************************");
             return;
@@ -632,24 +636,23 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
     private JsonObject getDecisionFromDRA(String bluemixToken, String buildId) throws IOException {
         // create http client and post method
         CloseableHttpClient httpClient = HttpClients.createDefault();
-        HttpPost postMethod = new HttpPost(this.draUrl + orgName);
+
+        String url = this.draUrl;
+        url = url + "/organizations/" + orgName +
+                "/toolchainids/" + toolchainName +
+                "/buildartifacts/" + URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20") +
+                "/builds/" + buildId +
+                "/policies/" + policyName +
+                "/decisions";
+        if (this.isDeploy) {
+            url = url.concat("?environment_name=" + environmentName);
+        }
+
+        HttpPost postMethod = new HttpPost(url);
 
         postMethod.setHeader("Authorization", bluemixToken);
         postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);
 
-        // build up the json body
-        JsonObject json = new JsonObject();
-        // Before removing project name from DRA, using orgName for now
-        json.addProperty("project_name", orgName);
-        json.addProperty("runtime_name", applicationName);
-        json.addProperty("build_id", buildId);
-        json.addProperty("criteria_name", policyName);
-        if (this.isDeploy) {
-            json.addProperty("environment_name", environmentName);
-        }
-
-        StringEntity data = new StringEntity(json.toString());
-        postMethod.setEntity(data);
         CloseableHttpResponse response = httpClient.execute(postMethod);
         String resStr = EntityUtils.toString(response.getEntity());
 
@@ -745,7 +748,7 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
             if (value == null || value.equals("empty")) {
                 return FormValidation.errorWithMarkup("Could not retrieve list of toolchains. Please check your username and password. If you have not created a toolchain, create one <a target='_blank' href='https://console.ng.bluemix.net/devops/create'>here</a>.");
             }
-            return FormValidation.validateRequired(value);
+            return FormValidation.ok();
         }
 
         public FormValidation doCheckEnvironmentName(@QueryParameter String value)
@@ -756,9 +759,9 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
         public FormValidation doCheckPolicyName(@QueryParameter String value) {
 
             if (value == null || value.equals("empty")) {
-                return FormValidation.errorWithMarkup("Fail to get the policies, please check your username/password or org name and make sure you have created policies in this org");
+                return FormValidation.errorWithMarkup("Fail to get the policies, please check your username/password or org name and make sure you have created policies for this org and toolchain.");
             }
-            return FormValidation.validateRequired(value);
+            return FormValidation.ok();
         }
 
         public FormValidation doTestConnection(@AncestorInPath ItemGroup context,

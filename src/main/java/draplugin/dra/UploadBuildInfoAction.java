@@ -178,7 +178,6 @@ public class UploadBuildInfoAction extends AbstractDevOpsAction implements Simpl
             branch = parts[parts.length - 1];
         }
 
-        //url = url.replace("{environment_name}", URLEncoder.encode(branch, "UTF-8").replaceAll("\\+", "%20"));
         HttpPost postMethod = new HttpPost(url);
         postMethod.setHeader("Authorization", bluemixToken);
         postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);
@@ -299,7 +298,7 @@ public class UploadBuildInfoAction extends AbstractDevOpsAction implements Simpl
             if (value == null || value.equals("empty")) {
                 return FormValidation.errorWithMarkup("Could not retrieve list of toolchains. Please check your username and password. If you have not created a toolchain, create one <a target='_blank' href='https://console.ng.bluemix.net/devops/create'>here</a>.");
             }
-            return FormValidation.validateRequired(value);
+            return FormValidation.ok();
         }
 
         public FormValidation doCheckApplicationName(@QueryParameter String value)
