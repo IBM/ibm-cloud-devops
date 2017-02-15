@@ -642,7 +642,7 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
                 "/toolchainids/" + toolchainName +
                 "/buildartifacts/" + URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20") +
                 "/builds/" + buildId +
-                "/policies/" + policyName +
+                "/policies/" + URLEncoder.encode(policyName, "UTF-8").replaceAll("\\+", "%20") +
                 "/decisions";
         if (this.isDeploy) {
             url = url.concat("?environment_name=" + environmentName);

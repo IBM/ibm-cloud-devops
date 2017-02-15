@@ -79,9 +79,7 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
     private EnvironmentScope scope;
     private String branchName;
     private String envName;
-    //private boolean isBuild;
     private boolean isDeploy;
-    //private boolean isAll;
 
     private String draUrl;
     private PrintStream printStream;
@@ -111,9 +109,7 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
         this.scope = scope;
         this.envName = scope.getEnvName();
         this.branchName = scope.getBranchName();
-        //this.isBuild = scope.isBuild();
         this.isDeploy = scope.isDeploy();
-        //this.isAll = scope.isAll();
     }
 
     /**
@@ -160,21 +156,9 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
         return envName;
     }
 
-    /*
-    public boolean isBuild() {
-        return isBuild;
-    }
-    */
-
     public boolean isDeploy() {
         return isDeploy;
     }
-
-    /*
-    public boolean isAll() {
-        return isAll;
-    }
-    */
 
     /**
      * Override this method to get your operation done in the build step. When invoked, it is up to you, as a plugin developer
@@ -321,7 +305,7 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
                 "/toolchainids/" + toolchainName +
                 "/buildartifacts/" + URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20") +
                 "/builds/" + buildId +
-                "/policies/" + policyName +
+                "/policies/" + URLEncoder.encode(policyName, "UTF-8").replaceAll("\\+", "%20") +
                 "/decisions";
         if (this.isDeploy) {
             url = url.concat("?environment_name=" + environmentName);

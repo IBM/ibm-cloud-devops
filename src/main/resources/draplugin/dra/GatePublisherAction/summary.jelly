@@ -17,7 +17,7 @@
             <h3>Policy Name: ${it.policyName}</h3>
             <h4>Decision: ${it.decision}</h4>
             <h4>
-                <a target="_blank" href="${it.text}">Report</a>
+                Click <a target="_blank" href="${it.text}">here</a> to view the Decision Report.
             </h4>
             <h4>
                 Click <a target="_blank" href="${it.riskDashboardLink}">here</a> to view Risk Dashboard.

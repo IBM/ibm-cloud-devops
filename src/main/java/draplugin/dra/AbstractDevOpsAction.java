@@ -140,6 +140,39 @@ public abstract class AbstractDevOpsAction extends Recorder {
         return TARGET_API_MAP.get("production");
     }
 
+    public static String chooseToolchainsUrl(String environment) {
+        if (!Util.isNullOrEmpty(environment)) {
+            String toolchains_url = TOOLCHAINS_URL_MAP.get(environment);
+            if (!Util.isNullOrEmpty(toolchains_url)) {
+                return toolchains_url;
+            }
+        }
+
+        return TOOLCHAINS_URL_MAP.get("production");
+    }
+
+    public static String chooseOrganizationsUrl(String environment) {
+        if (!Util.isNullOrEmpty(environment)) {
+            String organizations_url = ORGANIZATIONS_URL_MAP.get(environment);
+            if (!Util.isNullOrEmpty(organizations_url)) {
+                return organizations_url;
+            }
+        }
+
+        return ORGANIZATIONS_URL_MAP.get("production");
+    }
+
+    public static String choosePoliciesUrl(String environment) {
+        if (!Util.isNullOrEmpty(environment)) {
+            String policies_url = POLICIES_URL_MAP.get(environment);
+            if (!Util.isNullOrEmpty(policies_url)) {
+                return policies_url;
+            }
+        }
+
+        return POLICIES_URL_MAP.get("production");
+    }
+
 
     /**
      * choose DLMS Url for different environment (production, stage1, new, dev)
@@ -439,7 +472,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
         }
 
         CloseableHttpClient httpClient = HttpClients.createDefault();
-        String toolchains_url = TOOLCHAINS_URL_MAP.get(environment);
+        String toolchains_url = chooseToolchainsUrl(environment);
         HttpGet httpGet = new HttpGet(toolchains_url + orgId);
 
         httpGet.setHeader("Authorization", token);
@@ -480,7 +513,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
     public static String getOrgId(String token, String orgName, String environment) {
         CloseableHttpClient httpClient = HttpClients.createDefault();
-        String organizations_url = ORGANIZATIONS_URL_MAP.get(environment);
+        String organizations_url = chooseOrganizationsUrl(environment);
         HttpGet httpGet = new HttpGet(organizations_url + orgName);
 
         httpGet.setHeader("Authorization", token);
@@ -530,7 +563,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
         ListBoxModel emptybox = new ListBoxModel();
         emptybox.add("","empty");
 
-        String url = POLICIES_URL_MAP.get(environment);
+        String url = choosePoliciesUrl(environment);
         url = url.replace("{org_name}", orgName);
         url = url.replace("{toolchain_name}", toolchainName);
 
