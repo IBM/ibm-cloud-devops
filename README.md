@@ -24,7 +24,7 @@ Click [here](https://console.stage1.ng.bluemix.net/devops/create) to create a to
 
 ### Integrating DevOps Insights with your Jenkins project
 
-When the plugin is installed, you can integrate DevOps Insights into your Jenkins project. DevOps Insights provide you with two main features, get a project dashboard by uploading the test result to DevOps Insight and have a quality gate before deploying your project **<need more text to explain about toolchains and it's benefits????>**
+When the plugin is installed, you can integrate DevOps Insights into your Jenkins project. DevOps Insights provide you with two main features, get a project dashboard by uploading the test result to DevOps Insight and have a quality gate before deploying your project ***need more text to explain about toolchains and its benefits????***
 You can go to the [control center](https://control-center.ng.bluemix.net/) to view the dashboard or create a policy for the quality gate that you are going to use for your project
 
 1. Open the configuration of any jobs (build job, test jobs, deployment job, etc)
