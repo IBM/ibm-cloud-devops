@@ -61,7 +61,7 @@
 
   </properties>
 
-  <name>IBM Bluemix Toolchains</name>
+  <name>IBM DevOps Insights Plugin</name>
   <description>IBM® DevOps Insights aggregates and provides visualizations of the indications of a continuous delivery project’s health. Use its built-in dashboards and data reporting services to learn where you most need to improve your build, test, and delivery processes. You can also define test coverage policies to prevent bad code from being promoted to critical environments. </description>
   <url>https://wiki.jenkins-ci.org/display/JENKINS/IBM+DevOps+Insights+Plugin</url>
 
