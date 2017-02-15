@@ -67,10 +67,10 @@ public class BuildListener extends RunListener<AbstractBuild> {
                 webhook = webhook.trim();
             }
         } catch (IOException e) {
-            this.printStream.println("[IBM Bluemix Toolchains][Webhook Notification] Exception: ");
+            this.printStream.println("[IBM Bluemix Toolchains] Exception: ");
             e.printStackTrace(this.printStream);
         } catch (InterruptedException e) {
-            this.printStream.println("[IBM Bluemix Toolchains][Webhook Notification] Exception: ");
+            this.printStream.println("[IBM Bluemix Toolchains] Exception: ");
             e.printStackTrace(this.printStream);
         }
 
@@ -106,7 +106,7 @@ public class BuildListener extends RunListener<AbstractBuild> {
             failureOnly = notifier.getFailureOnly();
 
             if(this.webhook == null || this.webhook.isEmpty()){//check webhook
-                this.printStream.println("[IBM Bluemix Toolchains][Webhook Notification] String Parameter ICD_WEBHOOK_URL not set.");
+                this.printStream.println("[IBM Bluemix Toolchains] String Parameter ICD_WEBHOOK_URL not set.");
             } else if(onStarted && phase == "STARTED" || onCompleted && phase == "COMPLETED" || onFinalized && phase == "FINALIZED"){//check selections
                 if(failureOnly && result == Result.FAILURE || !failureOnly){//check failureOnly
                     buildMessage(r, listener, notifier, phase, result);
@@ -217,12 +217,12 @@ public class BuildListener extends RunListener<AbstractBuild> {
             CloseableHttpResponse response = httpClient.execute(postMethod);
 
             if (response.getStatusLine().toString().matches(".*2([0-9]{2}).*")) {
-                this.printStream.println("[IBM Bluemix Toolchains][Webhook Notification] Message successfully posted to webhook.");
+                this.printStream.println("[IBM Bluemix Toolchains] Message successfully posted to webhook.");
             } else {
-                this.printStream.println("[IBM Bluemix Toolchains][Webhook Notification] Message failed, response status: " + response.getStatusLine());
+                this.printStream.println("[IBM Bluemix Toolchains] Message failed, response status: " + response.getStatusLine());
             }
         } catch (IOException e) {
-            this.printStream.println("[IBM Bluemix Toolchains][Webhook Notification] IOException, could not post to webhook:");
+            this.printStream.println("[IBM Bluemix Toolchains] IOException, could not post to webhook:");
             e.printStackTrace(this.printStream);
         }
     }
