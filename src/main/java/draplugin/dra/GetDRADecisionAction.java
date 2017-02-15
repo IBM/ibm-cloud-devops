@@ -412,7 +412,7 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
         public FormValidation doCheckPolicyName(@QueryParameter String value)
                 throws IOException, ServletException {
             if (value == null || value.equals("empty")) {
-               return FormValidation.errorWithMarkup("Fail to get the policies, please check your username/password or org name");
+               return FormValidation.errorWithMarkup("Fail to get the policies, please check your username/password or org name and make sure you have created policies for this org and toolchain.");
             }
             return FormValidation.ok();
         }
