@@ -145,6 +145,10 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
         return applicationName;
     }
 
+    public String getToolchainName() {
+        return toolchainName;
+    }
+
     public String getOrgName() {
         return orgName;
     }
@@ -270,6 +274,7 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
         // expand to support env vars
         this.orgName = envVars.expand(this.orgName);
         this.applicationName = envVars.expand(this.applicationName);
+        this.toolchainName = envVars.expand(this.toolchainName);
         this.contents = envVars.expand(this.contents);
         if (this.isDeploy) {
             this.environmentName = envVars.expand(this.envName);

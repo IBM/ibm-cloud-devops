@@ -118,7 +118,7 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 		return applicationName;
 	}
 
-	public String getToolchainNameName() {
+	public String getToolchainName() {
 		return toolchainName;
 	}
 
