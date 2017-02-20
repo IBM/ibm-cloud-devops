@@ -132,6 +132,10 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
         return applicationName;
     }
 
+    public String getToolchainName() {
+        return toolchainName;
+    }
+
     public String getEnvironmentName() {
         return environmentName;
     }
