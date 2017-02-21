@@ -439,10 +439,9 @@ public abstract class AbstractDevOpsAction extends Recorder {
     /**
      * Get the build number
      * @param build
-     * @param envVars
      * @return
      */
-    public String getBuildNumber(Run build, EnvVars envVars) {
+    public String getBuildNumber(Run build) {
         String buildNumber = build.getFullDisplayName();
         buildNumber = buildNumber.replaceAll("\\s+","");
         buildNumber = buildNumber.replace("#",":");

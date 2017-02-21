@@ -303,7 +303,7 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
                 //failed to find the build job
                 return;
             } else {
-                buildNumber = getBuildNumber(triggeredBuild, triggeredBuild.getEnvironment(listener));
+                buildNumber = getBuildNumber(triggeredBuild);
                 String rootUrl = Jenkins.getInstance().getRootUrl();
                 buildUrl = rootUrl + triggeredBuild.getUrl();
             }
