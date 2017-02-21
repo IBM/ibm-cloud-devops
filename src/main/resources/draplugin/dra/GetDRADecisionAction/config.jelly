@@ -40,12 +40,12 @@
 
     <f:entry title="Scope of Test Result">
         <table>
-            <f:radioBlock name="scope" title="Deploy Environment" checked="${instance.getScope().isDeploy()}" value="deploy">
+            <f:radioBlock name="scope" title="Deploy Environment" checked="${instance.getScope().isDeploy()}" value="deploy" help="Gate should consider only those tests that were run in the specified environment">
                 <f:entry title="Environment Name" field="envName">
                     <f:textbox></f:textbox>
                 </f:entry>
             </f:radioBlock>
-            <f:radioBlock name="scope" title="All" checked="${instance.getScope().isAll()}" value="all" ></f:radioBlock>
+            <f:radioBlock name="scope" title="All" checked="${instance.getScope().isAll()}" value="all"  help="Gate should consider all test results for this build"></f:radioBlock>
         </table>
     </f:entry>
 

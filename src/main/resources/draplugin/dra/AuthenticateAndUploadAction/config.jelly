@@ -38,10 +38,10 @@
 
     <f:entry title="Environment">
         <table>
-            <f:radioBlock name="testEnv" title="Build Environment" checked="${instance.getTestEnv().isBuild()}" value="build">
+            <f:radioBlock name="testEnv" title="Build Environment" checked="${instance.getTestEnv().isBuild()}" value="build" help="The test is running during build process">
             </f:radioBlock>
 
-            <f:radioBlock name="testEnv" title="Deploy Environment" checked="${instance.getTestEnv().isDeploy()}" value="deploy">
+            <f:radioBlock name="testEnv" title="Deploy Environment" checked="${instance.getTestEnv().isDeploy()}" value="deploy" help="The test is running on a deployed application">
                 <f:entry title="Environment Name" field="envName">
                     <f:textbox></f:textbox>
                 </f:entry>
