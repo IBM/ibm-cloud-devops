@@ -13,8 +13,8 @@
 <div>
     The result file should contain results in the format specified above. This path will be relative to the root directory.
 
-    For example, in a simple NodeJS project we have stored our source code in the ./src directory, our tests in the ./test directory, and our test results in the ./test/results directory. If Working Directory is blank, the Result File Location for our mocha file would be ./test/results/mochaTestResults.json. If the Working Directory field was set to ./test, our Result File Location would just be ./results/mochaTestResults.json. Also it has wildcard support. You may use environment variables
-    Test results file must be in JSON format for Mocha, KarmaMocha, Istanbul and BlanketJS. Test results must be XML format for xUnit
+    For example, in a simple NodeJS project we have stored our source code in the ./src directory, our tests in the ./test directory, and our test results in the ./test/results directory. For example, the Result File Location for our mocha file would be ./test/results/mochaTestResults.json. Also it has wildcard support. You may use environment variables, for example $RESULT_FILE.
+    Test results file must be in JSON format for Mocha, KarmaMocha, Istanbul and BlanketJS. Test results must be XML format for xUnit.
     If you don't use any test tools/format, you can leave this field empty and we will upload a simple test report based on the job status
 
 </div>
