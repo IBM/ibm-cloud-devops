@@ -443,14 +443,9 @@ public abstract class AbstractDevOpsAction extends Recorder {
      * @return
      */
     public String getBuildNumber(Run build, EnvVars envVars) {
-        String buildNumber = String.valueOf(build.getNumber());
-
-        String branchName = envVars.get("GIT_BRANCH");
-        if (!Util.isNullOrEmpty(branchName)) {
-            String[] parts = branchName.split("/");
-            branchName = parts[parts.length - 1];
-            buildNumber = branchName + ":" + buildNumber;
-        }
+        String buildNumber = build.getFullDisplayName();
+        buildNumber = buildNumber.replaceAll("\\s+","");
+        buildNumber = buildNumber.replace("#",":");
 
         return buildNumber;
     }
