@@ -22,7 +22,7 @@
   </parent>
   <groupId>devops-insights-plugin</groupId>
   <artifactId>dra</artifactId>
-  <version>0.7</version>
+  <version>0.8</version>
   <packaging>hpi</packaging>
 
   <build>
