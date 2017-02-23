@@ -211,7 +211,7 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
                 return true;
             } else {
                 //buildId = triggeredBuild.getId();
-            	buildId = getBuildNumber(triggeredBuild);
+            	buildId = getBuildNumber(buildJobName, triggeredBuild);
             }
         }
 

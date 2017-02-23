@@ -183,7 +183,7 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 				//failed to find the build job
 				return;
 			} else {
-				buildNumber = getBuildNumber(triggeredBuild);
+				buildNumber = getBuildNumber(buildJobName, triggeredBuild);
 				String rootUrl = Jenkins.getInstance().getRootUrl();
 				buildUrl = rootUrl + triggeredBuild.getUrl();
 			}

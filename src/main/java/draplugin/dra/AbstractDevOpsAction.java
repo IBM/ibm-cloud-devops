@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Pattern;
+import java.util.Scanner;
 
 /**
  *
@@ -441,11 +442,16 @@ public abstract class AbstractDevOpsAction extends Recorder {
      * @param build
      * @return
      */
-    public String getBuildNumber(Run build) {
-        String buildNumber = build.getFullDisplayName();
-        buildNumber = buildNumber.replaceAll("\\s+","");
-        buildNumber = buildNumber.replace("#",":");
+    public String getBuildNumber(String jobName, Run build) {
 
+        String jName = new String();
+        Scanner s = new Scanner(jobName).useDelimiter("/");
+        while(s.hasNext()){ // this will loop through the string until the last string(job name) is reached.
+            jName = s.next();
+        }
+        s.close();
+
+        String buildNumber = jName + ":" + build.getNumber();
         return buildNumber;
     }
 
