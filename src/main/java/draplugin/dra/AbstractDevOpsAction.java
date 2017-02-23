@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Pattern;
+import java.util.Scanner;
 
 /**
  *
@@ -439,19 +440,18 @@ public abstract class AbstractDevOpsAction extends Recorder {
     /**
      * Get the build number
      * @param build
-     * @param envVars
      * @return
      */
-    public String getBuildNumber(Run build, EnvVars envVars) {
-        String buildNumber = String.valueOf(build.getNumber());
+    public String getBuildNumber(String jobName, Run build) {
 
-        String branchName = envVars.get("GIT_BRANCH");
-        if (!Util.isNullOrEmpty(branchName)) {
-            String[] parts = branchName.split("/");
-            branchName = parts[parts.length - 1];
-            buildNumber = branchName + ":" + buildNumber;
+        String jName = new String();
+        Scanner s = new Scanner(jobName).useDelimiter("/");
+        while(s.hasNext()){ // this will loop through the string until the last string(job name) is reached.
+            jName = s.next();
         }
+        s.close();
 
+        String buildNumber = jName + ":" + build.getNumber();
         return buildNumber;
     }
 

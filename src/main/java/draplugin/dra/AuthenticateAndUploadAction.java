@@ -52,6 +52,7 @@ import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.HashSet;
 
 /**
  * Authenticate with Bluemix and then upload the result file to DRA
@@ -303,7 +304,7 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
                 //failed to find the build job
                 return;
             } else {
-                buildNumber = getBuildNumber(triggeredBuild, triggeredBuild.getEnvironment(listener));
+                buildNumber = getBuildNumber(buildJobName, triggeredBuild);
                 String rootUrl = Jenkins.getInstance().getRootUrl();
                 buildUrl = rootUrl + triggeredBuild.getUrl();
             }
@@ -801,12 +802,17 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
 
             // get all jenkins job
             List<Job> jobs = Jenkins.getInstance().getAllItems(Job.class);
+            HashSet<String> jobSet = new HashSet<>();
             for (int i = 0; i < jobs.size(); i++) {
                 String jobName = jobs.get(i).getName();
 
                 if (jobName.toLowerCase().startsWith(value.toLowerCase())) {
-                    auto.add(jobName);
+                    jobSet.add(jobName);
                 }
+            }
+
+            for (String s : jobSet) {
+                auto.add(s);
             }
 
             return auto;
