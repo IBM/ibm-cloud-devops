@@ -169,7 +169,7 @@ public class UploadBuildInfoAction extends AbstractDevOpsAction implements Simpl
         url = url.replace("{toolchain_id}", this.toolchainName);
         url = url.replace("{build_artifact}", URLEncoder.encode(this.applicationName, "UTF-8").replaceAll("\\+", "%20"));
 
-        String buildNumber = getBuildNumber(build, envVars);
+        String buildNumber = getBuildNumber(envVars.get("JOB_NAME"),build);
         String buildUrl = Jenkins.getInstance().getRootUrl() + build.getUrl();
         String repoUrl = envVars.get("GIT_URL");
         String branch = envVars.get("GIT_BRANCH");
