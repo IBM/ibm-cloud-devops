@@ -287,6 +287,7 @@ public class UploadBuildInfoAction extends AbstractDevOpsAction implements Simpl
          */
 
         private String environment;
+        private String debug_mode;
 
         public FormValidation doCheckOrgName(@QueryParameter String value)
                 throws IOException, ServletException {
@@ -370,6 +371,7 @@ public class UploadBuildInfoAction extends AbstractDevOpsAction implements Simpl
             } catch (Exception e) {
                 return new ListBoxModel();
             }
+            System.out.println("Debug mode is: " + debug_mode);
             ListBoxModel toolChainListBox = getToolchainList(bluemixToken, orgName, environment);
             return toolChainListBox;
 
@@ -402,12 +404,16 @@ public class UploadBuildInfoAction extends AbstractDevOpsAction implements Simpl
             // To persist global configuration information,
             // set that to properties and call save().
             environment = formData.getString("environment");
+            debug_mode = formData.getString("debug_mode");
             save();
             return super.configure(req,formData);
         }
 
         public String getEnvironment() {
             return environment;
+        }
+        public String getDebugMode() {
+            return debug_mode;
         }
     }
 }
