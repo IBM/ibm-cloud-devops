@@ -738,6 +738,7 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
          */
 
         private String environment;
+        private boolean debug_mode;
 
         public FormValidation doCheckOrgName(@QueryParameter String value)
                 throws IOException, ServletException {
@@ -858,7 +859,7 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
                 return new ListBoxModel();
             }
 
-            return getPolicyList(bearerToken, orgName, toolchainName, environment);
+            return getPolicyList(bearerToken, orgName, toolchainName, environment, debug_mode);
         }
 
         /**
@@ -881,7 +882,7 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
             } catch (Exception e) {
                 return new ListBoxModel();
             }
-            ListBoxModel toolChainListBox = getToolchainList(bearerToken, orgName, environment);
+            ListBoxModel toolChainListBox = getToolchainList(bearerToken, orgName, environment, debug_mode);
             return toolChainListBox;
 
         }
@@ -934,12 +935,16 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
             // To persist global configuration information,
             // set that to properties and call save().
             environment = formData.getString("environment");
+            debug_mode = Boolean.parseBoolean(formData.getString("debug_mode"));
             save();
             return super.configure(req,formData);
         }
 
         public String getEnvironment() {
             return environment;
+        }
+        public boolean getDebugMode() {
+            return debug_mode;
         }
     }
 }

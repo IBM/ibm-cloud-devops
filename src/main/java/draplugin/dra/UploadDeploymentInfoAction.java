@@ -341,6 +341,7 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 		 */
 
 		private String environment;
+		private boolean debug_mode;
 
 		public FormValidation doCheckOrgName(@QueryParameter String value) throws IOException, ServletException {
 			return FormValidation.validateRequired(value);
@@ -436,7 +437,7 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 			} catch (Exception e) {
 				return new ListBoxModel();
 			}
-			ListBoxModel toolChainListBox = getToolchainList(bluemixToken, orgName, environment);
+			ListBoxModel toolChainListBox = getToolchainList(bluemixToken, orgName, environment, debug_mode);
 			return toolChainListBox;
 		}
 
@@ -473,12 +474,16 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 			// To persist global configuration information,
 			// set that to properties and call save().
 			environment = formData.getString("environment");
+			debug_mode = Boolean.parseBoolean(formData.getString("debug_mode"));
 			save();
 			return super.configure(req, formData);
 		}
 
 		public String getEnvironment() {
 			return environment;
+		}
+		public boolean getDebugMode() {
+			return debug_mode;
 		}
 	}
 }

@@ -368,6 +368,7 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
     public static final class GetDRADecisionBuilderImpl extends BuildStepDescriptor<Publisher> {
 
         private String environment;
+        private boolean debug_mode;
 
         /**
          * In order to load the persisted global configuration, you have to
@@ -504,7 +505,7 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
                 return new ListBoxModel();
             }
 
-            return getPolicyList(bearerToken, orgName, toolchainName, environment);
+            return getPolicyList(bearerToken, orgName, toolchainName, environment, debug_mode);
 
         }
 
@@ -528,7 +529,7 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
             } catch (Exception e) {
                 return new ListBoxModel();
             }
-            return getToolchainList(bearerToken, orgName, environment);
+            return getToolchainList(bearerToken, orgName, environment, debug_mode);
         }
 
 
@@ -559,12 +560,16 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
             // To persist global configuration information,
             // set that to properties and call save().
             environment = formData.getString("environment");
+            debug_mode = Boolean.parseBoolean(formData.getString("debug_mode"));
             save();
             return super.configure(req,formData);
         }
 
         public String getEnvironment() {
             return environment;
+        }
+        public boolean getDebugMode() {
+            return debug_mode;
         }
     }
 }
