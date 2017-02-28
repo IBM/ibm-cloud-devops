@@ -525,6 +525,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
                 }
                 return toolchainList;
             } else {
+                LOGGER.info("RETURNED STATUS CODE OTHER THAN 200. RESPONSE: " + response.getStatusLine().toString());
                 return emptybox;
             }
 
@@ -577,7 +578,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
             } else {
                 if(debug_mode){
-                    LOGGER.info("RETURNED STATUS CODE OTHER THAN 200.");
+                    LOGGER.info("RETURNED STATUS CODE OTHER THAN 200. RESPONSE: " + response.getStatusLine().toString());
                 }
                 return null;
             }
@@ -643,7 +644,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
                 return model;
             } else {
                 if(debug_mode){
-                    LOGGER.info("RETURNED STATUS CODE OTHER THAN 200.");
+                    LOGGER.info("RETURNED STATUS CODE OTHER THAN 200. RESPONSE: " + response.getStatusLine().toString());
                 }
                 return emptybox;
             }
