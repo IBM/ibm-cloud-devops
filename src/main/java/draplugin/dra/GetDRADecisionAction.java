@@ -504,7 +504,9 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
             } catch (Exception e) {
                 return new ListBoxModel();
             }
-
+            if(debug_mode){
+                LOGGER.info("#######GATE : calling getPolicyList#######");
+            }
             return getPolicyList(bearerToken, orgName, toolchainName, environment, debug_mode);
 
         }
@@ -528,6 +530,9 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
                 }
             } catch (Exception e) {
                 return new ListBoxModel();
+            }
+            if(debug_mode){
+                LOGGER.info("#######GATE : calling getToolchainList#######");
             }
             return getToolchainList(bearerToken, orgName, environment, debug_mode);
         }

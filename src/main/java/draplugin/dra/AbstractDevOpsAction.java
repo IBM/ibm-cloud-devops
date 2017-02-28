@@ -59,7 +59,7 @@ import java.util.logging.Level;
  */
 public abstract class AbstractDevOpsAction extends Recorder {
 
-    private final static Logger LOGGER = Logger.getLogger(AbstractDevOpsAction.class.getName());
+    public final static Logger LOGGER = Logger.getLogger(AbstractDevOpsAction.class.getName());
 
     private static Map<String, String> TARGET_API_MAP = ImmutableMap.of(
             "production", "https://api.ng.bluemix.net",
@@ -619,6 +619,9 @@ public abstract class AbstractDevOpsAction extends Recorder {
             response = httpClient.execute(httpGet);
             String resStr = EntityUtils.toString(response.getEntity());
 
+            if(debug_mode){
+                LOGGER.info("RESPONSE FROM GET POLICIES URL:" + response.getStatusLine().toString());
+            }
             if (response.getStatusLine().toString().contains("200")) {
                 // get 200 response
                 JsonParser parser = new JsonParser();
@@ -633,9 +636,15 @@ public abstract class AbstractDevOpsAction extends Recorder {
                     String name = String.valueOf(obj.get("name")).replaceAll("\"", "");
                     model.add(name, name);
                 }
-
+                if(debug_mode){
+                    LOGGER.info("POLICY LIST:" + model);
+                    LOGGER.info("#######################");
+                }
                 return model;
             } else {
+                if(debug_mode){
+                    LOGGER.info("RETURNED STATUS CODE OTHER THAN 200.");
+                }
                 return emptybox;
             }
 

@@ -437,6 +437,9 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 			} catch (Exception e) {
 				return new ListBoxModel();
 			}
+			if(debug_mode){
+				LOGGER.info("#######UPLOAD DEPLOYMENT INFO : calling getToolchainList#######");
+			}
 			ListBoxModel toolChainListBox = getToolchainList(bluemixToken, orgName, environment, debug_mode);
 			return toolChainListBox;
 		}

@@ -371,6 +371,9 @@ public class UploadBuildInfoAction extends AbstractDevOpsAction implements Simpl
             } catch (Exception e) {
                 return new ListBoxModel();
             }
+            if(debug_mode){
+                LOGGER.info("#######UPLOAD BUILD INFO : calling getToolchainList#######");
+            }
             ListBoxModel toolChainListBox = getToolchainList(bluemixToken, orgName, environment, debug_mode);
             return toolChainListBox;
 

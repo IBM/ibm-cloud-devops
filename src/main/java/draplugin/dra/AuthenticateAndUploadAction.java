@@ -858,7 +858,9 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
             } catch (Exception e) {
                 return new ListBoxModel();
             }
-
+            if(debug_mode){
+                LOGGER.info("#######UPLOAD TEST RESULTS : calling getPolicyList#######");
+            }
             return getPolicyList(bearerToken, orgName, toolchainName, environment, debug_mode);
         }
 
@@ -881,6 +883,9 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
                 }
             } catch (Exception e) {
                 return new ListBoxModel();
+            }
+            if(debug_mode){
+                LOGGER.info("#######UPLOAD TEST RESULTS : calling getToolchainList#######");
             }
             ListBoxModel toolChainListBox = getToolchainList(bearerToken, orgName, environment, debug_mode);
             return toolChainListBox;
