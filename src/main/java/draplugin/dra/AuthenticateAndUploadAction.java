@@ -876,11 +876,7 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
                                                      @QueryParameter("orgName") final String orgName) {
             String targetAPI = chooseTargetAPI(environment);
             try {
-                // if user changes to a different credential, need to get a new token
-                if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bearerToken)) {
-                    bearerToken = GetBluemixToken(context, credentialsId, targetAPI);
-                    preCredentials = credentialsId;
-                }
+                bearerToken = GetBluemixToken(context, credentialsId, targetAPI);
             } catch (Exception e) {
                 return new ListBoxModel();
             }

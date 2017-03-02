@@ -523,11 +523,7 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
                                                   @QueryParameter final String credentialsId) {
             String targetAPI = chooseTargetAPI(environment);
             try {
-                // if user changes to a different credential, need to get a new token
-                if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bearerToken)) {
-                    bearerToken = GetBluemixToken(context, credentialsId, targetAPI);
-                    preCredentials = credentialsId;
-                }
+                bearerToken = GetBluemixToken(context, credentialsId, targetAPI);
             } catch (Exception e) {
                 return new ListBoxModel();
             }

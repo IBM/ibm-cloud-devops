@@ -429,11 +429,7 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 													 @QueryParameter("orgName") final String orgName) {
 			String targetAPI = chooseTargetAPI(environment);
 			try {
-				// if user changes to a different credential, need to get a new token
-				if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
-					bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
-					preCredentials = credentialsId;
-				}
+				bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
 			} catch (Exception e) {
 				return new ListBoxModel();
 			}
