@@ -162,7 +162,7 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 
 		if (Util.isNullOrEmpty(Jenkins.getInstance().getRootUrl())) {
 			printStream.println(
-					"[DevOps Insight Plugin] The Jenkins global root url is not set. Please set it to used this postbuild Action.  \"Manage Jenkins > Configure System > Jenkins URL\"");
+					"[DevOps Insight Plugin] The Jenkins global root url is not set. Please set it to use this postbuild Action.  \"Manage Jenkins > Configure System > Jenkins URL\"");
 			printStream.println("[DevOps Insight Plugin] Error: Failed to upload Deployment Info.");
 			return;
 		}
