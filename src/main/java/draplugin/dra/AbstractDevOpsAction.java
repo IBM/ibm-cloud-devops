@@ -521,6 +521,9 @@ public abstract class AbstractDevOpsAction extends Recorder {
                     LOGGER.info("#######################");
                 }
                 if(toolchainList.isEmpty()) {
+                    if(debug_mode){
+                        LOGGER.info("RETURNED NO TOOLCHAINS.");
+                    }
                     return emptybox;
                 }
                 return toolchainList;
