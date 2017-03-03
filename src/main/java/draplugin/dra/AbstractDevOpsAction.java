@@ -49,6 +49,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Pattern;
 import java.util.Scanner;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 /**
  *
@@ -56,6 +58,8 @@ import java.util.Scanner;
  * Created by Xunrong Li on 6/15/16.
  */
 public abstract class AbstractDevOpsAction extends Recorder {
+
+    public final static Logger LOGGER = Logger.getLogger(AbstractDevOpsAction.class.getName());
 
     private static Map<String, String> TARGET_API_MAP = ImmutableMap.of(
             "production", "https://api.ng.bluemix.net",
@@ -461,9 +465,18 @@ public abstract class AbstractDevOpsAction extends Recorder {
      * @param orgName
      * @return
      */
-    public static ListBoxModel getToolchainList(String token, String orgName, String environment) {
+    public static ListBoxModel getToolchainList(String token, String orgName, String environment, Boolean debug_mode) {
 
-        String orgId = getOrgId(token,orgName, environment);
+        LOGGER.setLevel(Level.INFO);
+
+        if(debug_mode){
+            LOGGER.info("#######################");
+            LOGGER.info("TOKEN:" + token);
+            LOGGER.info("ORG:" + orgName);
+            LOGGER.info("ENVIRONMENT:" + environment);
+        }
+
+        String orgId = getOrgId(token,orgName, environment, debug_mode);
         ListBoxModel emptybox = new ListBoxModel();
         emptybox.add("","empty");
 
@@ -473,6 +486,10 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
         CloseableHttpClient httpClient = HttpClients.createDefault();
         String toolchains_url = chooseToolchainsUrl(environment);
+        if(debug_mode){
+            LOGGER.info("GET TOOLCHAIN LIST URL:" + toolchains_url + orgId);
+        }
+
         HttpGet httpGet = new HttpGet(toolchains_url + orgId);
 
         httpGet.setHeader("Authorization", token);
@@ -482,6 +499,9 @@ public abstract class AbstractDevOpsAction extends Recorder {
             response = httpClient.execute(httpGet);
             String resStr = EntityUtils.toString(response.getEntity());
 
+            if(debug_mode){
+                LOGGER.info("RESPONSE FROM TOOLCHAINS API:" + response.getStatusLine().toString());
+            }
             if (response.getStatusLine().toString().contains("200")) {
                 // get 200 response
                 JsonParser parser = new JsonParser();
@@ -496,11 +516,19 @@ public abstract class AbstractDevOpsAction extends Recorder {
                     String toolchainID = String.valueOf(toolchainObj.get("toolchain_guid")).replaceAll("\"", "");
                     toolchainList.add(toolchainName,toolchainID);
                 }
+                if(debug_mode){
+                    LOGGER.info("TOOLCHAIN LIST:" + toolchainList);
+                    LOGGER.info("#######################");
+                }
                 if(toolchainList.isEmpty()) {
+                    if(debug_mode){
+                        LOGGER.info("RETURNED NO TOOLCHAINS.");
+                    }
                     return emptybox;
                 }
                 return toolchainList;
             } else {
+                LOGGER.info("RETURNED STATUS CODE OTHER THAN 200. RESPONSE: " + response.getStatusLine().toString());
                 return emptybox;
             }
 
@@ -511,9 +539,12 @@ public abstract class AbstractDevOpsAction extends Recorder {
         return emptybox;
     }
 
-    public static String getOrgId(String token, String orgName, String environment) {
+    public static String getOrgId(String token, String orgName, String environment, Boolean debug_mode) {
         CloseableHttpClient httpClient = HttpClients.createDefault();
         String organizations_url = chooseOrganizationsUrl(environment);
+        if(debug_mode){
+            LOGGER.info("GET ORG_GUID URL:" + organizations_url + orgName);
+        }
         HttpGet httpGet = new HttpGet(organizations_url + orgName);
 
         httpGet.setHeader("Authorization", token);
@@ -523,6 +554,9 @@ public abstract class AbstractDevOpsAction extends Recorder {
             response = httpClient.execute(httpGet);
             String resStr = EntityUtils.toString(response.getEntity());
 
+            if(debug_mode){
+                LOGGER.info("RESPONSE FROM ORGANIZATIONS API:" + response.getStatusLine().toString());
+            }
             if (response.getStatusLine().toString().contains("200")) {
                 // get 200 response
                 JsonParser parser = new JsonParser();
@@ -533,13 +567,22 @@ public abstract class AbstractDevOpsAction extends Recorder {
                 if(resources.size() > 0) {
                     JsonObject resource = resources.get(0).getAsJsonObject();
                     JsonObject metadata = resource.getAsJsonObject("metadata");
+                    if(debug_mode){
+                        LOGGER.info("ORG_ID:" + String.valueOf(metadata.get("guid")).replaceAll("\"", ""));
+                    }
                     return String.valueOf(metadata.get("guid")).replaceAll("\"", "");
                 }
                 else {
+                    if(debug_mode){
+                        LOGGER.info("RETURNED NO ORGANIZATIONS.");
+                    }
                     return null;
                 }
 
             } else {
+                if(debug_mode){
+                    LOGGER.info("RETURNED STATUS CODE OTHER THAN 200. RESPONSE: " + response.getStatusLine().toString());
+                }
                 return null;
             }
 
@@ -557,7 +600,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
      * @return
      */
 
-    public static ListBoxModel getPolicyList(String token, String orgName, String toolchainName, String environment) {
+    public static ListBoxModel getPolicyList(String token, String orgName, String toolchainName, String environment, Boolean debug_mode) {
 
         // get all jenkins job
         ListBoxModel emptybox = new ListBoxModel();
@@ -566,6 +609,10 @@ public abstract class AbstractDevOpsAction extends Recorder {
         String url = choosePoliciesUrl(environment);
         url = url.replace("{org_name}", orgName);
         url = url.replace("{toolchain_name}", toolchainName);
+
+        if(debug_mode){
+            LOGGER.info("GET POLICIES URL:" + url);
+        }
 
         CloseableHttpClient httpClient = HttpClients.createDefault();
         HttpGet httpGet = new HttpGet(url);
@@ -576,6 +623,9 @@ public abstract class AbstractDevOpsAction extends Recorder {
             response = httpClient.execute(httpGet);
             String resStr = EntityUtils.toString(response.getEntity());
 
+            if(debug_mode){
+                LOGGER.info("RESPONSE FROM GET POLICIES URL:" + response.getStatusLine().toString());
+            }
             if (response.getStatusLine().toString().contains("200")) {
                 // get 200 response
                 JsonParser parser = new JsonParser();
@@ -590,9 +640,15 @@ public abstract class AbstractDevOpsAction extends Recorder {
                     String name = String.valueOf(obj.get("name")).replaceAll("\"", "");
                     model.add(name, name);
                 }
-
+                if(debug_mode){
+                    LOGGER.info("POLICY LIST:" + model);
+                    LOGGER.info("#######################");
+                }
                 return model;
             } else {
+                if(debug_mode){
+                    LOGGER.info("RETURNED STATUS CODE OTHER THAN 200. RESPONSE: " + response.getStatusLine().toString());
+                }
                 return emptybox;
             }
 

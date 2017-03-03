@@ -27,6 +27,12 @@
   <f:section title="DevOps Insights - Upload Build.">
     <f:entry title="ENVIRONMENT" field="environment">
            <f:textbox />
-        </f:entry>
+    </f:entry>
+    <f:entry title="DEBUG_MODE" field="debug_mode">
+       <select name="debug_mode">
+          <option value="false">False</option>
+          <option value="true">True</option>
+       </select>
+    </f:entry>
   </f:section>
 </j:jelly>

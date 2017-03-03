@@ -115,8 +115,8 @@ public class UploadBuildInfoAction extends AbstractDevOpsAction implements Simpl
 
         if (Util.isNullOrEmpty(Jenkins.getInstance().getRootUrl())) {
             printStream.println(
-                    "[DevOps Insight Plugin] The Jenkins global root url is not set. Please set it to used this postbuild Action.  \"Manage Jenkins > Configure System > Jenkins URL\"");
-            printStream.println("[DevOps Insight Plugin] Error: Failed to upload Deployment Info.");
+                    "[DevOps Insight Plugin] The Jenkins global root url is not set. Please set it to use this postbuild Action.  \"Manage Jenkins > Configure System > Jenkins URL\"");
+            printStream.println("[DevOps Insight Plugin] Error: Failed to upload Build Info.");
             return;
         }
 
@@ -287,6 +287,7 @@ public class UploadBuildInfoAction extends AbstractDevOpsAction implements Simpl
          */
 
         private String environment;
+        private boolean debug_mode;
 
         public FormValidation doCheckOrgName(@QueryParameter String value)
                 throws IOException, ServletException {
@@ -362,15 +363,14 @@ public class UploadBuildInfoAction extends AbstractDevOpsAction implements Simpl
                                                      @QueryParameter("orgName") final String orgName) {
             String targetAPI = chooseTargetAPI(environment);
             try {
-                // if user changes to a different credential, need to get a new token
-                if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
-                    bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
-                    preCredentials = credentialsId;
-                }
+                bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
             } catch (Exception e) {
                 return new ListBoxModel();
             }
-            ListBoxModel toolChainListBox = getToolchainList(bluemixToken, orgName, environment);
+            if(debug_mode){
+                LOGGER.info("#######UPLOAD BUILD INFO : calling getToolchainList#######");
+            }
+            ListBoxModel toolChainListBox = getToolchainList(bluemixToken, orgName, environment, debug_mode);
             return toolChainListBox;
 
         }
@@ -402,12 +402,16 @@ public class UploadBuildInfoAction extends AbstractDevOpsAction implements Simpl
             // To persist global configuration information,
             // set that to properties and call save().
             environment = formData.getString("environment");
+            debug_mode = Boolean.parseBoolean(formData.getString("debug_mode"));
             save();
             return super.configure(req,formData);
         }
 
         public String getEnvironment() {
             return environment;
+        }
+        public boolean getDebugMode() {
+            return debug_mode;
         }
     }
 }

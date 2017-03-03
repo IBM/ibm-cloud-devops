@@ -283,8 +283,8 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
 
         if (Util.isNullOrEmpty(Jenkins.getInstance().getRootUrl())) {
             printStream.println(
-                    "[DevOps Insight Plugin] The Jenkins global root url is not set. Please set it to used this postbuild Action.  \"Manage Jenkins > Configure System > Jenkins URL\"");
-            printStream.println("[DevOps Insight Plugin] Error: Failed to upload Deployment Info.");
+                    "[DevOps Insight Plugin] The Jenkins global root url is not set. Please set it to use this postbuild Action.  \"Manage Jenkins > Configure System > Jenkins URL\"");
+            printStream.println("[DevOps Insight Plugin] Error: Failed to upload Test Results Info.");
             return;
         }
 
@@ -738,6 +738,7 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
          */
 
         private String environment;
+        private boolean debug_mode;
 
         public FormValidation doCheckOrgName(@QueryParameter String value)
                 throws IOException, ServletException {
@@ -857,8 +858,10 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
             } catch (Exception e) {
                 return new ListBoxModel();
             }
-
-            return getPolicyList(bearerToken, orgName, toolchainName, environment);
+            if(debug_mode){
+                LOGGER.info("#######UPLOAD TEST RESULTS : calling getPolicyList#######");
+            }
+            return getPolicyList(bearerToken, orgName, toolchainName, environment, debug_mode);
         }
 
         /**
@@ -873,15 +876,14 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
                                                      @QueryParameter("orgName") final String orgName) {
             String targetAPI = chooseTargetAPI(environment);
             try {
-                // if user changes to a different credential, need to get a new token
-                if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bearerToken)) {
-                    bearerToken = GetBluemixToken(context, credentialsId, targetAPI);
-                    preCredentials = credentialsId;
-                }
+                bearerToken = GetBluemixToken(context, credentialsId, targetAPI);
             } catch (Exception e) {
                 return new ListBoxModel();
             }
-            ListBoxModel toolChainListBox = getToolchainList(bearerToken, orgName, environment);
+            if(debug_mode){
+                LOGGER.info("#######UPLOAD TEST RESULTS : calling getToolchainList#######");
+            }
+            ListBoxModel toolChainListBox = getToolchainList(bearerToken, orgName, environment, debug_mode);
             return toolChainListBox;
 
         }
@@ -934,12 +936,16 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
             // To persist global configuration information,
             // set that to properties and call save().
             environment = formData.getString("environment");
+            debug_mode = Boolean.parseBoolean(formData.getString("debug_mode"));
             save();
             return super.configure(req,formData);
         }
 
         public String getEnvironment() {
             return environment;
+        }
+        public boolean getDebugMode() {
+            return debug_mode;
         }
     }
 }
