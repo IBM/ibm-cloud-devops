@@ -13,7 +13,7 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 <tr>
     <td colspan="2">
-        <h1>DevOps Insights</h1>
+        <h1>IBM Cloud DevOps</h1>
 
         <h4>
             Please click  <a target="_blank" href="${it.link}">here</a> to view the build status of all application

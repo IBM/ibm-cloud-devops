@@ -122,9 +122,9 @@ public abstract class AbstractDevOpsAction extends Recorder {
         try {
             properties.load(loader.getResourceAsStream("plugin.properties"));
             if (properties != null) {
-                printStream.println("[DevOps Insight Plugin] version: " + properties.getProperty("version"));
+                printStream.println("[IBM Cloud DevOps Plugin] version: " + properties.getProperty("version"));
             } else {
-                printStream.println("[DevOps Insight Plugin] failed to get version");
+                printStream.println("[IBM Cloud DevOps Plugin] failed to get version");
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -419,7 +419,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
     public static Run<?,?> getTriggeredBuild(Run build, String name, EnvVars envVars, PrintStream printStream) {
         // if user specify the build job as current job or leave it empty
         if (name == null || name.isEmpty() || name.equals(build.getParent().getName())) {
-            printStream.println("[DevOps Insight Plugin] Current job is the build job");
+            printStream.println("[IBM Cloud DevOps Plugin] Current job is the build job");
             return build;
         } else {
             name = envVars.expand(name);
@@ -428,14 +428,14 @@ public abstract class AbstractDevOpsAction extends Recorder {
                 Run src = getBuild(job, build);
                 if (src == null) {
                     // if user runs the test job independently
-                    printStream.println("[DevOps Insight Plugin] Are you running the test job independently? Use the last successful build of the build job");
+                    printStream.println("[IBM Cloud DevOps Plugin] Are you running the test job independently? Use the last successful build of the build job");
                     src = job.getLastSuccessfulBuild();
                 }
 
                 return src;
             } else {
                 // if user does not specify the build job or can not find the build job that user specifies
-                printStream.println("[DevOps Insight Plugin] ERROR: Failed to find the build job, please check the build job name");
+                printStream.println("[IBM Cloud DevOps Plugin] ERROR: Failed to find the build job, please check the build job name");
                 return null;
             }
         }

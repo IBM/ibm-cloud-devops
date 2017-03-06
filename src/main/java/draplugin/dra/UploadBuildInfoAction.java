@@ -115,8 +115,8 @@ public class UploadBuildInfoAction extends AbstractDevOpsAction implements Simpl
 
         if (Util.isNullOrEmpty(Jenkins.getInstance().getRootUrl())) {
             printStream.println(
-                    "[DevOps Insight Plugin] The Jenkins global root url is not set. Please set it to use this postbuild Action.  \"Manage Jenkins > Configure System > Jenkins URL\"");
-            printStream.println("[DevOps Insight Plugin] Error: Failed to upload Build Info.");
+                    "[IBM Cloud DevOps Plugin] The Jenkins global root url is not set. Please set it to use this postbuild Action.  \"Manage Jenkins > Configure System > Jenkins URL\"");
+            printStream.println("[IBM Cloud DevOps Plugin] Error: Failed to upload Build Info.");
             return;
         }
 
@@ -126,8 +126,8 @@ public class UploadBuildInfoAction extends AbstractDevOpsAction implements Simpl
         this.toolchainName = envVars.expand(this.toolchainName);
 
         if (Util.isNullOrEmpty(orgName) || Util.isNullOrEmpty(applicationName) || Util.isNullOrEmpty(toolchainName)) {
-            printStream.println("[DevOps Insight Plugin] Missing few required configurations");
-            printStream.println("[DevOps Insight Plugin] Error: Failed to upload Build Info.");
+            printStream.println("[IBM Cloud DevOps Plugin] Missing few required configurations");
+            printStream.println("[IBM Cloud DevOps Plugin] Error: Failed to upload Build Info.");
             return;
         }
 
@@ -140,15 +140,15 @@ public class UploadBuildInfoAction extends AbstractDevOpsAction implements Simpl
         String targetAPI = chooseTargetAPI(env);
         try {
             bluemixToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
-            printStream.println("[DevOps Insight Plugin] Log in successfully, get the Bluemix token");
+            printStream.println("[IBM Cloud DevOps Plugin] Log in successfully, get the Bluemix token");
         } catch (Exception e) {
-            printStream.println("[DevOps Insight Plugin] Username/Password is not correct, fail to authenticate with Bluemix");
-            printStream.println("[DevOps Insight Plugin]" + e.toString());
+            printStream.println("[IBM Cloud DevOps Plugin] Username/Password is not correct, fail to authenticate with Bluemix");
+            printStream.println("[IBM Cloud DevOps Plugin]" + e.toString());
             return;
         }
 
         if (uploadBuildInfo(bluemixToken, build, envVars)) {
-            printStream.println("[DevOps Insight Plugin] Go to Control Center (" + link + ") to check your build status");
+            printStream.println("[IBM Cloud DevOps Plugin] Go to Control Center (" + link + ") to check your build status");
             BuildPublisherAction action = new BuildPublisherAction(link);
             build.addAction(action);
         }
@@ -209,25 +209,25 @@ public class UploadBuildInfoAction extends AbstractDevOpsAction implements Simpl
         try {
             if (response.getStatusLine().toString().contains("200")) {
                 // get 200 response
-                printStream.println("[DevOps Insight Plugin] Upload Build Information successfully");
+                printStream.println("[IBM Cloud DevOps Plugin] Upload Build Information successfully");
                 return true;
 
             } else {
                 // if gets error status
-                printStream.println("[DevOps Insight Plugin] Error: Failed to upload, response status " + response.getStatusLine());
+                printStream.println("[IBM Cloud DevOps Plugin] Error: Failed to upload, response status " + response.getStatusLine());
 
                 JsonParser parser = new JsonParser();
                 JsonElement element = parser.parse(resStr);
                 JsonObject resJson = element.getAsJsonObject();
                 if (resJson != null && resJson.has("user_error")) {
-                    printStream.println("[DevOps Insight Plugin] Reason: " + resJson.get("user_error"));
+                    printStream.println("[IBM Cloud DevOps Plugin] Reason: " + resJson.get("user_error"));
                 }
             }
         } catch (JsonSyntaxException e) {
-            printStream.println("[DevOps Insight Plugin] Invalid Json response, response: " + resStr);
+            printStream.println("[IBM Cloud DevOps Plugin] Invalid Json response, response: " + resStr);
         } catch (IllegalStateException e) {
             // will be triggered when 403 Forbidden
-            printStream.println("[DevOps Insight Plugin] Please check if you have the access to " + this.orgName + " org");
+            printStream.println("[IBM Cloud DevOps Plugin] Please check if you have the access to " + this.orgName + " org");
         }
         return false;
     }
@@ -394,7 +394,7 @@ public class UploadBuildInfoAction extends AbstractDevOpsAction implements Simpl
          * @return The text to be displayed when selecting your build in the project
          */
         public String getDisplayName() {
-            return "Publish build information to DevOps Insights";
+            return "Publish build information to IBM Cloud DevOps";
         }
 
         @Override
