@@ -134,7 +134,7 @@ public class UploadBuildInfoAction extends AbstractDevOpsAction implements Simpl
         // verify if user chooses advanced option to input customized DLMS
         String env = getDescriptor().getEnvironment();
         this.dlmsUrl = chooseDLMSUrl(env) + BUILD_API_URL;
-        String link = chooseControlCenterUrl(env) + "buildverification?orgName=" + this.orgName + "&toolchainId=" + this.toolchainName;
+        String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + this.orgName + "&toolchainId=" + this.toolchainName;
 
         // get the Bluemix token
         String targetAPI = chooseTargetAPI(env);
