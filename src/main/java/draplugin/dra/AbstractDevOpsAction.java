@@ -34,6 +34,8 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.apache.http.HttpHost;
+import org.apache.http.client.config.RequestConfig;
 import org.cloudfoundry.client.lib.CloudCredentials;
 import org.cloudfoundry.client.lib.CloudFoundryClient;
 import org.cloudfoundry.client.lib.CloudFoundryException;
@@ -388,7 +390,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
             Run<?,?> run;
 
             if(upstreamBuild == null) {
-            	continue;
+                continue;
             }
             if (jobNames.contains(upstreamBuild.getParent().getFullName())) {
                 // Use the 'job' parameter instead of directly the 'upstreamBuild', because of Matrix jobs.
@@ -492,6 +494,8 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
         HttpGet httpGet = new HttpGet(toolchains_url + orgId);
 
+        httpGet = addProxyInformation(httpGet);
+
         httpGet.setHeader("Authorization", token);
         CloseableHttpResponse response = null;
 
@@ -546,6 +550,8 @@ public abstract class AbstractDevOpsAction extends Recorder {
             LOGGER.info("GET ORG_GUID URL:" + organizations_url + orgName);
         }
         HttpGet httpGet = new HttpGet(organizations_url + orgName);
+
+        httpGet = addProxyInformation(httpGet);
 
         httpGet.setHeader("Authorization", token);
         CloseableHttpResponse response = null;
@@ -616,6 +622,8 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
         CloseableHttpClient httpClient = HttpClients.createDefault();
         HttpGet httpGet = new HttpGet(url);
+
+        httpGet = addProxyInformation(httpGet);
 
         httpGet.setHeader("Authorization", token);
         CloseableHttpResponse response = null;
@@ -696,6 +704,19 @@ public abstract class AbstractDevOpsAction extends Recorder {
                             }
                         }
         );
+    }
+
+    public static HttpGet addProxyInformation (HttpGet instance) {
+        /* Add proxy to request if proxy settings in Jenkins UI are set. */
+        ProxyConfiguration proxyConfig = Jenkins.getInstance().proxy;
+        if(proxyConfig != null){
+            if((!Util.isNullOrEmpty(proxyConfig.name)) && proxyConfig.port != 0) {
+                HttpHost proxy = new HttpHost(proxyConfig.name, proxyConfig.port, "http");
+                RequestConfig config = RequestConfig.custom().setProxy(proxy).build();
+                instance.setConfig(config);
+            }
+        }
+        return instance;
     }
 
 }
