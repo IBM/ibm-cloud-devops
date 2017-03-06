@@ -22,7 +22,7 @@
   </parent>
   <groupId>devops-insights-plugin</groupId>
   <artifactId>ibmclouddevops</artifactId>
-  <version>0.9.1</version>
+  <version>0.9.2</version>
   <packaging>hpi</packaging>
 
   <build>
@@ -62,7 +62,7 @@
   </properties>
 
   <name>IBM Cloud DevOps Plugin</name>
-  <description>IBM® DevOps Insights aggregates and provides visualizations of the indications of a continuous delivery project’s health. Use its built-in dashboards and data reporting services to learn where you most need to improve your build, test, and delivery processes. You can also define test coverage policies to prevent bad code from being promoted to critical environments. </description>
+  <description>IBM® Cloud DevOps aggregates and provides visualizations of the indications of a continuous delivery project’s health. Use its built-in dashboards and data reporting services to learn where you most need to improve your build, test, and delivery processes. You can also define test coverage policies to prevent bad code from being promoted to critical environments. </description>
   <!--<url>https://wiki.jenkins-ci.org/display/JENKINS/IBM+DevOps+Insights+Plugin</url>-->
   <url>https://github.com/imvijay2007/Jenkins-IBM-Bluemix-Toolchains</url>
   <!-- The default licence for Jenkins OSS Plugins is MIT. Substitute for the applicable one if needed. -->

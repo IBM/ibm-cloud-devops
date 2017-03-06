@@ -283,8 +283,8 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
 
         if (Util.isNullOrEmpty(Jenkins.getInstance().getRootUrl())) {
             printStream.println(
-                    "[DevOps Insight Plugin] The Jenkins global root url is not set. Please set it to use this postbuild Action.  \"Manage Jenkins > Configure System > Jenkins URL\"");
-            printStream.println("[DevOps Insight Plugin] Error: Failed to upload Test Results Info.");
+                    "[IBM Cloud DevOps Plugin] The Jenkins global root url is not set. Please set it to use this postbuild Action.  \"Manage Jenkins > Configure System > Jenkins URL\"");
+            printStream.println("[IBM Cloud DevOps Plugin] Error: Failed to upload Test Results Info.");
             return;
         }
 
@@ -324,10 +324,10 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
             String targetAPI = chooseTargetAPI(env);
             try {
                 bearerToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
-                printStream.println("[DevOps Insight Plugin] Log in successfully, get the Bluemix token");
+                printStream.println("[IBM Cloud DevOps Plugin] Log in successfully, get the Bluemix token");
             } catch (Exception e) {
-                printStream.println("[DevOps Insight Plugin] Username/Password is not correct, fail to authenticate with Bluemix");
-                printStream.println("[DevOps Insight Plugin] " + e.toString());
+                printStream.println("[IBM Cloud DevOps Plugin] Username/Password is not correct, fail to authenticate with Bluemix");
+                printStream.println("[IBM Cloud DevOps Plugin] " + e.toString());
                 return;
             }
         }
@@ -347,12 +347,12 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
                 }
             }
         } catch (Exception e) {
-            printStream.print("[DevOps Insight Plugin] Got Exception: " + e.getMessage());
+            printStream.print("[IBM Cloud DevOps Plugin] Got Exception: " + e.getMessage());
             e.printStackTrace();
             return;
         }
 
-        printStream.println("[DevOps Insight Plugin] Go to Control Center (" + link + ") to check your build status");
+        printStream.println("[IBM Cloud DevOps Plugin] Go to Control Center (" + link + ") to check your build status");
 
 
         // Gate
@@ -368,7 +368,7 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
         try {
             JsonObject decisionJson = getDecisionFromDRA(bearerToken, buildNumber);
             if (decisionJson == null) {
-                printStream.println("[DevOps Insight Plugin] get empty decision");
+                printStream.println("[IBM Cloud DevOps Plugin] get empty decision");
                 return;
             }
 
@@ -393,9 +393,9 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
             // console output for a "fail" decision
             if (decision.equals("Failed")) {
                 printStream.println("************************************");
-                printStream.println("Check DevOps Insights report here -" + reportUrl + decisionId);
-                printStream.println("Check DevOps Insights V2 report here -" + cclink);
-                printStream.println("DevOps Insights decision to proceed is:  false");
+                printStream.println("Check IBM Cloud DevOps Gate Evaluation report here -" + reportUrl + decisionId);
+                printStream.println("Check IBM Cloud DevOps Deployment Risk Dashboard here -" + cclink);
+                printStream.println("IBM Cloud DevOps decision to proceed is:  false");
                 printStream.println("************************************");
                 if (willDisrupt) {
                     Result result = Result.FAILURE;
@@ -406,14 +406,14 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
 
             // console output for a "proceed" decision
             printStream.println("************************************");
-            printStream.println("Check DevOps Insights report here -" + reportUrl + decisionId);
-            printStream.println("Check DevOps Insights V2 report here -" + cclink);
-            printStream.println("DevOps Insights decision to proceed is:  true");
+            printStream.println("Check IBM Cloud DevOps Gate Evaluation report here -" + reportUrl + decisionId);
+            printStream.println("Check IBM Cloud DevOps Deployment Risk Dashboard here -" + cclink);
+            printStream.println("IBM Cloud DevOps decision to proceed is:  true");
             printStream.println("************************************");
             return;
 
         } catch (IOException e) {
-            printStream.print("[DevOps Insight Plugin] Error: " + e.getMessage());
+            printStream.print("[IBM Cloud DevOps Plugin] Error: " + e.getMessage());
         }
 
     }
@@ -448,18 +448,18 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
             try {
                 filePaths = workspace.list(path);
             } catch(InterruptedException ie) {
-                printStream.println("[DevOps Insight Plugin] catching interrupt" + ie.getMessage());
+                printStream.println("[IBM Cloud DevOps Plugin] catching interrupt" + ie.getMessage());
                 ie.printStackTrace();
                 throw ie;
             } catch (IOException e) {
-                printStream.println("[DevOps Insight Plugin] catching act" + e.getMessage());
+                printStream.println("[IBM Cloud DevOps Plugin] catching act" + e.getMessage());
                 e.printStackTrace();
                 throw e;
             }
         }
 
         if (filePaths == null || filePaths.length < 1) {
-            printStream.println("[DevOps Insight Plugin] Error: Fail to find the file, please check the path");
+            printStream.println("[IBM Cloud DevOps Plugin] Error: Fail to find the file, please check the path");
             return false;
         } else {
 
@@ -527,7 +527,7 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
             filePath.write(gson.toJson(testResultModel), "UTF8");
             return filePath;
         } catch (IOException e) {
-            printStream.println("[DevOps Insight Plugin] Failed to create dummy file in current workspace, Exception: " + e.getMessage());
+            printStream.println("[IBM Cloud DevOps Plugin] Failed to create dummy file in current workspace, Exception: " + e.getMessage());
         }
 
         return null;
@@ -541,12 +541,12 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
      */
     private boolean printUploadMessage(String response, String fileName) {
         if (response.contains("Error")) {
-            printStream.println("[DevOps Insight Plugin] " + response);
+            printStream.println("[IBM Cloud DevOps Plugin] " + response);
         } else if (response.contains("200")) {
-            printStream.println("[DevOps Insight Plugin] Upload [" + fileName + "] SUCCESSFUL");
+            printStream.println("[IBM Cloud DevOps Plugin] Upload [" + fileName + "] SUCCESSFUL");
             return true;
         } else {
-            printStream.println("[DevOps Insight Plugin]" + response + ", Upload [" + fileName + "] FAILED");
+            printStream.println("[IBM Cloud DevOps Plugin]" + response + ", Upload [" + fileName + "] FAILED");
         }
 
         return false;
@@ -668,21 +668,21 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
                 JsonParser parser = new JsonParser();
                 JsonElement element = parser.parse(resStr);
                 JsonObject resJson = element.getAsJsonObject();
-                printStream.println("[DevOps Insight Plugin] Get decision successfully");
+                printStream.println("[IBM Cloud DevOps Plugin] Get decision successfully");
                 return resJson;
             } else {
                 // if gets error status
-                printStream.println("[DevOps Insight Plugin] Error: Failed to get a decision, response status " + response.getStatusLine());
+                printStream.println("[IBM Cloud DevOps Plugin] Error: Failed to get a decision, response status " + response.getStatusLine());
 
                 JsonParser parser = new JsonParser();
                 JsonElement element = parser.parse(resStr);
                 JsonObject resJson = element.getAsJsonObject();
                 if (resJson != null && resJson.has("message")) {
-                    printStream.println("[DevOps Insight Plugin] Reason: " + resJson.get("message"));
+                    printStream.println("[IBM Cloud DevOps Plugin] Reason: " + resJson.get("message"));
                 }
             }
         } catch (JsonSyntaxException e) {
-            printStream.println("[DevOps Insight Plugin] Invalid Json response, response: " + resStr);
+            printStream.println("[IBM Cloud DevOps Plugin] Invalid Json response, response: " + resStr);
         }
 
         return null;
@@ -928,7 +928,7 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
          * @return The text to be displayed when selecting your build in the project
          */
         public String getDisplayName() {
-            return "Publish test result to DevOps Insights";
+            return "Publish test result to IBM Cloud DevOps";
         }
 
         @Override

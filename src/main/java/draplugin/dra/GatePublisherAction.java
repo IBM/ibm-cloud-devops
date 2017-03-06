@@ -26,7 +26,6 @@ public class GatePublisherAction implements Action {
     private final String riskDashboardLink;
     private final String decision;
     private final String policyName;
-//    private final String buildUrl;
     private final Run<?, ?> build;
 
     public GatePublisherAction(String text, String riskDashboardLink, String decision, String policyName, Run<?, ?> build) {
@@ -52,11 +51,6 @@ public class GatePublisherAction implements Action {
     public String getPolicyName() {
         return policyName;
     }
-
-//    public String getBuildUrl() {
-//        return buildUrl;
-//    }
-
 
     public Run<?, ?> getBuild() {
         return build;

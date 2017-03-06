@@ -224,10 +224,10 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
                 String targetAPI = chooseTargetAPI(env);
                 try {
                     bearerToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
-                    printStream.println("[DevOps Insight Plugin] Log in successfully, get the Bluemix token");
+                    printStream.println("[IBM Cloud DevOps Plugin] Log in successfully, get the Bluemix token");
                 } catch (Exception e) {
-                    printStream.println("[DevOps Insight Plugin] Username/Password is not correct, fail to authenticate with Bluemix");
-                    printStream.println("[DevOps Insight Plugin]" + e.toString());
+                    printStream.println("[IBM Cloud DevOps Plugin] Username/Password is not correct, fail to authenticate with Bluemix");
+                    printStream.println("[IBM Cloud DevOps Plugin]" + e.toString());
                     return true;
                 }
             }
@@ -237,7 +237,7 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
         try {
             JsonObject decisionJson = getDecisionFromDRA(bearerToken, buildId);
             if (decisionJson == null) {
-                printStream.println("[DevOps Insight Plugin] get empty decision");
+                printStream.println("[IBM Cloud DevOps Plugin] get empty decision");
                 return true;
             }
 
@@ -262,9 +262,9 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
             // console output for a "fail" decision
             if (decision.equals("Failed")) {
                 printStream.println("************************************");
-                printStream.println("Check DevOps Insights report here -" + reportUrl + decisionId);
-                printStream.println("Check DevOps Insights V2 report here -" + cclink);
-                printStream.println("DevOps Insights decision to proceed is:  false");
+                printStream.println("Check IBM Cloud DevOps Gate Evaluation report here -" + reportUrl + decisionId);
+                printStream.println("Check IBM Cloud DevOps Deployment Risk Dashboard here -" + cclink);
+                printStream.println("IBM Cloud DevOps decision to proceed is:  false");
                 printStream.println("************************************");
                 if (willDisrupt) {
                     Result result = Result.FAILURE;
@@ -276,14 +276,14 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
 
             // console output for a "proceed" decision
             printStream.println("************************************");
-            printStream.println("Check DevOps Insights report here -" + reportUrl + decisionId);
-            printStream.println("Check DevOps Insights V2 report here -" + cclink);
-            printStream.println("DevOps Insights decision to proceed is:  true");
+            printStream.println("Check IBM Cloud DevOps Gate Evaluation report here -" + reportUrl + decisionId);
+            printStream.println("Check IBM Cloud DevOps Deployment Risk Dashboard here -" + cclink);
+            printStream.println("IBM Cloud DevOps decision to proceed is:  true");
             printStream.println("************************************");
             return true;
 
         } catch (IOException e) {
-            printStream.print("[DevOps Insight Plugin] Error: " + e.getMessage());
+            printStream.print("[IBM Cloud DevOps Plugin] Error: " + e.getMessage());
 
         }
 
@@ -329,21 +329,21 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
                 JsonParser parser = new JsonParser();
                 JsonElement element = parser.parse(resStr);
                 JsonObject resJson = element.getAsJsonObject();
-                printStream.println("[DevOps Insight Plugin] Get decision successfully");
+                printStream.println("[IBM Cloud DevOps Plugin] Get decision successfully");
                 return resJson;
             } else {
                 // if gets error status
-                printStream.println("[DevOps Insight Plugin] Error: Failed to get a decision, response status " + response.getStatusLine());
+                printStream.println("[IBM Cloud DevOps Plugin] Error: Failed to get a decision, response status " + response.getStatusLine());
 
                 JsonParser parser = new JsonParser();
                 JsonElement element = parser.parse(resStr);
                 JsonObject resJson = element.getAsJsonObject();
                 if (resJson != null && resJson.has("message")) {
-                    printStream.println("[DevOps Insight Plugin] Reason: " + resJson.get("message"));
+                    printStream.println("[IBM Cloud DevOps Plugin] Reason: " + resJson.get("message"));
                 }
             }
         } catch (JsonSyntaxException e) {
-            printStream.println("[DevOps Insight Plugin] Invalid Json response, response: " + resStr);
+            printStream.println("[IBM Cloud DevOps Plugin] Invalid Json response, response: " + resStr);
         }
 
         return null;
@@ -553,7 +553,7 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
          * @return The text to be displayed when selecting your build in the project
          */
         public String getDisplayName() {
-            return "DevOps Insights Gate";
+            return "IBM Cloud DevOps Gate";
         }
 
         @Override

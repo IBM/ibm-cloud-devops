@@ -84,7 +84,7 @@ public class OTCNotifier extends Notifier {
     public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
         @Override
         public String getDisplayName() {
-            return "IBM Bluemix Toolchains - Webhook Notification";//This is the plugin name in the config
+            return "IBM Cloud DevOps Plugin - Webhook Notification";//This is the plugin name in the config
         }
 
         public boolean isApplicable(Class<? extends AbstractProject> aClass) {

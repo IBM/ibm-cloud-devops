@@ -13,14 +13,14 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
     <tr>
         <td colspan="2">
-            <h1>DevOps Insights</h1>
+            <h1>IBM Cloud DevOps</h1>
             <h3>Policy Name: ${it.policyName}</h3>
             <h4>Decision: ${it.decision}</h4>
             <h4>
-                Click <a target="_blank" href="${it.text}">here</a> to view the Decision Report.
+                Click <a target="_blank" href="${it.text}">here</a> to view the Gate Evaluation Report.
             </h4>
             <h4>
-                Click <a target="_blank" href="${it.riskDashboardLink}">here</a> to view Risk Dashboard.
+                Click <a target="_blank" href="${it.riskDashboardLink}">here</a> to view the Deployment Risk Dashboard.
             </h4>
 
         </td>
