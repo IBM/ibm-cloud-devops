@@ -393,8 +393,8 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
             // console output for a "fail" decision
             if (decision.equals("Failed")) {
                 printStream.println("************************************");
-                printStream.println("Check IBM Cloud DevOps report here -" + reportUrl + decisionId);
-                printStream.println("Check IBM Cloud DevOps V2 report here -" + cclink);
+                printStream.println("Check IBM Cloud DevOps Gate Evaluation report here -" + reportUrl + decisionId);
+                printStream.println("Check IBM Cloud DevOps Deployment Risk Dashboard here -" + cclink);
                 printStream.println("IBM Cloud DevOps decision to proceed is:  false");
                 printStream.println("************************************");
                 if (willDisrupt) {
@@ -406,8 +406,8 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
 
             // console output for a "proceed" decision
             printStream.println("************************************");
-            printStream.println("Check IBM Cloud DevOps report here -" + reportUrl + decisionId);
-            printStream.println("Check IBM Cloud DevOps V2 report here -" + cclink);
+            printStream.println("Check IBM Cloud DevOps Gate Evaluation report here -" + reportUrl + decisionId);
+            printStream.println("Check IBM Cloud DevOps Deployment Risk Dashboard here -" + cclink);
             printStream.println("IBM Cloud DevOps decision to proceed is:  true");
             printStream.println("************************************");
             return;
