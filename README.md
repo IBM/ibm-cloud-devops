@@ -1,58 +1,90 @@
-# DRA-Jenkins
+# IBM Cloud DevOps Plugin
 
-This plug-in provide customized build steps and status to use DevOps Insights in Jenkins projects.
+With this Jenkins plugin, You can publish test results to DevOps Insights, add automated quality gates, and track your deployment risk.  You can also send your Jenkins job notifications to other tools in your toolchain, such as Slack and PagerDuty. To help you figure out when code was deployed, the system can add deployment messages to your Git commits and your related Git or JIRA issues. You can also view your deployments on the Toolchain Connections page. 
 
-## Usage of this plugin
+This plugin provides Post-Build Actions and CLIs to support this integration. DevOps Insights aggregates and analyzes the results from unit tests, functional tests, code-coverage tools, static security code scans and dynamic security code scans to determine whether your code meets predefined policies at gates in your deployment process. If your code does not meet or exceed a policy, the deployment is halted, preventing risky changes from being released. You can use DevOps Insights as a safety net for your continuous delivery environment, a way to implement and improve quality standards over time, and a data visualization tool to help you understand your project's health.
 
-### Set up Jenkins environment
+## Prerequisites
 
-To use this plugin, user has to have Jenkins local environment or the access to the Jenkins server.
+You must have access to a server that is running a Jenkins project.
 
-### Set up IBM Bluemix Toolchain with DevOps Insights
+## 1. Create a toolchain
 
-Click [here](https://console.stage1.ng.bluemix.net/devops/create) to create a toolchain and add **DevOps Insights** service to it.
+Before you can integrate DevOps Insights with a Jenkins project, you must create a toolchain. A *toolchain* is a set of tool integrations that support development, deployment, and operations tasks. The collective power of a toolchain is greater than the sum of its individual tool integrations. Toolchains are part of the IBM Bluemix&reg; Continuous Delivery service. To learn more about the Continuous Delivery service, see [its documentation](https://console.ng.bluemix.net/docs/services/ContinuousDelivery/cd_about.html).
 
-### Installing the plugins
+1. To create a toolchain, go to the [Create a Toolchain page](https://console.ng.bluemix.net/devops/create) and follow the instructions on that page. 
 
-  Install the DevOps Insights plugin in your Jenkins project:
+2. After you create the toolchain, add DevOps Insights to it. For instructions, see the [DevOps Insights documentation](https://console.ng.bluemix.net/docs/services/DevOpsInsights/index.html). 
 
-  1. [Download the IBM DevOps Insight Plugin installation file (.hpi)](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/release/target/dra.hpi) from the plugin's GitHub repository.
-  2. In your Jenkins installation, click **Manage Jenkins**, select **Manage Plugins**, and select the **Advanced** tab.
-  3. Click **Choose File** and select the DevOps Insight plugin installation file.
+## 2. Install the plugin
+
+In your Jenkins project, install the plugin. 
+
+  1. If you are an IBM employee, download the plugin from [GitHub](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/release/target/dra.hpi). Otherwise, contact jichen@us.ibm.com or aggarwav@us.ibm.com to get the plugin.
+  2. In Jenkins, click **Manage Jenkins &gt; Manage Plugins** and click the **Advanced** tab.
+  3. Click **Choose File** and select the IBM Bluemix DevOps plugin installation file. 
   4. Click **Upload**.
-  5. Restart Jenkins and verify that the plugin was installed successfully.
+  5. Restart Jenkins and verify that the plugin was installed.
 
-### Integrating DevOps Insights with your Jenkins project
+## 3. (optional) Configure Jenkins jobs for Deployment Risk dashboard
 
-When the plugin is installed, you can integrate DevOps Insights into your Jenkins project. DevOps Insights provide you with two main features, get a project dashboard by uploading the test result to DevOps Insight and have a quality gate before deploying your project ***#######need more text here to explain about toolchains and its benefits????#######***
-You can go to the [control center](https://control-center.ng.bluemix.net/) to view the dashboard or create a policy for the quality gate that you are going to use for your project
+If you would like to make use Deployment Risk dashboard, follow these steps.
 
-1. Open the configuration of any jobs (build job, test jobs, deployment job, etc)
- (unit test, code coverage, functional verification test or e2e test, etc) that you already have, 
-2. Add a post-build action with the corresponding type (**Publish build information to DevOps Insights**, **Publish test result to DevOps Insights** and **Publish deployment information to DevOps Insights**)  to your job. Complete the required fields. 
- - For the Credential field, choose your Bluemix ID and password from the dropdown if you already store them in the Jenkins. If not, click Add button to create a new one. You can use the **Test Connection** button to test your connection to the Bluemix
- - For the Build Job Name, specify your Build job name in Jenkins. If you have the build and test in this jenkins job together, leave this field empty. If you have the build job outside of Jenkins, you can check **if builds are being done outside of Jenkins	Help for feature: if builds are being done outside of Jenkins
-** checkbox and specify the build number and url
- - For the environment, if the tests are running in build stage, just select the *Build Environment*; if the tests are running in deployment stage, select the *Deploy Environment* and you can specify the environment name in it. Currently two values are supported: **STAGING** and **PRODUCTION**
- - For the Result file location, specify your result file location. If you don't have any result file generated, leave this field empty and the plugin will upload a default result file based on the status of current test job
- 
-     Here are some example configurations:
-     ![Upload Build Information](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/master/screenshots/Upload-Build-Info.png "Publish Build Information to DRA")
-     ![Upload Test Result](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/master/screenshots/Upload-Test-Result.png "Publish Test Result to DRA")
-     ![Upload Deployment Information](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/master/screenshots/Upload-Deployment-Info.png "Publish Deployment Information to DRA")
+After the plugin is installed, you can integrate DevOps Insights into your Jenkins project. 
 
-3. (Optional) If you want to have DevOps Insights policy gates to control the downstream deploy job, you can choose the "Evaluate Gate Policy" option in the **Publish test result to DevOps Insights** and choose the policy or add another post-build action with the type **DevOps Insights Gate** and complete the required fields. You can specify the scope of test result for Build, Deploy or all environment. The gate will not stop triggering the downstream job if the test job fails to meet the policy that you define in the Control Center unless you check the "*Fail the build based on the policy rules*"
+
+###General workflow
+
+1. Open the configuration of any jobs that you have, such as build, test, or deployment.
+
+2. Add a post-build action for the corresponding type:
+
+   * For build jobs, use **Publish build information to IBM Cloud DevOps**.
+   
+   * For test jobs, use **Publish test result to IBM Cloud DevOps**.
+   
+   * For deployment jobs, use **Publish deployment information to IBM Cloud DevOps**.
+   
+3. Complete the required fields:
+
+   * From the **Credentials**, select your Bluemix ID and password. If they are not saved in Jenkins, click **Add** to add and save them. Click **Test Connection** to test your connection with Bluemix.
+   
+   * In the **Build Job Name** field, specify your build job's name exactly as it is in Jenkins. If the build occurs with the test job, leave this field empty. If the build job occurs outside of Jenkins, select the **Builds are being done outside of Jenkins** check box and specify the build number and build URL.
+   
+   * For the environment, if the tests are running in build stage, select only the build environment. If the tests are running in the deployment stage, select the deploy environment and specify the environment name. Two values are supported: `STAGING` and `PRODUCTION`.
+   
+   * For the **Result File Location** field, specify the result file's location. If the test doesn't generate a result file, leave this field empty. The plugin uploads a default result file that is based on the status of current test job.
+
+   **Example configurations**
+   
+   ![Upload Build Information](https://github.com/imvijay2007/Jenkins-IBM-Bluemix-Toolchains/blob/master/screenshots/Upload-Build-Info.png "Publish Build Information to DRA")
+   
+   ![Upload Test Result](https://github.com/imvijay2007/Jenkins-IBM-Bluemix-Toolchains/blob/master/screenshots/Upload-Test-Result.png "Publish Test Result to DRA")
+   
+   ![Upload Deployment Information](https://github.com/imvijay2007/Jenkins-IBM-Bluemix-Toolchains/blob/master/screenshots/Upload-Deployment-Info.png "Publish Deployment Information to DRA")
+
+4. (Optional): If you want to use DevOps Insights policy gates to control a downstream deploy job, add a post build action, **IBM Cloud DevOps Gate**. Choose a policy and specify the scope of the test results. To allow the policy gates to prevent downstream deployments, select the **Fail the build based on the policy rules** check box. The following image shows an example configuration:
+
+    ![DevOps Insights Gate](https://github.com/imvijay2007/Jenkins-IBM-Bluemix-Toolchains/blob/master/screenshots/DRA-Gate.png "DevOps Insights Gate")
+
+5. Run your Jenkins Build job.
+
+6. Go to the [IBM Bluemix DevOps](https://console.ng.bluemix.net/devops), select your toolchain and click on DevOps Insights card to view Deployment Risk dashboard.
+
     
-    Here is an example gate configuration:
-    ![DevOps Insights Gate](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/master/screenshots/DRA-Gate.png "DevOps Insights Gate")
+## 4. (Optional) Configure Jenkins jobs to send notifications to tools in your toolchain (e.g., Slack, PagerDuty)
 
-4. Click **Apply** and then **Save**.
-5. To run the project, click **Build Now** from the project page
-6. After the build runs, you can go to the [control center](https://control-center.ng.bluemix.net/) to check your build status in the dashboard and  if you have gate set up, you can also see DevOps Insights results on the Status page of current build.
+Configure your Jenkins jobs to send notifications to your toolchain by following the instructions in the [Bluemix Docs](https://console.ng.bluemix.net/docs/services/ContinuousDelivery/toolchains_integrations.html#jenkins).
+
+
+   **Example configurations**
+  * Configuring the ICD_WEBHOOK_URL for job configurations: ![Set ICD_WEBHOOK_URL Parameter](https://github.com/imvijay2007/Jenkins-IBM-Bluemix-Toolchains/blob/master/screenshots/Set-Parameterized-Webhook.png "Set Parameterized WebHook")
+  * Configuring post-build actions for job notifications: ![Post-build Actions for WebHook notification](https://github.com/imvijay2007/Jenkins-IBM-Bluemix-Toolchains/blob/master/screenshots/PostBuild-WebHookNotification.png "Configure WebHook Notification in Post-build Actions")
+
 
 ## License
 
-Copyright (c)2016,2017 IBM Corporation
+Copyright&copy; 2016,2017 IBM Corporation
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
