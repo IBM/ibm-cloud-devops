@@ -162,8 +162,8 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 
 		if (Util.isNullOrEmpty(Jenkins.getInstance().getRootUrl())) {
 			printStream.println(
-					"[IBM Cloud DevOps Plugin] The Jenkins global root url is not set. Please set it to use this postbuild Action.  \"Manage Jenkins > Configure System > Jenkins URL\"");
-			printStream.println("[IBM Cloud DevOps Plugin] Error: Failed to upload Deployment Info.");
+					"[IBM Cloud DevOps] The Jenkins global root url is not set. Please set it to use this postbuild Action.  \"Manage Jenkins > Configure System > Jenkins URL\"");
+			printStream.println("[IBM Cloud DevOps] Error: Failed to upload Deployment Info.");
 			return;
 		}
 
@@ -193,8 +193,8 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 		}
 
 		if (Util.isNullOrEmpty(orgName) || Util.isNullOrEmpty(applicationName) || Util.isNullOrEmpty(environmentName) || Util.isNullOrEmpty(toolchainName)) {
-			printStream.println("[IBM Cloud DevOps Plugin] Missing few required configurations");
-			printStream.println("[IBM Cloud DevOps Plugin] Error: Failed to upload Deployment Info.");
+			printStream.println("[IBM Cloud DevOps] Missing few required configurations");
+			printStream.println("[IBM Cloud DevOps] Error: Failed to upload Deployment Info.");
 			return;
 		}
 
@@ -212,15 +212,15 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 		String targetAPI = chooseTargetAPI(env);
 		try {
 			bluemixToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
-			printStream.println("[IBM Cloud DevOps Plugin] Log in successfully, get the Bluemix token");
+			printStream.println("[IBM Cloud DevOps] Log in successfully, get the Bluemix token");
 		} catch (Exception e) {
-			printStream.println("[IBM Cloud DevOps Plugin] Username/Password is not correct, fail to authenticate with Bluemix");
-			printStream.println("[IBM Cloud DevOps Plugin]" + e.toString());
+			printStream.println("[IBM Cloud DevOps] Username/Password is not correct, fail to authenticate with Bluemix");
+			printStream.println("[IBM Cloud DevOps]" + e.toString());
 			return;
 		}
 
 		if (uploadDeploymentInfo(bluemixToken, dlmsUrl, build, buildUrl)) {
-			printStream.println("[IBM Cloud DevOps Plugin] Go to Control Center (" + link + ") to check your deployment status");
+			printStream.println("[IBM Cloud DevOps] Go to Control Center (" + link + ") to check your deployment status");
 		}
 	}
 
@@ -257,26 +257,26 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 		try {
 			if (response.getStatusLine().toString().contains("200")) {
 				// get 200 response
-				printStream.println("[IBM Cloud DevOps Plugin] Deployment Info uploaded successfully");
+				printStream.println("[IBM Cloud DevOps] Deployment Info uploaded successfully");
 				return true;
 
 			} else {
 				// if gets error status
-				printStream.println("[IBM Cloud DevOps Plugin] Error: Failed to upload Deployment Info, response status "
+				printStream.println("[IBM Cloud DevOps] Error: Failed to upload Deployment Info, response status "
 						+ response.getStatusLine());
 
 				JsonParser parser = new JsonParser();
 				JsonElement element = parser.parse(resStr);
 				JsonObject resJson = element.getAsJsonObject();
 				if (resJson != null && resJson.has("user_error")) {
-					printStream.println("[IBM Cloud DevOps Plugin] Reason: " + resJson.get("user_error"));
+					printStream.println("[IBM Cloud DevOps] Reason: " + resJson.get("user_error"));
 				}
 			}
 		} catch (JsonSyntaxException e) {
-			printStream.println("[IBM Cloud DevOps Plugin] Invalid Json response, response: " + resStr);
+			printStream.println("[IBM Cloud DevOps] Invalid Json response, response: " + resStr);
 		} catch (IllegalStateException e) {
 			// will be triggered when 403 Forbidden
-			printStream.println("[IBM Cloud DevOps Plugin] Please check if you have the access to " + this.orgName + " org");
+			printStream.println("[IBM Cloud DevOps] Please check if you have the access to " + this.orgName + " org");
 		}
 
 		return false;
