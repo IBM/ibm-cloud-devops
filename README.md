@@ -20,7 +20,7 @@ Before you can integrate DevOps Insights with a Jenkins project, you must create
 
 In your Jenkins project, install the plugin. 
 
-  1. If you are an IBM employee, download the plugin from [GitHub](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/release/target/dra.hpi). Otherwise, contact jichen@us.ibm.com or aggarwav@us.ibm.com to get the plugin.
+  1. If you are an IBM employee, download the plugin from [GitHub](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/release/target/ibmclouddevops.hpi). Otherwise, contact jichen@us.ibm.com or aggarwav@us.ibm.com to get the plugin.
   2. In Jenkins, click **Manage Jenkins &gt; Manage Plugins** and click the **Advanced** tab.
   3. Click **Choose File** and select the IBM Bluemix DevOps plugin installation file. 
   4. Click **Upload**.
