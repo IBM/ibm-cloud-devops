@@ -224,10 +224,10 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
                 String targetAPI = chooseTargetAPI(env);
                 try {
                     bearerToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
-                    printStream.println("[IBM Cloud DevOps Plugin] Log in successfully, get the Bluemix token");
+                    printStream.println("[IBM Cloud DevOps] Log in successfully, get the Bluemix token");
                 } catch (Exception e) {
-                    printStream.println("[IBM Cloud DevOps Plugin] Username/Password is not correct, fail to authenticate with Bluemix");
-                    printStream.println("[IBM Cloud DevOps Plugin]" + e.toString());
+                    printStream.println("[IBM Cloud DevOps] Username/Password is not correct, fail to authenticate with Bluemix");
+                    printStream.println("[IBM Cloud DevOps]" + e.toString());
                     return true;
                 }
             }
@@ -237,7 +237,7 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
         try {
             JsonObject decisionJson = getDecisionFromDRA(bearerToken, buildId);
             if (decisionJson == null) {
-                printStream.println("[IBM Cloud DevOps Plugin] get empty decision");
+                printStream.println("[IBM Cloud DevOps] get empty decision");
                 return true;
             }
 
@@ -283,7 +283,7 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
             return true;
 
         } catch (IOException e) {
-            printStream.print("[IBM Cloud DevOps Plugin] Error: " + e.getMessage());
+            printStream.print("[IBM Cloud DevOps] Error: " + e.getMessage());
 
         }
 
@@ -329,21 +329,21 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
                 JsonParser parser = new JsonParser();
                 JsonElement element = parser.parse(resStr);
                 JsonObject resJson = element.getAsJsonObject();
-                printStream.println("[IBM Cloud DevOps Plugin] Get decision successfully");
+                printStream.println("[IBM Cloud DevOps] Get decision successfully");
                 return resJson;
             } else {
                 // if gets error status
-                printStream.println("[IBM Cloud DevOps Plugin] Error: Failed to get a decision, response status " + response.getStatusLine());
+                printStream.println("[IBM Cloud DevOps] Error: Failed to get a decision, response status " + response.getStatusLine());
 
                 JsonParser parser = new JsonParser();
                 JsonElement element = parser.parse(resStr);
                 JsonObject resJson = element.getAsJsonObject();
                 if (resJson != null && resJson.has("message")) {
-                    printStream.println("[IBM Cloud DevOps Plugin] Reason: " + resJson.get("message"));
+                    printStream.println("[IBM Cloud DevOps] Reason: " + resJson.get("message"));
                 }
             }
         } catch (JsonSyntaxException e) {
-            printStream.println("[IBM Cloud DevOps Plugin] Invalid Json response, response: " + resStr);
+            printStream.println("[IBM Cloud DevOps] Invalid Json response, response: " + resStr);
         }
 
         return null;

@@ -283,8 +283,8 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
 
         if (Util.isNullOrEmpty(Jenkins.getInstance().getRootUrl())) {
             printStream.println(
-                    "[IBM Cloud DevOps Plugin] The Jenkins global root url is not set. Please set it to use this postbuild Action.  \"Manage Jenkins > Configure System > Jenkins URL\"");
-            printStream.println("[IBM Cloud DevOps Plugin] Error: Failed to upload Test Results Info.");
+                    "[IBM Cloud DevOps] The Jenkins global root url is not set. Please set it to use this postbuild Action.  \"Manage Jenkins > Configure System > Jenkins URL\"");
+            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Test Results Info.");
             return;
         }
 
@@ -324,10 +324,10 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
             String targetAPI = chooseTargetAPI(env);
             try {
                 bearerToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
-                printStream.println("[IBM Cloud DevOps Plugin] Log in successfully, get the Bluemix token");
+                printStream.println("[IBM Cloud DevOps] Log in successfully, get the Bluemix token");
             } catch (Exception e) {
-                printStream.println("[IBM Cloud DevOps Plugin] Username/Password is not correct, fail to authenticate with Bluemix");
-                printStream.println("[IBM Cloud DevOps Plugin] " + e.toString());
+                printStream.println("[IBM Cloud DevOps] Username/Password is not correct, fail to authenticate with Bluemix");
+                printStream.println("[IBM Cloud DevOps] " + e.toString());
                 return;
             }
         }
@@ -347,12 +347,12 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
                 }
             }
         } catch (Exception e) {
-            printStream.print("[IBM Cloud DevOps Plugin] Got Exception: " + e.getMessage());
+            printStream.print("[IBM Cloud DevOps] Got Exception: " + e.getMessage());
             e.printStackTrace();
             return;
         }
 
-        printStream.println("[IBM Cloud DevOps Plugin] Go to Control Center (" + link + ") to check your build status");
+        printStream.println("[IBM Cloud DevOps] Go to Control Center (" + link + ") to check your build status");
 
 
         // Gate
@@ -368,7 +368,7 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
         try {
             JsonObject decisionJson = getDecisionFromDRA(bearerToken, buildNumber);
             if (decisionJson == null) {
-                printStream.println("[IBM Cloud DevOps Plugin] get empty decision");
+                printStream.println("[IBM Cloud DevOps] get empty decision");
                 return;
             }
 
@@ -413,7 +413,7 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
             return;
 
         } catch (IOException e) {
-            printStream.print("[IBM Cloud DevOps Plugin] Error: " + e.getMessage());
+            printStream.print("[IBM Cloud DevOps] Error: " + e.getMessage());
         }
 
     }
@@ -448,18 +448,18 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
             try {
                 filePaths = workspace.list(path);
             } catch(InterruptedException ie) {
-                printStream.println("[IBM Cloud DevOps Plugin] catching interrupt" + ie.getMessage());
+                printStream.println("[IBM Cloud DevOps] catching interrupt" + ie.getMessage());
                 ie.printStackTrace();
                 throw ie;
             } catch (IOException e) {
-                printStream.println("[IBM Cloud DevOps Plugin] catching act" + e.getMessage());
+                printStream.println("[IBM Cloud DevOps] catching act" + e.getMessage());
                 e.printStackTrace();
                 throw e;
             }
         }
 
         if (filePaths == null || filePaths.length < 1) {
-            printStream.println("[IBM Cloud DevOps Plugin] Error: Fail to find the file, please check the path");
+            printStream.println("[IBM Cloud DevOps] Error: Fail to find the file, please check the path");
             return false;
         } else {
 
@@ -527,7 +527,7 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
             filePath.write(gson.toJson(testResultModel), "UTF8");
             return filePath;
         } catch (IOException e) {
-            printStream.println("[IBM Cloud DevOps Plugin] Failed to create dummy file in current workspace, Exception: " + e.getMessage());
+            printStream.println("[IBM Cloud DevOps] Failed to create dummy file in current workspace, Exception: " + e.getMessage());
         }
 
         return null;
@@ -541,12 +541,12 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
      */
     private boolean printUploadMessage(String response, String fileName) {
         if (response.contains("Error")) {
-            printStream.println("[IBM Cloud DevOps Plugin] " + response);
+            printStream.println("[IBM Cloud DevOps] " + response);
         } else if (response.contains("200")) {
-            printStream.println("[IBM Cloud DevOps Plugin] Upload [" + fileName + "] SUCCESSFUL");
+            printStream.println("[IBM Cloud DevOps] Upload [" + fileName + "] SUCCESSFUL");
             return true;
         } else {
-            printStream.println("[IBM Cloud DevOps Plugin]" + response + ", Upload [" + fileName + "] FAILED");
+            printStream.println("[IBM Cloud DevOps]" + response + ", Upload [" + fileName + "] FAILED");
         }
 
         return false;
@@ -668,21 +668,21 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
                 JsonParser parser = new JsonParser();
                 JsonElement element = parser.parse(resStr);
                 JsonObject resJson = element.getAsJsonObject();
-                printStream.println("[IBM Cloud DevOps Plugin] Get decision successfully");
+                printStream.println("[IBM Cloud DevOps] Get decision successfully");
                 return resJson;
             } else {
                 // if gets error status
-                printStream.println("[IBM Cloud DevOps Plugin] Error: Failed to get a decision, response status " + response.getStatusLine());
+                printStream.println("[IBM Cloud DevOps] Error: Failed to get a decision, response status " + response.getStatusLine());
 
                 JsonParser parser = new JsonParser();
                 JsonElement element = parser.parse(resStr);
                 JsonObject resJson = element.getAsJsonObject();
                 if (resJson != null && resJson.has("message")) {
-                    printStream.println("[IBM Cloud DevOps Plugin] Reason: " + resJson.get("message"));
+                    printStream.println("[IBM Cloud DevOps] Reason: " + resJson.get("message"));
                 }
             }
         } catch (JsonSyntaxException e) {
-            printStream.println("[IBM Cloud DevOps Plugin] Invalid Json response, response: " + resStr);
+            printStream.println("[IBM Cloud DevOps] Invalid Json response, response: " + resStr);
         }
 
         return null;
