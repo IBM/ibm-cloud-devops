@@ -179,6 +179,7 @@ public class UploadBuildInfoAction extends AbstractDevOpsAction implements Simpl
         }
 
         HttpPost postMethod = new HttpPost(url);
+        postMethod = addProxyInformation(postMethod);
         postMethod.setHeader("Authorization", bluemixToken);
         postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);
 
