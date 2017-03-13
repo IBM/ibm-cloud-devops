@@ -31,6 +31,7 @@ import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
@@ -707,6 +708,19 @@ public abstract class AbstractDevOpsAction extends Recorder {
     }
 
     public static HttpGet addProxyInformation (HttpGet instance) {
+        /* Add proxy to request if proxy settings in Jenkins UI are set. */
+        ProxyConfiguration proxyConfig = Jenkins.getInstance().proxy;
+        if(proxyConfig != null){
+            if((!Util.isNullOrEmpty(proxyConfig.name)) && proxyConfig.port != 0) {
+                HttpHost proxy = new HttpHost(proxyConfig.name, proxyConfig.port, "http");
+                RequestConfig config = RequestConfig.custom().setProxy(proxy).build();
+                instance.setConfig(config);
+            }
+        }
+        return instance;
+    }
+
+    public static HttpPost addProxyInformation (HttpPost instance) {
         /* Add proxy to request if proxy settings in Jenkins UI are set. */
         ProxyConfiguration proxyConfig = Jenkins.getInstance().proxy;
         if(proxyConfig != null){

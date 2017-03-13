@@ -213,6 +213,7 @@ public class BuildListener extends RunListener<AbstractBuild> {
         try {
             StringEntity data = new StringEntity(message.toString());
             postMethod.setEntity(data);
+            postMethod = Util.addProxyInformation(postMethod);
             postMethod.addHeader("Content-Type", "application/json");
             CloseableHttpResponse response = httpClient.execute(postMethod);
 

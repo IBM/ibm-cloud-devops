@@ -567,6 +567,7 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
         CloseableHttpClient httpClient = HttpClients.createDefault();
         HttpPost postMethod = new HttpPost(this.dlmsUrl);
 
+        postMethod = addProxyInformation(postMethod);
         // build up multi-part forms
         MultipartEntityBuilder builder = MultipartEntityBuilder.create();
         builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
@@ -656,6 +657,7 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
 
         HttpPost postMethod = new HttpPost(url);
 
+        postMethod = addProxyInformation(postMethod);
         postMethod.setHeader("Authorization", bluemixToken);
         postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);
 

@@ -317,6 +317,7 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
 
         HttpPost postMethod = new HttpPost(url);
 
+        postMethod = addProxyInformation(postMethod);
         postMethod.setHeader("Authorization", bluemixToken);
         postMethod.setHeader("Content-Type", CONTENT_TYPE);
 

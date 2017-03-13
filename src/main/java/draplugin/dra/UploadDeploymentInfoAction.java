@@ -228,7 +228,7 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 
 		CloseableHttpClient httpClient = HttpClients.createDefault();
 		HttpPost postMethod = new HttpPost(dlmsUrl);
-
+		postMethod = addProxyInformation(postMethod);
 		postMethod.setHeader("Authorization", token);
 		postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);
 
