@@ -35,10 +35,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.*;
 
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
@@ -46,16 +43,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Serializable;
-import java.net.MalformedURLException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.TimeZone;
 import java.net.URLEncoder;
 
 /**
  * Created by lix on 8/24/16.
  */
-public class UploadBuildInfoAction extends AbstractDevOpsAction implements SimpleBuildStep, Serializable {
+public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildStep, Serializable {
 
     private static String BUILD_API_URL = "/organizations/{org_name}/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds";
     private final static String CONTENT_TYPE_JSON = "application/json";
@@ -73,11 +68,45 @@ public class UploadBuildInfoAction extends AbstractDevOpsAction implements Simpl
     public static String bluemixToken;
     public static String preCredentials;
 
+    // fields to support jenkins pipeline
+    private Boolean result;
+    private String gitRepo;
+    private String gitBranch;
+    private String gitCommit;
+
+
     @DataBoundConstructor
-    public UploadBuildInfoAction(String applicationName, String orgName, String credentialsId, String toolchainName) {
+    public PublishBuild(String applicationName, String orgName, String credentialsId, String toolchainName) {
         this.credentialsId = credentialsId;
         this.applicationName = applicationName;
         this.orgName = orgName;
+        this.toolchainName = toolchainName;
+    }
+
+    public PublishBuild(Boolean result, String gitRepo, String gitBranch, String gitCommit) {
+        this.gitRepo = gitRepo;
+        this.gitBranch = gitBranch;
+        this.gitCommit = gitCommit;
+        this.result = result;
+    }
+
+    @DataBoundSetter
+    public void setApplicationName(String applicationName) {
+        this.applicationName = applicationName;
+    }
+
+    @DataBoundSetter
+    public void setOrgName(String orgName) {
+        this.orgName = orgName;
+    }
+
+    @DataBoundSetter
+    public void setCredentialsId(String credentialsId) {
+        this.credentialsId = credentialsId;
+    }
+
+    @DataBoundSetter
+    public void setToolchainName(String toolchainName) {
         this.toolchainName = toolchainName;
     }
 
@@ -113,21 +142,7 @@ public class UploadBuildInfoAction extends AbstractDevOpsAction implements Simpl
         // Get the project name and build id from environment
         EnvVars envVars = build.getEnvironment(listener);
 
-        if (Util.isNullOrEmpty(Jenkins.getInstance().getRootUrl())) {
-            printStream.println(
-                    "[IBM Cloud DevOps] The Jenkins global root url is not set. Please set it to use this postbuild Action.  \"Manage Jenkins > Configure System > Jenkins URL\"");
-            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Build Info.");
-            return;
-        }
-
-        // expand to support env vars
-        this.orgName = envVars.expand(this.orgName);
-        this.applicationName = envVars.expand(this.applicationName);
-        this.toolchainName = envVars.expand(this.toolchainName);
-
-        if (Util.isNullOrEmpty(orgName) || Util.isNullOrEmpty(applicationName) || Util.isNullOrEmpty(toolchainName)) {
-            printStream.println("[IBM Cloud DevOps] Missing few required configurations");
-            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Build Info.");
+        if (!checkRootUrl(printStream)) {
             return;
         }
 
@@ -135,10 +150,44 @@ public class UploadBuildInfoAction extends AbstractDevOpsAction implements Simpl
         String env = getDescriptor().getEnvironment();
         this.dlmsUrl = chooseDLMSUrl(env) + BUILD_API_URL;
         String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + this.orgName + "&toolchainId=" + this.toolchainName;
+        String targetAPI = chooseTargetAPI(env);
+
+        /**
+         * try to get org, app name and toolchain id from the user input first
+         * If not, get Credentials, org name, app name, toolchain id from the pipeline environment
+         */
+        this.orgName = envVars.expand(this.orgName);
+        this.applicationName = envVars.expand(this.applicationName);
+        this.toolchainName = envVars.expand(this.toolchainName);
+
+        if (Util.isNullOrEmpty(this.orgName)) {
+            this.orgName = envVars.expand("IBM_CLOUD_DEVOPS_ORG_NAME");
+        }
+        if (Util.isNullOrEmpty(this.applicationName)) {
+            this.applicationName = envVars.expand("IBM_CLOUD_DEVOPS_APP_NAME");
+        }
+        if (Util.isNullOrEmpty(this.toolchainName)) {
+            this.toolchainName = envVars.expand("IBM_CLOUD_DEVOPS_TOOLCHAIN_ID");
+        }
+
+        // Check required parameters
+        if (Util.isNullOrEmpty(orgName) || Util.isNullOrEmpty(applicationName) || Util.isNullOrEmpty(toolchainName)) {
+            printStream.println("[IBM Cloud DevOps] Missing few required configurations");
+            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Build Info.");
+            return;
+        }
+
+        //get the Bluemix credentials username and password
+//        String username = envVars.get("IBM_CLOUD_DEVOPS_CREDS_USR");
+//        String password = envVars.get("IBM_CLOUD_DEVOPS_CREDS_PSW");
+//        System.out.println(username + ":" + password);
+//        bluemixToken = GetBluemixToken(username, password, targetAPI);
 
         // get the Bluemix token
-        String targetAPI = chooseTargetAPI(env);
         try {
+            if (Util.isNullOrEmpty(this.credentialsId)) {
+                this.credentialsId = envVars.expand("IBM_CLOUD_DEVOPS_CRED");
+            }
             bluemixToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
             printStream.println("[IBM Cloud DevOps] Log in successfully, get the Bluemix token");
         } catch (Exception e) {
@@ -243,20 +292,20 @@ public class UploadBuildInfoAction extends AbstractDevOpsAction implements Simpl
     // If your plugin doesn't really define any property on Descriptor,
     // you don't have to do this.
     @Override
-    public UploadBuildInfoAction.UploadBuildInfoActionImpl getDescriptor() {
-        return (UploadBuildInfoAction.UploadBuildInfoActionImpl)super.getDescriptor();
+    public PublishBuild.PublishBuildActionImpl getDescriptor() {
+        return (PublishBuild.PublishBuildActionImpl)super.getDescriptor();
     }
 
     /**
-     * Descriptor for {@link UploadBuildInfoAction}. Used as a singleton.
+     * Descriptor for {@link PublishBuild}. Used as a singleton.
      * The class is marked as public so that it can be accessed from views.
      *
      * <p>
-     * See <tt>src/main/resources/draplugin/dra/UploadBuildInfoAction/*.jelly</tt>
+     * See <tt>src/main/resources/draplugin/dra/PublishBuild/*.jelly</tt>
      * for the actual HTML fragment for the configuration screen.
      */
     @Extension // This indicates to Jenkins that this is an implementation of an extension point.
-    public static final class UploadBuildInfoActionImpl extends BuildStepDescriptor<Publisher> {
+    public static final class PublishBuildActionImpl extends BuildStepDescriptor<Publisher> {
         /**
          * To persist global configuration information,
          * simply store it in a field and call save().
@@ -269,8 +318,8 @@ public class UploadBuildInfoAction extends AbstractDevOpsAction implements Simpl
          * In order to load the persisted global configuration, you have to
          * call load() in the constructor.
          */
-        public UploadBuildInfoActionImpl() {
-            super(UploadBuildInfoAction.class);
+        public PublishBuildActionImpl() {
+            super(PublishBuild.class);
             load();
         }
 

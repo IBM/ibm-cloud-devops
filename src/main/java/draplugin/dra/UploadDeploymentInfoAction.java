@@ -48,7 +48,6 @@ import javax.servlet.ServletException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Serializable;
-import java.net.MalformedURLException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.List;
@@ -296,12 +295,12 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 	}
 
 	/**
-	 * Descriptor for {@link UploadBuildInfoAction}. Used as a singleton. The
+	 * Descriptor for {@link PublishBuild}. Used as a singleton. The
 	 * class is marked as public so that it can be accessed from views.
 	 *
 	 * <p>
 	 * See
-	 * <tt>src/main/resources/draplugin/dra/UploadBuildInfoAction/*.jelly</tt>
+	 * <tt>src/main/resources/draplugin/dra/PublishBuild/*.jelly</tt>
 	 * for the actual HTML fragment for the configuration screen.
 	 */
 	@Extension // This indicates to Jenkins that this is an implementation of an
