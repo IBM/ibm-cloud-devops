@@ -9,27 +9,24 @@ import org.kohsuke.stapler.DataBoundSetter;
 import javax.annotation.Nonnull;
 
 /**
- * Created by lix on 3/21/17.
+ * Created by lix on 3/22/17.
  */
-public class PublishBuildStep extends AbstractStepImpl {
+public class PublishTestStep extends AbstractStepImpl {
     // optional form fields from UI
     private String applicationName;
     private String orgName;
     private String credentialsId;
     private String toolchainId;
+    private String environment;
 
-    // required parameters to support pipeline script
-    private String result;
-    private String gitRepo;
-    private String gitBranch;
-    private String gitCommit;
+    // required parameters
+    private String type;
+    private String fileLocation;
 
     @DataBoundConstructor
-    public PublishBuildStep(String result, String gitRepo, String gitBranch, String gitCommit) {
-        this.gitRepo = gitRepo;
-        this.gitBranch = gitBranch;
-        this.gitCommit = gitCommit;
-        this.result = result;
+    public PublishTestStep(String type, String fileLocation) {
+        this.type = type;
+        this.fileLocation = fileLocation;
     }
 
     @DataBoundSetter
@@ -52,6 +49,11 @@ public class PublishBuildStep extends AbstractStepImpl {
         this.toolchainId = toolchainId;
     }
 
+    @DataBoundSetter
+    public void setEnvironment(String environment) {
+        this.environment = environment;
+    }
+
     public String getApplicationName() {
         return applicationName;
     }
@@ -64,40 +66,36 @@ public class PublishBuildStep extends AbstractStepImpl {
         return credentialsId;
     }
 
-    public String getGitRepo() {
-        return gitRepo;
-    }
-
-    public String getGitBranch() {
-        return gitBranch;
-    }
-
-    public String getGitCommit() {
-        return gitCommit;
-    }
-
     public String getToolchainId() {
         return toolchainId;
     }
 
-    public String getResult() {
-        return result;
+    public String getEnvironment() {
+        return environment;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public String getFileLocation() {
+        return fileLocation;
     }
 
     @Extension
     public static class DescriptorImpl extends AbstractStepDescriptorImpl {
 
-        public DescriptorImpl() { super(PublishBuildStepExecution.class); }
+        public DescriptorImpl() { super(PublishTestStepExecution.class); }
 
         @Override
         public String getFunctionName() {
-            return "publishBuildRecord";
+            return "publishTestResult";
         }
 
         @Nonnull
         @Override
         public String getDisplayName() {
-            return "Publish build record to IBM Cloud DevOps";
+            return "Publish test result to IBM Cloud DevOps";
         }
     }
 }

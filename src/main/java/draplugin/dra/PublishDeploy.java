@@ -415,15 +415,21 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		public FormValidation doTestConnection(@AncestorInPath ItemGroup context,
 				@QueryParameter("credentialsId") final String credentialsId) {
 			String targetAPI = chooseTargetAPI(environment);
-					try {
-						String bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
-						if (Util.isNullOrEmpty(bluemixToken)) {
-							return FormValidation.warning("<b>Got empty token</b>");
-						} else {
-							return FormValidation.okWithMarkup("<b>Connection successful</b>");
-						}
-					} catch (Exception e) {
-				return FormValidation.error("Failed to log in to Bluemix, please check your username/password");
+			if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
+				preCredentials = credentialsId;
+				try {
+					String newToken = GetBluemixToken(context, credentialsId, targetAPI);
+					if (Util.isNullOrEmpty(newToken)) {
+						bluemixToken = newToken;
+						return FormValidation.warning("<b>Got empty token</b>");
+					} else {
+						return FormValidation.okWithMarkup("<b>Connection successful</b>");
+					}
+				} catch (Exception e) {
+					return FormValidation.error("Failed to log in to Bluemix, please check your username/password");
+				}
+			} else {
+				return FormValidation.okWithMarkup("<b>Connection successful</b>");
 			}
 		}
 

@@ -2,6 +2,7 @@ package draplugin.dra.steps;
 
 import draplugin.dra.PublishBuild;
 import draplugin.dra.PublishDeploy;
+import draplugin.dra.Util;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -33,11 +34,12 @@ public class PublishDeployStepExecution extends AbstractSynchronousNonBlockingSt
 
     @Override
     protected Void run() throws Exception {
-        System.out.println("Running publish build step");
+        System.out.println("Running publish deploy step");
 
-        String orgName = envVars.get("IBM_CLOUD_DEVOPS_ORG");
-        String applicationName = envVars.get("IBM_CLOUD_DEVOPS_APP_NAME");
-        String toolchainName = envVars.get("IBM_CLOUD_DEVOPS_TOOLCHAIN_ID");
+        String orgName = Util.isNullOrEmpty(step.getOrgName()) ? envVars.get("IBM_CLOUD_DEVOPS_ORG") : step.getOrgName();
+        String applicationName =  Util.isNullOrEmpty(step.getApplicationName()) ? envVars.get("IBM_CLOUD_DEVOPS_APP_NAME") : step.getApplicationName();
+        String toolchainName = Util.isNullOrEmpty(step.getToolchainId()) ? envVars.get("IBM_CLOUD_DEVOPS_TOOLCHAIN_ID") : step.getToolchainId();
+
         String username = envVars.get("IBM_CLOUD_DEVOPS_CREDS_USR");
         String password = envVars.get("IBM_CLOUD_DEVOPS_CREDS_PSW");
 

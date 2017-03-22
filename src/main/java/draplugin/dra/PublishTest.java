@@ -33,7 +33,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.FileBody;
@@ -58,7 +57,7 @@ import java.util.HashSet;
  * Authenticate with Bluemix and then upload the result file to DRA
  * Created by Xunrong Li on 8/3/16.
  */
-public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements SimpleBuildStep, Serializable {
+public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep, Serializable {
 
     private final static String API_PART = "/organizations/{org_name}/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/results_multipart";
     private final static String CONTENT_TYPE_JSON = "application/json";
@@ -88,21 +87,25 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
     private File root;
     private static String dlmsUrl;
     private static String draUrl;
-    public static String bearerToken;
+    public static String bluemixToken;
     public static String preCredentials;
 
+    //fields to support jenkins pipeline
+    private String username;
+    private String password;
+
     @DataBoundConstructor
-    public AuthenticateAndUploadAction(String lifecycleStage,
-                                       String contents,
-                                       String applicationName,
-                                       String orgName,
-                                       String toolchainName,
-                                       String buildJobName,
-                                       String credentialsId,
-                                       OptionalUploadBlock additionalUpload,
-                                       OptionalBuildInfo additionalBuildInfo,
-                                       OptionalGate additionalGate,
-                                       EnvironmentScope testEnv) {
+    public PublishTest(String lifecycleStage,
+                       String contents,
+                       String applicationName,
+                       String orgName,
+                       String toolchainName,
+                       String buildJobName,
+                       String credentialsId,
+                       OptionalUploadBlock additionalUpload,
+                       OptionalBuildInfo additionalBuildInfo,
+                       OptionalGate additionalGate,
+                       EnvironmentScope testEnv) {
         this.lifecycleStage = lifecycleStage;
         this.contents = contents;
         this.credentialsId = credentialsId;
@@ -137,6 +140,24 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
             this.policyName = additionalGate.getPolicyName();
             this.willDisrupt = additionalGate.isWillDisrupt();
         }
+    }
+
+    public PublishTest(String lifecycleStage,
+                       String contents,
+                       String envName,
+                       String orgName,
+                       String applicationName,
+                       String toolchainName,
+                       String username,
+                       String password) {
+        this.lifecycleStage = lifecycleStage;
+        this.contents = contents;
+        this.envName = envName;
+        this.applicationName = applicationName;
+        this.orgName = orgName;
+        this.toolchainName = toolchainName;
+        this.username = username;
+        this.password = password;
     }
 
     /**
@@ -272,28 +293,22 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
         // Get the project name and build id from environment
         EnvVars envVars = build.getEnvironment(listener);
 
-        // expand to support env vars
-        this.orgName = envVars.expand(this.orgName);
-        this.applicationName = envVars.expand(this.applicationName);
-        this.toolchainName = envVars.expand(this.toolchainName);
-        this.contents = envVars.expand(this.contents);
-        if (this.isDeploy) {
-            this.environmentName = envVars.expand(this.envName);
-        }
-
-        if (Util.isNullOrEmpty(Jenkins.getInstance().getRootUrl())) {
-            printStream.println(
-                    "[IBM Cloud DevOps] The Jenkins global root url is not set. Please set it to use this postbuild Action.  \"Manage Jenkins > Configure System > Jenkins URL\"");
-            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Test Results Info.");
+        if (!checkRootUrl(printStream)) {
             return;
         }
 
         // verify if user chooses advanced option to input customized DLMS
         String env = getDescriptor().getEnvironment();
+        String targetAPI = chooseTargetAPI(env);
         String url = chooseDLMSUrl(env) + API_PART;
-        url = url.replace("{org_name}", this.orgName);
-        url = url.replace("{toolchain_id}", this.toolchainName);
-        url = url.replace("{build_artifact}", URLEncoder.encode(this.applicationName, "UTF-8").replaceAll("\\+", "%20"));
+        // expand to support env vars
+        this.orgName = envVars.expand(this.orgName);
+        this.applicationName = envVars.expand(this.applicationName);
+        this.toolchainName = envVars.expand(this.toolchainName);
+        this.contents = envVars.expand(this.contents);
+        if (this.isDeploy || !Util.isNullOrEmpty(this.envName)) {
+            this.environmentName = envVars.expand(this.envName);
+        }
 
         String buildNumber, buildUrl;
         // if user does not specify the build number
@@ -304,6 +319,11 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
                 //failed to find the build job
                 return;
             } else {
+                if (Util.isNullOrEmpty(this.buildJobName)) {
+                    // handle the case which the build job name left empty, and the pipeline case
+                    this.buildJobName = envVars.get("JOB_NAME");
+                    System.out.println("Build job name is " + this.buildJobName);
+                }
                 buildNumber = getBuildNumber(buildJobName, triggeredBuild);
                 String rootUrl = Jenkins.getInstance().getRootUrl();
                 buildUrl = rootUrl + triggeredBuild.getUrl();
@@ -313,28 +333,31 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
             buildUrl = envVars.expand(this.buildUrl);
         }
 
+        url = url.replace("{org_name}", this.orgName);
+        url = url.replace("{toolchain_id}", this.toolchainName);
+        url = url.replace("{build_artifact}", URLEncoder.encode(this.applicationName, "UTF-8").replaceAll("\\+", "%20"));
         url = url.replace("{build_id}", buildNumber);
         this.dlmsUrl = url;
         String link = chooseControlCenterUrl(env) + "buildverification?orgName=" + this.orgName + "&toolchainId=" + this.toolchainName;
 
         // get the Bluemix token
-        // if it is in prod env, check if already got the token from the "Test connection" or "policy name"
-        // if it is in stage1/dev/new, need to get new token
-        if (Util.isNullOrEmpty(bearerToken) || this.dlmsUrl.contains("stage1")) {
-            String targetAPI = chooseTargetAPI(env);
-            try {
-                bearerToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
-                printStream.println("[IBM Cloud DevOps] Log in successfully, get the Bluemix token");
-            } catch (Exception e) {
-                printStream.println("[IBM Cloud DevOps] Username/Password is not correct, fail to authenticate with Bluemix");
-                printStream.println("[IBM Cloud DevOps] " + e.toString());
-                return;
+        try {
+            if (Util.isNullOrEmpty(this.credentialsId)) {
+                bluemixToken = GetBluemixToken(username, password, targetAPI);
+            } else {
+                bluemixToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
             }
+
+            printStream.println("[IBM Cloud DevOps] Log in successfully, get the Bluemix token");
+        } catch (Exception e) {
+            printStream.println("[IBM Cloud DevOps] Username/Password is not correct, fail to authenticate with Bluemix");
+            printStream.println("[IBM Cloud DevOps]" + e.toString());
+            return;
         }
 
         // parse the wildcard result files
         try {
-            if(!scanAndUpload(build, workspace, contents, lifecycleStage, bearerToken, buildNumber, buildUrl)){
+            if(!scanAndUpload(build, workspace, contents, lifecycleStage, bluemixToken, buildNumber, buildUrl)){
                 // if there is any error when scanning and uploading
                 return;
             }
@@ -342,7 +365,7 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
             // check to see if we need to upload additional result file
             if (!Util.isNullOrEmpty(additionalContents) && !Util.isNullOrEmpty(additionalLifecycleStage)) {
                 if(!scanAndUpload(build, workspace, additionalContents, additionalLifecycleStage,
-                        bearerToken, buildNumber, buildUrl)) {
+                        bluemixToken, buildNumber, buildUrl)) {
                     return;
                 }
             }
@@ -353,7 +376,6 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
         }
 
         printStream.println("[IBM Cloud DevOps] Go to Control Center (" + link + ") to check your build status");
-
 
         // Gate
         // verify if user chooses advanced option to input customized DRA
@@ -366,7 +388,7 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
 
         // get decision response from DRA
         try {
-            JsonObject decisionJson = getDecisionFromDRA(bearerToken, buildNumber);
+            JsonObject decisionJson = getDecisionFromDRA(bluemixToken, buildNumber);
             if (decisionJson == null) {
                 printStream.println("[IBM Cloud DevOps] get empty decision");
                 return;
@@ -582,6 +604,7 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
             if (this.isDeploy) {
                 builder.addTextBody("environment_name", environmentName);
             }
+            //Todo check the value of lifecycleStage
             builder.addTextBody("lifecycle_stage", lifecycleStage);
             builder.addTextBody("url", buildUrl);
             builder.addTextBody("timestamp", timestamp);
@@ -695,20 +718,20 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
     // If your plugin doesn't really define any property on Descriptor,
     // you don't have to do this.
     @Override
-    public AuthenticateAndUploadAction.AuthenticateAndUploadActionImpl getDescriptor() {
-        return (AuthenticateAndUploadAction.AuthenticateAndUploadActionImpl)super.getDescriptor();
+    public PublishTest.PublishTestImpl getDescriptor() {
+        return (PublishTest.PublishTestImpl)super.getDescriptor();
     }
 
     /**
-     * Descriptor for {@link AuthenticateAndUploadAction}. Used as a singleton.
+     * Descriptor for {@link PublishTest}. Used as a singleton.
      * The class is marked as public so that it can be accessed from views.
      *
      * <p>
-     * See <tt>src/main/resources/draplugin/dra/AuthenticateAndUploadAction/*.jelly</tt>
+     * See <tt>src/main/resources/draplugin/dra/PublishTest/*.jelly</tt>
      * for the actual HTML fragment for the configuration screen.
      */
     @Extension // This indicates to Jenkins that this is an implementation of an extension point.
-    public static final class AuthenticateAndUploadActionImpl extends BuildStepDescriptor<Publisher> {
+    public static final class PublishTestImpl extends BuildStepDescriptor<Publisher> {
         /**
          * To persist global configuration information,
          * simply store it in a field and call save().
@@ -721,8 +744,8 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
          * In order to load the persisted global configuration, you have to
          * call load() in the constructor.
          */
-        public AuthenticateAndUploadActionImpl() {
-            super(AuthenticateAndUploadAction.class);
+        public PublishTestImpl() {
+            super(PublishTest.class);
             load();
         }
 
@@ -776,12 +799,12 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
         public FormValidation doTestConnection(@AncestorInPath ItemGroup context,
                                                @QueryParameter("credentialsId") final String credentialsId) {
             String targetAPI = chooseTargetAPI(environment);
-            if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bearerToken)) {
+            if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
                 preCredentials = credentialsId;
                 try {
                     String bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
                     if (Util.isNullOrEmpty(bluemixToken)) {
-                        bearerToken = bluemixToken;
+                        PublishTest.bluemixToken = bluemixToken;
                         return FormValidation.warning("<b>Got empty token</b>");
                     } else {
                         return FormValidation.okWithMarkup("<b>Connection successful</b>");
@@ -853,8 +876,8 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
             String targetAPI = chooseTargetAPI(environment);
             try {
                 // if user changes to a different credential, need to get a new token
-                if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bearerToken)) {
-                    bearerToken = GetBluemixToken(context, credentialsId, targetAPI);
+                if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
+                    bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
                     preCredentials = credentialsId;
                 }
             } catch (Exception e) {
@@ -863,7 +886,7 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
             if(debug_mode){
                 LOGGER.info("#######UPLOAD TEST RESULTS : calling getPolicyList#######");
             }
-            return getPolicyList(bearerToken, orgName, toolchainName, environment, debug_mode);
+            return getPolicyList(bluemixToken, orgName, toolchainName, environment, debug_mode);
         }
 
         /**
@@ -878,14 +901,14 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
                                                      @QueryParameter("orgName") final String orgName) {
             String targetAPI = chooseTargetAPI(environment);
             try {
-                bearerToken = GetBluemixToken(context, credentialsId, targetAPI);
+                bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
             } catch (Exception e) {
                 return new ListBoxModel();
             }
             if(debug_mode){
                 LOGGER.info("#######UPLOAD TEST RESULTS : calling getToolchainList#######");
             }
-            ListBoxModel toolChainListBox = getToolchainList(bearerToken, orgName, environment, debug_mode);
+            ListBoxModel toolChainListBox = getToolchainList(bluemixToken, orgName, environment, debug_mode);
             return toolChainListBox;
 
         }

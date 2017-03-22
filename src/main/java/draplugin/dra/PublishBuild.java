@@ -154,7 +154,6 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         // verify if user chooses advanced option to input customized DLMS
         String env = getDescriptor().getEnvironment();
         this.dlmsUrl = chooseDLMSUrl(env) + BUILD_API_URL;
-        String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + this.orgName + "&toolchainId=" + this.toolchainName;
         String targetAPI = chooseTargetAPI(env);
 
         //expand the variables
@@ -184,6 +183,8 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             return;
         }
 
+        String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + this.orgName + "&toolchainId=" + this.toolchainName;
+        System.out.println("link is " + link);
         if (uploadBuildInfo(bluemixToken, build, envVars)) {
             printStream.println("[IBM Cloud DevOps] Go to Control Center (" + link + ") to check your build status");
             BuildPublisherAction action = new BuildPublisherAction(link);
