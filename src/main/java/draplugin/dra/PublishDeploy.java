@@ -32,6 +32,7 @@ import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import net.sf.json.JSONObject;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
@@ -48,12 +49,13 @@ import javax.servlet.ServletException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.TimeZone;
 
-public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements SimpleBuildStep, Serializable {
+public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildStep, Serializable {
 
 	private static String DEPLOYMENT_API_URL = "/organizations/{org_name}/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/deployments";
 	private final static String CONTENT_TYPE_JSON = "application/json";
@@ -73,15 +75,20 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 	public static String bluemixToken;
 	public static String preCredentials;
 
+	//fields to support jenkins pipeline
+	private String result;
+	private String username;
+	private String password;
+
 	@DataBoundConstructor
-	public UploadDeploymentInfoAction(String applicationName,
-									  String toolchainName,
-									  String orgName,
-									  String buildJobName,
-									  String environmentName,
-									  String credentialsId,
-									  String applicationUrl,
-									  OptionalBuildInfo additionalBuildInfo) {
+	public PublishDeploy(String applicationName,
+						 String toolchainName,
+						 String orgName,
+						 String buildJobName,
+						 String environmentName,
+						 String credentialsId,
+						 String applicationUrl,
+						 OptionalBuildInfo additionalBuildInfo) {
 		this.applicationName = applicationName;
 		this.toolchainName = toolchainName;
 		this.orgName = orgName;
@@ -108,6 +115,24 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 			this.buildNumber = buildNumber;
 			this.buildUrl = buildUrl;
 		}
+	}
+
+	public PublishDeploy(String environmentName,
+						 String applicationUrl,
+						 String result,
+						 String toolchainName,
+						 String applicationName,
+						 String orgName,
+						 String username,
+						 String password) {
+		this.environmentName = environmentName;
+		this.applicationName = applicationUrl;
+		this.result = result;
+		this.toolchainName = toolchainName;
+		this.applicationName = applicationName;
+		this.orgName = orgName;
+		this.username = username;
+		this.password = password;
 	}
 
 	/**
@@ -149,6 +174,10 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 		return buildUrl;
 	}
 
+	public String getResult() {
+		return result;
+	}
+
 	@Override
 	public void perform(@Nonnull Run build, @Nonnull FilePath workspace, @Nonnull Launcher launcher,
 			@Nonnull TaskListener listener) throws InterruptedException, IOException {
@@ -159,12 +188,14 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 		// Get the project name and build id from environment
 		EnvVars envVars = build.getEnvironment(listener);
 
-		if (Util.isNullOrEmpty(Jenkins.getInstance().getRootUrl())) {
-			printStream.println(
-					"[IBM Cloud DevOps] The Jenkins global root url is not set. Please set it to use this postbuild Action.  \"Manage Jenkins > Configure System > Jenkins URL\"");
-			printStream.println("[IBM Cloud DevOps] Error: Failed to upload Deployment Info.");
+		if (!checkRootUrl(printStream)) {
 			return;
 		}
+
+		// verify if user chooses advanced option to input customized DLMS
+		String env = getDescriptor().getEnvironment();
+		String targetAPI = chooseTargetAPI(env);
+		String dlmsUrl = chooseDLMSUrl(env) + DEPLOYMENT_API_URL;
 
 		// expand to support env vars
 		this.orgName = envVars.expand(this.orgName);
@@ -172,6 +203,12 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 		this.applicationName = envVars.expand(this.applicationName);
 		this.environmentName = envVars.expand(this.environmentName);
 		this.applicationUrl = envVars.expand(this.applicationUrl);
+
+		if (Util.isNullOrEmpty(orgName) || Util.isNullOrEmpty(applicationName) || Util.isNullOrEmpty(environmentName) || Util.isNullOrEmpty(toolchainName)) {
+			printStream.println("[IBM Cloud DevOps] Missing few required configurations");
+			printStream.println("[IBM Cloud DevOps] Error: Failed to upload Deployment Info.");
+			return;
+		}
 
 		String buildNumber, buildUrl;
 		// if user does not specify the build number
@@ -182,7 +219,14 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 				//failed to find the build job
 				return;
 			} else {
+				if (Util.isNullOrEmpty(this.buildJobName)) {
+					// handle the case which the build job name left empty, and the pipeline case
+					this.buildJobName = envVars.get("JOB_NAME");
+					System.out.println("Build job name is " + this.buildJobName);
+				}
 				buildNumber = getBuildNumber(buildJobName, triggeredBuild);
+
+				System.out.println("build number is " + buildNumber);
 				String rootUrl = Jenkins.getInstance().getRootUrl();
 				buildUrl = rootUrl + triggeredBuild.getUrl();
 			}
@@ -191,26 +235,22 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 			buildUrl = envVars.expand(this.buildUrl);
 		}
 
-		if (Util.isNullOrEmpty(orgName) || Util.isNullOrEmpty(applicationName) || Util.isNullOrEmpty(environmentName) || Util.isNullOrEmpty(toolchainName)) {
-			printStream.println("[IBM Cloud DevOps] Missing few required configurations");
-			printStream.println("[IBM Cloud DevOps] Error: Failed to upload Deployment Info.");
-			return;
-		}
-
-		// verify if user chooses advanced option to input customized DLMS
-		String env = getDescriptor().getEnvironment();
-		String dlmsUrl = chooseDLMSUrl(env) + DEPLOYMENT_API_URL;
 		dlmsUrl = dlmsUrl.replace("{org_name}", orgName);
 		dlmsUrl = dlmsUrl.replace("{toolchain_id}", URLEncoder.encode(toolchainName, "UTF-8").replaceAll("\\+", "%20"));
 		dlmsUrl = dlmsUrl.replace("{build_artifact}", URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20"));
 		dlmsUrl = dlmsUrl.replace("{build_id}", buildNumber);
-
+		System.out.println("dlms Url is " + dlmsUrl);
 		String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + this.orgName + "&toolchainId=" + this.toolchainName;
 
+
 		// get the Bluemix token
-		String targetAPI = chooseTargetAPI(env);
 		try {
-			bluemixToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
+			if (Util.isNullOrEmpty(this.credentialsId)) {
+				bluemixToken = GetBluemixToken(username, password, targetAPI);
+			} else {
+				bluemixToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
+			}
+
 			printStream.println("[IBM Cloud DevOps] Log in successfully, get the Bluemix token");
 		} catch (Exception e) {
 			printStream.println("[IBM Cloud DevOps] Username/Password is not correct, fail to authenticate with Bluemix");
@@ -223,37 +263,42 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 		}
 	}
 
-	private boolean uploadDeploymentInfo(String token, String dlmsUrl, Run build, String buildUrl) throws IOException {
+	private boolean uploadDeploymentInfo(String token, String dlmsUrl, Run build, String buildUrl) {
 
-		CloseableHttpClient httpClient = HttpClients.createDefault();
-		HttpPost postMethod = new HttpPost(dlmsUrl);
-		postMethod = addProxyInformation(postMethod);
-		postMethod.setHeader("Authorization", token);
-		postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);
-
-		String buildStatus;
-		if (build.getResult().equals(Result.SUCCESS)) {
-			buildStatus = "pass";
-		} else {
-			buildStatus = "fail";
-		}
-		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-		TimeZone utc = TimeZone.getTimeZone("UTC");
-		dateFormat.setTimeZone(utc);
-		String timestamp = dateFormat.format(build.getTime());
-
-		// build up the json body
-		Gson gson = new Gson();
-		DeploymentInfoModel deploymentInfo = new DeploymentInfoModel(applicationUrl, environmentName, buildUrl, buildStatus,
-				timestamp);
-
-		String json = gson.toJson(deploymentInfo);
-		StringEntity data = new StringEntity(json);
-		postMethod.setEntity(data);
-		CloseableHttpResponse response = httpClient.execute(postMethod);
-		String resStr = EntityUtils.toString(response.getEntity());
+		String resStr = "";
 
 		try {
+			CloseableHttpClient httpClient = HttpClients.createDefault();
+			HttpPost postMethod = new HttpPost(dlmsUrl);
+			postMethod = addProxyInformation(postMethod);
+			postMethod.setHeader("Authorization", token);
+			postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);
+
+			String buildStatus;
+			if ((build.getResult() != null && build.getResult().equals(Result.SUCCESS))
+					|| (this.result != null && this.result.equals("SUCCESS"))) {
+				buildStatus = "pass";
+			} else {
+				buildStatus = "fail";
+			}
+
+			SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+			TimeZone utc = TimeZone.getTimeZone("UTC");
+			dateFormat.setTimeZone(utc);
+			String timestamp = dateFormat.format(build.getTime());
+
+			// build up the json body
+			Gson gson = new Gson();
+			DeploymentInfoModel deploymentInfo = new DeploymentInfoModel(applicationUrl, environmentName, buildUrl, buildStatus,
+					timestamp);
+
+			String json = gson.toJson(deploymentInfo);
+			StringEntity data = new StringEntity(json);
+			postMethod.setEntity(data);
+			CloseableHttpResponse response = httpClient.execute(postMethod);
+			resStr = EntityUtils.toString(response.getEntity());
+
+
 			if (response.getStatusLine().toString().contains("200")) {
 				// get 200 response
 				printStream.println("[IBM Cloud DevOps] Deployment Info uploaded successfully");
@@ -276,6 +321,12 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 		} catch (IllegalStateException e) {
 			// will be triggered when 403 Forbidden
 			printStream.println("[IBM Cloud DevOps] Please check if you have the access to " + this.orgName + " org");
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		} catch (ClientProtocolException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 
 		return false;
@@ -290,8 +341,8 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 	// If your plugin doesn't really define any property on Descriptor,
 	// you don't have to do this.
 	@Override
-	public UploadDeploymentInfoAction.UploadDeploymentInfoActionImpl getDescriptor() {
-		return (UploadDeploymentInfoAction.UploadDeploymentInfoActionImpl) super.getDescriptor();
+	public PublishDeploy.PublishDeployImpl getDescriptor() {
+		return (PublishDeploy.PublishDeployImpl) super.getDescriptor();
 	}
 
 	/**
@@ -305,7 +356,7 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 	 */
 	@Extension // This indicates to Jenkins that this is an implementation of an
 				// extension point.
-	public static final class UploadDeploymentInfoActionImpl extends BuildStepDescriptor<Publisher> {
+	public static final class PublishDeployImpl extends BuildStepDescriptor<Publisher> {
 		/**
 		 * To persist global configuration information, simply store it in a
 		 * field and call save().
@@ -318,8 +369,8 @@ public class UploadDeploymentInfoAction extends AbstractDevOpsAction implements 
 		 * In order to load the persisted global configuration, you have to call
 		 * load() in the constructor.
 		 */
-		public UploadDeploymentInfoActionImpl() {
-			super(UploadDeploymentInfoAction.class);
+		public PublishDeployImpl() {
+			super(PublishDeploy.class);
 			load();
 		}
 

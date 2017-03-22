@@ -1,11 +1,10 @@
 package draplugin.dra.steps;
 
 import draplugin.dra.PublishBuild;
-import draplugin.dra.Util;
+import draplugin.dra.PublishDeploy;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.AbstractBuild;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousNonBlockingStepExecution;
@@ -14,11 +13,11 @@ import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
 import javax.inject.Inject;
 
 /**
- * Created by lix on 3/21/17.
+ * Created by lix on 3/22/17.
  */
-public class PublishBuildStepExecution extends AbstractSynchronousNonBlockingStepExecution<Void> {
+public class PublishDeployStepExecution extends AbstractSynchronousNonBlockingStepExecution<Void> {
     @Inject
-    private transient PublishBuildStep step;
+    private transient PublishDeployStep step;
 
     @StepContextParameter
     private transient TaskListener listener;
@@ -36,26 +35,23 @@ public class PublishBuildStepExecution extends AbstractSynchronousNonBlockingSte
     protected Void run() throws Exception {
         System.out.println("Running publish build step");
 
-        //Todo check if the optional setter work
         String orgName = envVars.get("IBM_CLOUD_DEVOPS_ORG");
         String applicationName = envVars.get("IBM_CLOUD_DEVOPS_APP_NAME");
         String toolchainName = envVars.get("IBM_CLOUD_DEVOPS_TOOLCHAIN_ID");
         String username = envVars.get("IBM_CLOUD_DEVOPS_CREDS_USR");
         String password = envVars.get("IBM_CLOUD_DEVOPS_CREDS_PSW");
 
-
-
-        PublishBuild publishBuild = new PublishBuild(
+        PublishDeploy publishDeploy = new PublishDeploy(
+                step.getEnvironment(),
+                step.getAppUrl(),
                 step.getResult(),
-                step.getGitRepo(),
-                step.getGitBranch(),
-                step.getGitCommit(),
-                orgName,
-                applicationName,
                 toolchainName,
+                applicationName,
+                orgName,
                 username,
                 password);
-        publishBuild.perform(build, ws, launcher, listener);
+        publishDeploy.perform(build, ws, launcher, listener);
         return null;
     }
 }
+

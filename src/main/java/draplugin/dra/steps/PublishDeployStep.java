@@ -1,22 +1,17 @@
 package draplugin.dra.steps;
 
-import com.google.common.collect.ImmutableSet;
-import hudson.EnvVars;
 import hudson.Extension;
-import hudson.model.Node;
-import hudson.model.TaskListener;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
 import javax.annotation.Nonnull;
-import java.util.Set;
 
 /**
- * Created by lix on 3/21/17.
+ * Created by lix on 3/22/17.
  */
-public class PublishBuildStep extends AbstractStepImpl {
+public class PublishDeployStep extends AbstractStepImpl {
     // optional form fields from UI
     private String applicationName;
     private String orgName;
@@ -25,15 +20,13 @@ public class PublishBuildStep extends AbstractStepImpl {
 
     // required parameters to support pipeline script
     private String result;
-    private String gitRepo;
-    private String gitBranch;
-    private String gitCommit;
+    private String environment;
+    private String appUrl;
 
     @DataBoundConstructor
-    public PublishBuildStep(String result, String gitRepo, String gitBranch, String gitCommit) {
-        this.gitRepo = gitRepo;
-        this.gitBranch = gitBranch;
-        this.gitCommit = gitCommit;
+    public PublishDeployStep(String result, String environment, String appUrl) {
+        this.environment = environment;
+        this.appUrl = appUrl;
         this.result = result;
     }
 
@@ -69,16 +62,12 @@ public class PublishBuildStep extends AbstractStepImpl {
         return credentialsId;
     }
 
-    public String getGitRepo() {
-        return gitRepo;
+    public String getEnvironment() {
+        return environment;
     }
 
-    public String getGitBranch() {
-        return gitBranch;
-    }
-
-    public String getGitCommit() {
-        return gitCommit;
+    public String getAppUrl() {
+        return appUrl;
     }
 
     public String getToolchainId() {
@@ -92,18 +81,17 @@ public class PublishBuildStep extends AbstractStepImpl {
     @Extension
     public static class DescriptorImpl extends AbstractStepDescriptorImpl {
 
-
-        public DescriptorImpl() { super(PublishBuildStepExecution.class); }
+        public DescriptorImpl() { super(PublishDeployStepExecution.class); }
 
         @Override
         public String getFunctionName() {
-            return "publishBuildRecord";
+            return "publishDeployRecord";
         }
 
         @Nonnull
         @Override
         public String getDisplayName() {
-            return "Publish build record to IBM Cloud DevOps";
+            return "Publish deploy record to IBM Cloud DevOps";
         }
     }
 }

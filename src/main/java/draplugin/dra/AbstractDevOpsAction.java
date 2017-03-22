@@ -342,7 +342,6 @@ public abstract class AbstractDevOpsAction extends Recorder {
         }
     }
 
-
     /**
      * build proxy for cloud foundry http connection
      * @param targetURL - target API URL
