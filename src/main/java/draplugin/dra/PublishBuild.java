@@ -29,6 +29,7 @@ import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import net.sf.json.JSONObject;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
@@ -39,10 +40,7 @@ import org.kohsuke.stapler.*;
 
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Serializable;
+import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.TimeZone;
 import java.net.URLEncoder;
@@ -69,10 +67,12 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
     public static String preCredentials;
 
     // fields to support jenkins pipeline
-    private Boolean result;
+    private String result;
     private String gitRepo;
     private String gitBranch;
     private String gitCommit;
+    private String username;
+    private String password;
 
 
     @DataBoundConstructor
@@ -83,11 +83,16 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         this.toolchainName = toolchainName;
     }
 
-    public PublishBuild(Boolean result, String gitRepo, String gitBranch, String gitCommit) {
+    public PublishBuild(String result, String gitRepo, String gitBranch, String gitCommit, String orgName, String applicationName, String toolchainName, String username, String password) {
         this.gitRepo = gitRepo;
         this.gitBranch = gitBranch;
         this.gitCommit = gitCommit;
         this.result = result;
+        this.applicationName = applicationName;
+        this.orgName = orgName;
+        this.toolchainName = toolchainName;
+        this.username = username;
+        this.password = password;
     }
 
     @DataBoundSetter
@@ -152,23 +157,10 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + this.orgName + "&toolchainId=" + this.toolchainName;
         String targetAPI = chooseTargetAPI(env);
 
-        /**
-         * try to get org, app name and toolchain id from the user input first
-         * If not, get Credentials, org name, app name, toolchain id from the pipeline environment
-         */
+        //expand the variables
         this.orgName = envVars.expand(this.orgName);
         this.applicationName = envVars.expand(this.applicationName);
         this.toolchainName = envVars.expand(this.toolchainName);
-
-        if (Util.isNullOrEmpty(this.orgName)) {
-            this.orgName = envVars.expand("IBM_CLOUD_DEVOPS_ORG_NAME");
-        }
-        if (Util.isNullOrEmpty(this.applicationName)) {
-            this.applicationName = envVars.expand("IBM_CLOUD_DEVOPS_APP_NAME");
-        }
-        if (Util.isNullOrEmpty(this.toolchainName)) {
-            this.toolchainName = envVars.expand("IBM_CLOUD_DEVOPS_TOOLCHAIN_ID");
-        }
 
         // Check required parameters
         if (Util.isNullOrEmpty(orgName) || Util.isNullOrEmpty(applicationName) || Util.isNullOrEmpty(toolchainName)) {
@@ -177,18 +169,14 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             return;
         }
 
-        //get the Bluemix credentials username and password
-//        String username = envVars.get("IBM_CLOUD_DEVOPS_CREDS_USR");
-//        String password = envVars.get("IBM_CLOUD_DEVOPS_CREDS_PSW");
-//        System.out.println(username + ":" + password);
-//        bluemixToken = GetBluemixToken(username, password, targetAPI);
-
         // get the Bluemix token
         try {
             if (Util.isNullOrEmpty(this.credentialsId)) {
-                this.credentialsId = envVars.expand("IBM_CLOUD_DEVOPS_CRED");
+                bluemixToken = GetBluemixToken(username, password, targetAPI);
+            } else {
+                bluemixToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
             }
-            bluemixToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
+
             printStream.println("[IBM Cloud DevOps] Log in successfully, get the Bluemix token");
         } catch (Exception e) {
             printStream.println("[IBM Cloud DevOps] Username/Password is not correct, fail to authenticate with Bluemix");
@@ -204,59 +192,81 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
     }
 
     /**
+     * Construct the Git data model
+     * @param envVars
+     * @return
+     */
+    public BuildInfoModel.Repo buildGitRepo(EnvVars envVars) {
+        String repoUrl = envVars.get("GIT_URL");
+        String branch = envVars.get("GIT_BRANCH");
+        String commitId = envVars.get("GIT_COMMIT");
+
+        repoUrl = Util.isNullOrEmpty(repoUrl) ? this.gitRepo : repoUrl;
+        branch = Util.isNullOrEmpty(branch) ? this.gitBranch : branch;
+        commitId = Util.isNullOrEmpty(commitId) ? this.gitCommit : commitId;
+        if (!Util.isNullOrEmpty(branch)) {
+            String[] parts = branch.split("/");
+            branch = parts[parts.length - 1];
+        }
+
+        System.out.println("Getting GIT info: " + repoUrl + branch + commitId);
+        BuildInfoModel.Repo repo = new BuildInfoModel.Repo(repoUrl, branch, commitId);
+        return repo;
+    }
+
+    /**
      * Upload the build information to DLMS - API V2.
      * @param bluemixToken
      * @param build
      * @param envVars
      * @throws IOException
      */
-    private boolean uploadBuildInfo(String bluemixToken, Run build, EnvVars envVars) throws IOException {
-
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        String url = this.dlmsUrl;
-        url = url.replace("{org_name}", this.orgName);
-        url = url.replace("{toolchain_id}", this.toolchainName);
-        url = url.replace("{build_artifact}", URLEncoder.encode(this.applicationName, "UTF-8").replaceAll("\\+", "%20"));
-
-        String buildNumber = getBuildNumber(envVars.get("JOB_NAME"),build);
-        String buildUrl = Jenkins.getInstance().getRootUrl() + build.getUrl();
-        String repoUrl = envVars.get("GIT_URL");
-        String branch = envVars.get("GIT_BRANCH");
-        if (!Util.isNullOrEmpty(branch)) {
-            String[] parts = branch.split("/");
-            branch = parts[parts.length - 1];
-        }
-
-        HttpPost postMethod = new HttpPost(url);
-        postMethod = addProxyInformation(postMethod);
-        postMethod.setHeader("Authorization", bluemixToken);
-        postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);
-
-        String commitId = envVars.get("GIT_COMMIT");
-        String buildStatus;
-
-        if (build.getResult().equals(Result.SUCCESS)) {
-            buildStatus = "pass";
-        } else {
-            buildStatus = "fail";
-        }
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-        TimeZone utc = TimeZone.getTimeZone("UTC");
-        dateFormat.setTimeZone(utc);
-        String timestamp = dateFormat.format(build.getTime());
-
-        // build up the json body
-        Gson gson = new Gson();
-        BuildInfoModel.Repo repo = new BuildInfoModel.Repo(repoUrl, branch, commitId);
-        BuildInfoModel buildInfo = new BuildInfoModel(buildNumber, buildUrl, buildStatus, timestamp, repo);
-
-        String json = gson.toJson(buildInfo);
-        StringEntity data = new StringEntity(json);
-        postMethod.setEntity(data);
-        CloseableHttpResponse response = httpClient.execute(postMethod);
-        String resStr = EntityUtils.toString(response.getEntity());
+    private boolean uploadBuildInfo(String bluemixToken, Run build, EnvVars envVars) {
+        String resStr = "";
 
         try {
+            CloseableHttpClient httpClient = HttpClients.createDefault();
+            String url = this.dlmsUrl;
+            url = url.replace("{org_name}", this.orgName);
+            url = url.replace("{toolchain_id}", this.toolchainName);
+            url = url.replace("{build_artifact}", URLEncoder.encode(this.applicationName, "UTF-8").replaceAll("\\+", "%20"));
+
+            String buildNumber = getBuildNumber(envVars.get("JOB_NAME"),build);
+
+            System.out.println("build number is " + buildNumber);
+            String buildUrl = Jenkins.getInstance().getRootUrl() + build.getUrl();
+            System.out.println("build url is " + buildUrl);
+
+            HttpPost postMethod = new HttpPost(url);
+            postMethod = addProxyInformation(postMethod);
+            postMethod.setHeader("Authorization", bluemixToken);
+            postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);
+
+            String buildStatus;
+
+            if ((build.getResult() != null && build.getResult().equals(Result.SUCCESS))
+                    || (this.result != null && this.result.equals("SUCCESS"))) {
+                buildStatus = "pass";
+            } else {
+                buildStatus = "fail";
+            }
+
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+            TimeZone utc = TimeZone.getTimeZone("UTC");
+            dateFormat.setTimeZone(utc);
+            String timestamp = dateFormat.format(build.getTime());
+
+            // build up the json body
+            Gson gson = new Gson();
+            BuildInfoModel.Repo repo = buildGitRepo(envVars);
+            BuildInfoModel buildInfo = new BuildInfoModel(buildNumber, buildUrl, buildStatus, timestamp, repo);
+
+            String json = gson.toJson(buildInfo);
+            StringEntity data = new StringEntity(json);
+            postMethod.setEntity(data);
+            CloseableHttpResponse response = httpClient.execute(postMethod);
+            resStr = EntityUtils.toString(response.getEntity());
+            System.out.println("Request sent");
             if (response.getStatusLine().toString().contains("200")) {
                 // get 200 response
                 printStream.println("[IBM Cloud DevOps] Upload Build Information successfully");
@@ -278,6 +288,14 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         } catch (IllegalStateException e) {
             // will be triggered when 403 Forbidden
             printStream.println("[IBM Cloud DevOps] Please check if you have the access to " + this.orgName + " org");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        } catch (ClientProtocolException e) {
+            e.printStackTrace();
+            System.out.println(e.toString());
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println(e.toString());
         }
         return false;
     }

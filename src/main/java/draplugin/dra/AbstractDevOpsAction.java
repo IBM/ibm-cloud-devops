@@ -324,23 +324,23 @@ public abstract class AbstractDevOpsAction extends Recorder {
         }
     }
 
-//    public static String GetBluemixToken(String username, String password, String targetAPI) throws MalformedURLException, CloudFoundryException {
-//        try {
-//
-//            CloudCredentials cloudCredentials = new CloudCredentials(username, password);
-//
-//            URL url = new URL(targetAPI);
-//            HttpProxyConfiguration configuration = buildProxyConfiguration(url);
-//
-//            CloudFoundryClient client = new CloudFoundryClient(cloudCredentials, url, configuration, true);
-//            return "bearer " + client.login().toString();
-//
-//        } catch (MalformedURLException e) {
-//            throw e;
-//        } catch (CloudFoundryException e) {
-//            throw e;
-//        }
-//    }
+    public static String GetBluemixToken(String username, String password, String targetAPI) throws MalformedURLException, CloudFoundryException {
+        try {
+
+            CloudCredentials cloudCredentials = new CloudCredentials(username, password);
+
+            URL url = new URL(targetAPI);
+            HttpProxyConfiguration configuration = buildProxyConfiguration(url);
+
+            CloudFoundryClient client = new CloudFoundryClient(cloudCredentials, url, configuration, true);
+            return "bearer " + client.login().toString();
+
+        } catch (MalformedURLException e) {
+            throw e;
+        } catch (CloudFoundryException e) {
+            throw e;
+        }
+    }
 
 
     /**
