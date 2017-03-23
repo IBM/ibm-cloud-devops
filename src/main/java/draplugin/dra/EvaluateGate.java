@@ -17,7 +17,6 @@ import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
-import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -25,7 +24,6 @@ import com.google.gson.JsonSyntaxException;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Launcher;
-import hudson.RelativePath;
 import hudson.model.*;
 import hudson.security.ACL;
 import hudson.tasks.BuildStepDescriptor;
@@ -37,7 +35,6 @@ import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
@@ -48,11 +45,9 @@ import org.kohsuke.stapler.StaplerRequest;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
-import java.io.InterruptedIOException;
 import java.io.PrintStream;
 import java.net.URLEncoder;
 import java.util.List;
-import java.util.Map;
 
 import static java.lang.Thread.sleep;
 
@@ -62,7 +57,7 @@ import static java.lang.Thread.sleep;
  * @author Xunrong Li
  */
 
-public class GetDRADecisionAction extends AbstractDevOpsAction {
+public class EvaluateGate extends AbstractDevOpsAction {
 
     private final static String CONTENT_TYPE = "application/json";
 
@@ -73,31 +68,35 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
     private String applicationName;
     private String toolchainName;
     private String environmentName;
-    private final String credentialsId;
+    private String credentialsId;
     private boolean willDisrupt;
 
     private EnvironmentScope scope;
-    private String branchName;
     private String envName;
     private boolean isDeploy;
 
     private String draUrl;
+    private String buildNumber;
     private PrintStream printStream;
-    public static String bearerToken;
+    public static String bluemixToken;
     public static String preCredentials;
+
+    //fields to support jenkins pipeline
+    private String username;
+    private String password;
 
 
     // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
     @DataBoundConstructor
-    public GetDRADecisionAction(String policyName,
-                                String orgName,
-                                String applicationName,
-                                String toolchainName,
-                                String environmentName,
-                                String buildJobName,
-                                String credentialsId,
-                                boolean willDisrupt,
-                                EnvironmentScope scope) {
+    public EvaluateGate(String policyName,
+                        String orgName,
+                        String applicationName,
+                        String toolchainName,
+                        String environmentName,
+                        String buildJobName,
+                        String credentialsId,
+                        boolean willDisrupt,
+                        EnvironmentScope scope) {
         this.policyName = policyName;
         this.orgName = orgName;
         this.applicationName = applicationName;
@@ -108,8 +107,26 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
         this.willDisrupt = willDisrupt;
         this.scope = scope;
         this.envName = scope.getEnvName();
-        this.branchName = scope.getBranchName();
         this.isDeploy = scope.isDeploy();
+    }
+
+    public EvaluateGate(String policyName,
+                        String orgName,
+                        String applicationName,
+                        String toolchainName,
+                        String environmentName,
+                        String username,
+                        String password,
+                        boolean willDisrupt) {
+        this.policyName = policyName;
+        this.orgName = orgName;
+        this.applicationName = applicationName;
+        this.toolchainName = toolchainName;
+        this.envName = environmentName;
+        this.willDisrupt = willDisrupt;
+        this.username = username;
+        this.password = password;
+        this.willDisrupt = willDisrupt;
     }
 
     /**
@@ -152,9 +169,6 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
         return scope;
     }
 
-    public String getBranchName() {
-        return branchName;
-    }
 
     public String getEnvName() {
         return envName;
@@ -179,8 +193,7 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
      * @throws InterruptedException
      * @throws IOException
      */
-    @Override
-    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+    public boolean perform(Run build, Launcher launcher, TaskListener listener) throws InterruptedException, IOException {
 
         // This is where you 'build' the project.
         printStream = listener.getLogger();
@@ -192,50 +205,58 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
         this.applicationName = envVars.expand(this.applicationName);
         this.toolchainName = envVars.expand(this.toolchainName);
 
-        if (this.isDeploy) {
-            this.environmentName = envVars.expand(this.envName);
+        if (!checkRootUrl(printStream)) {
+            return true;
         }
 
+        if (this.isDeploy || !Util.isNullOrEmpty(this.envName)) {
+            this.environmentName = envVars.expand(this.envName);
+        }
 
         // verify if user chooses advanced option to input customized DRA
         String env = getDescriptor().getEnvironment();
         this.draUrl = chooseDRAUrl(env);
+        String targetAPI = chooseTargetAPI(env);
         String reportUrl = chooseReportUrl(env);
 
-        String buildId = envVars.get("DI_BUILD_ID");
-        if (Util.isNullOrEmpty(buildId)) {
+        String buildNumber;
+        // if user does not specify the build number
+        if (Util.isNullOrEmpty(this.buildNumber)) {
             // locate the build job that triggers current build
             Run triggeredBuild = getTriggeredBuild(build, buildJobName, envVars, printStream);
             if (triggeredBuild == null) {
                 //failed to find the build job
                 return true;
             } else {
-                //buildId = triggeredBuild.getId();
-            	buildId = getBuildNumber(buildJobName, triggeredBuild);
+                if (Util.isNullOrEmpty(this.buildJobName)) {
+                    // handle the case which the build job name left empty, and the pipeline case
+                    this.buildJobName = envVars.get("JOB_NAME");
+                    System.out.println("Build job name is " + this.buildJobName);
+                }
+                buildNumber = getBuildNumber(buildJobName, triggeredBuild);
             }
+        } else {
+            buildNumber = envVars.expand(this.buildNumber);
         }
 
-        // check if already got the token from the "Test connection" or "policy name"
-        if (Util.isNullOrEmpty(bearerToken)) {
-            bearerToken = envVars.get("DI_BM_TOKEN");
-            // check if it can get env vars from previous upload post-build action
-            if (Util.isNullOrEmpty(bearerToken)) {
-                // get the Bluemix token
-                String targetAPI = chooseTargetAPI(env);
-                try {
-                    bearerToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
-                    printStream.println("[IBM Cloud DevOps] Log in successfully, get the Bluemix token");
-                } catch (Exception e) {
-                    printStream.println("[IBM Cloud DevOps] Username/Password is not correct, fail to authenticate with Bluemix");
-                    printStream.println("[IBM Cloud DevOps]" + e.toString());
-                    return true;
-                }
+        // get the Bluemix token
+        try {
+            if (Util.isNullOrEmpty(this.credentialsId)) {
+                bluemixToken = GetBluemixToken(username, password, targetAPI);
+            } else {
+                bluemixToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
             }
+
+            printStream.println("[IBM Cloud DevOps] Log in successfully, get the Bluemix token");
+        } catch (Exception e) {
+            printStream.println("[IBM Cloud DevOps] Username/Password is not correct, fail to authenticate with Bluemix");
+            printStream.println("[IBM Cloud DevOps]" + e.toString());
+            return true;
         }
 
         // get decision response from DRA
         try {
-            JsonObject decisionJson = getDecisionFromDRA(bearerToken, buildId);
+            JsonObject decisionJson = getDecisionFromDRA(bluemixToken, buildNumber);
             if (decisionJson == null) {
                 printStream.println("[IBM Cloud DevOps] get empty decision");
                 return true;
@@ -311,7 +332,7 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
                 "/builds/" + buildId +
                 "/policies/" + URLEncoder.encode(policyName, "UTF-8").replaceAll("\\+", "%20") +
                 "/decisions";
-        if (this.isDeploy) {
+        if (!Util.isNullOrEmpty(this.environmentName)) {
             url = url.concat("?environment_name=" + environmentName);
         }
 
@@ -348,17 +369,16 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
         }
 
         return null;
-
     }
 
 
     @Override
-    public GetDRADecisionAction.GetDRADecisionBuilderImpl getDescriptor() {
-        return (GetDRADecisionAction.GetDRADecisionBuilderImpl)super.getDescriptor();
+    public EvaluateGate.EvaluateGateImpl getDescriptor() {
+        return (EvaluateGate.EvaluateGateImpl)super.getDescriptor();
     }
 
     /**
-     * Descriptor for {@link GetDRADecisionAction}. Used as a singleton.
+     * Descriptor for {@link EvaluateGate}. Used as a singleton.
      * The class is marked as public so that it can be accessed from views.
      *
      * <p>
@@ -366,7 +386,7 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
      * for the actual HTML fragment for the configuration screen.
      */
     @Extension // This indicates to Jenkins that this is an implementation of an extension point.
-    public static final class GetDRADecisionBuilderImpl extends BuildStepDescriptor<Publisher> {
+    public static final class EvaluateGateImpl extends BuildStepDescriptor<Publisher> {
 
         private String environment;
         private boolean debug_mode;
@@ -375,7 +395,7 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
          * In order to load the persisted global configuration, you have to
          * call load() in the constructor.
          */
-        public GetDRADecisionBuilderImpl() {
+        public EvaluateGateImpl() {
             load();
         }
 
@@ -426,12 +446,12 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
         public FormValidation doTestConnection(@AncestorInPath ItemGroup context,
                                                @QueryParameter("credentialsId") final String credentialsId) {
             String targetAPI = chooseTargetAPI(environment);
-            if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bearerToken)) {
+            if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
                 preCredentials = credentialsId;
                 try {
                     String bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
                     if (Util.isNullOrEmpty(bluemixToken)) {
-                        bearerToken = bluemixToken;
+                        EvaluateGate.bluemixToken = bluemixToken;
                         return FormValidation.warning("<b>Got empty token</b>");
                     } else {
                         return FormValidation.okWithMarkup("<b>Connection successful</b>");
@@ -498,8 +518,8 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
             String targetAPI = chooseTargetAPI(environment);
             try {
                 // if user changes to a different credential, need to get a new token
-                if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bearerToken)) {
-                    bearerToken = GetBluemixToken(context, credentialsId, targetAPI);
+                if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
+                    bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
                     preCredentials = credentialsId;
                 }
             } catch (Exception e) {
@@ -508,7 +528,7 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
             if(debug_mode){
                 LOGGER.info("#######GATE : calling getPolicyList#######");
             }
-            return getPolicyList(bearerToken, orgName, toolchainName, environment, debug_mode);
+            return getPolicyList(bluemixToken, orgName, toolchainName, environment, debug_mode);
 
         }
 
@@ -524,14 +544,14 @@ public class GetDRADecisionAction extends AbstractDevOpsAction {
                                                   @QueryParameter final String credentialsId) {
             String targetAPI = chooseTargetAPI(environment);
             try {
-                bearerToken = GetBluemixToken(context, credentialsId, targetAPI);
+                bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
             } catch (Exception e) {
                 return new ListBoxModel();
             }
             if(debug_mode){
                 LOGGER.info("#######GATE : calling getToolchainList#######");
             }
-            return getToolchainList(bearerToken, orgName, environment, debug_mode);
+            return getToolchainList(bluemixToken, orgName, environment, debug_mode);
         }
 
 
