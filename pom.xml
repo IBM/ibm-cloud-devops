@@ -54,7 +54,6 @@
          ~ hpi-plugin.version: The HPI Maven Plugin version used by the plugin..
          ~ stapler-plugin.version: The Stapler Maven plugin version required by the plugin.
     -->
-    <jenkins-test-harness.version>2.1</jenkins-test-harness.version>
     <jackson.version>2.4.4</jackson.version>
     <!--<maven.compiler.source>1.7</maven.compiler.source>-->
     <!--<maven.compiler.target>1.7</maven.compiler.target>-->

@@ -21,9 +21,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
-import hudson.EnvVars;
-import hudson.Extension;
-import hudson.Launcher;
+import hudson.*;
 import hudson.model.*;
 import hudson.security.ACL;
 import hudson.tasks.BuildStepDescriptor;
@@ -32,6 +30,7 @@ import hudson.tasks.Publisher;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
+import jenkins.tasks.SimpleBuildStep;
 import net.sf.json.JSONObject;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -43,6 +42,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
+import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -57,7 +57,7 @@ import static java.lang.Thread.sleep;
  * @author Xunrong Li
  */
 
-public class EvaluateGate extends AbstractDevOpsAction {
+public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildStep{
 
     private final static String CONTENT_TYPE = "application/json";
 
@@ -193,8 +193,8 @@ public class EvaluateGate extends AbstractDevOpsAction {
      * @throws InterruptedException
      * @throws IOException
      */
-    public boolean perform(Run build, Launcher launcher, TaskListener listener) throws InterruptedException, IOException {
-
+    @Override
+    public void perform(@Nonnull Run<?, ?> build, @Nonnull FilePath filePath, @Nonnull Launcher launcher, @Nonnull TaskListener listener) throws InterruptedException, IOException {
         // This is where you 'build' the project.
         printStream = listener.getLogger();
         printPluginVersion(this.getClass().getClassLoader(), printStream);
@@ -206,7 +206,7 @@ public class EvaluateGate extends AbstractDevOpsAction {
         this.toolchainName = envVars.expand(this.toolchainName);
 
         if (!checkRootUrl(printStream)) {
-            return true;
+            return;
         }
 
         if (this.isDeploy || !Util.isNullOrEmpty(this.envName)) {
@@ -226,7 +226,7 @@ public class EvaluateGate extends AbstractDevOpsAction {
             Run triggeredBuild = getTriggeredBuild(build, buildJobName, envVars, printStream);
             if (triggeredBuild == null) {
                 //failed to find the build job
-                return true;
+                return;
             } else {
                 if (Util.isNullOrEmpty(this.buildJobName)) {
                     // handle the case which the build job name left empty, and the pipeline case
@@ -251,7 +251,7 @@ public class EvaluateGate extends AbstractDevOpsAction {
         } catch (Exception e) {
             printStream.println("[IBM Cloud DevOps] Username/Password is not correct, fail to authenticate with Bluemix");
             printStream.println("[IBM Cloud DevOps]" + e.toString());
-            return true;
+            return;
         }
 
         // get decision response from DRA
@@ -259,7 +259,7 @@ public class EvaluateGate extends AbstractDevOpsAction {
             JsonObject decisionJson = getDecisionFromDRA(bluemixToken, buildNumber);
             if (decisionJson == null) {
                 printStream.println("[IBM Cloud DevOps] get empty decision");
-                return true;
+                return;
             }
 
             // retrieve the decision id to compose the report link
@@ -290,9 +290,11 @@ public class EvaluateGate extends AbstractDevOpsAction {
                 if (willDisrupt) {
                     Result result = Result.FAILURE;
                     build.setResult(result);
-                    return false;
+
+                    System.out.println("Returning false");
+                    throw new AbortException("Decision is fail");
                 }
-                return true;
+                return;
             }
 
             // console output for a "proceed" decision
@@ -301,16 +303,17 @@ public class EvaluateGate extends AbstractDevOpsAction {
             printStream.println("Check IBM Cloud DevOps Deployment Risk Dashboard here -" + cclink);
             printStream.println("IBM Cloud DevOps decision to proceed is:  true");
             printStream.println("************************************");
-            return true;
+            return;
 
         } catch (IOException e) {
             printStream.print("[IBM Cloud DevOps] Error: " + e.getMessage());
-
+            throw new AbortException("Decision is fail");
         }
-
-        return true;
-
     }
+
+//    public boolean perform(Run build, Launcher launcher, TaskListener listener) throws InterruptedException, IOException {
+//
+//    }
 
     @Override
     public BuildStepMonitor getRequiredMonitorService() {
