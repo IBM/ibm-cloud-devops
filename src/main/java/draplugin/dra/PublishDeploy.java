@@ -222,11 +222,8 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 				if (Util.isNullOrEmpty(this.buildJobName)) {
 					// handle the case which the build job name left empty, and the pipeline case
 					this.buildJobName = envVars.get("JOB_NAME");
-					System.out.println("Build job name is " + this.buildJobName);
 				}
 				buildNumber = getBuildNumber(buildJobName, triggeredBuild);
-
-				System.out.println("build number is " + buildNumber);
 				String rootUrl = Jenkins.getInstance().getRootUrl();
 				buildUrl = rootUrl + triggeredBuild.getUrl();
 			}
@@ -239,9 +236,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		dlmsUrl = dlmsUrl.replace("{toolchain_id}", URLEncoder.encode(toolchainName, "UTF-8").replaceAll("\\+", "%20"));
 		dlmsUrl = dlmsUrl.replace("{build_artifact}", URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20"));
 		dlmsUrl = dlmsUrl.replace("{build_id}", buildNumber);
-		System.out.println("dlms Url is " + dlmsUrl);
 		String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
-
 
 		// get the Bluemix token
 		try {

@@ -184,7 +184,6 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         }
 
         String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
-        System.out.println("link is " + link);
         if (uploadBuildInfo(bluemixToken, build, envVars)) {
             printStream.println("[IBM Cloud DevOps] Go to Control Center (" + link + ") to check your build status");
             BuildPublisherAction action = new BuildPublisherAction(link);
@@ -210,7 +209,6 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             branch = parts[parts.length - 1];
         }
 
-        System.out.println("Getting GIT info: " + repoUrl + branch + commitId);
         BuildInfoModel.Repo repo = new BuildInfoModel.Repo(repoUrl, branch, commitId);
         return repo;
     }
@@ -233,10 +231,7 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             url = url.replace("{build_artifact}", URLEncoder.encode(this.applicationName, "UTF-8").replaceAll("\\+", "%20"));
 
             String buildNumber = getBuildNumber(envVars.get("JOB_NAME"),build);
-
-            System.out.println("build number is " + buildNumber);
             String buildUrl = Jenkins.getInstance().getRootUrl() + build.getUrl();
-            System.out.println("build url is " + buildUrl);
 
             HttpPost postMethod = new HttpPost(url);
             postMethod = addProxyInformation(postMethod);
@@ -267,7 +262,6 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             postMethod.setEntity(data);
             CloseableHttpResponse response = httpClient.execute(postMethod);
             resStr = EntityUtils.toString(response.getEntity());
-            System.out.println("Request sent");
             if (response.getStatusLine().toString().contains("200")) {
                 // get 200 response
                 printStream.println("[IBM Cloud DevOps] Upload Build Information successfully");
@@ -297,10 +291,8 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             e.printStackTrace();
         } catch (ClientProtocolException e) {
             e.printStackTrace();
-            System.out.println(e.toString());
         } catch (IOException e) {
             e.printStackTrace();
-            System.out.println(e.toString());
         }
         return false;
     }

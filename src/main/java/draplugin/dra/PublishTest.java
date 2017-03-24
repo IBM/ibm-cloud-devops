@@ -322,7 +322,6 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                 if (Util.isNullOrEmpty(this.buildJobName)) {
                     // handle the case which the build job name left empty, and the pipeline case
                     this.buildJobName = envVars.get("JOB_NAME");
-                    System.out.println("Build job name is " + this.buildJobName);
                 }
                 buildNumber = getBuildNumber(buildJobName, triggeredBuild);
                 String rootUrl = Jenkins.getInstance().getRootUrl();

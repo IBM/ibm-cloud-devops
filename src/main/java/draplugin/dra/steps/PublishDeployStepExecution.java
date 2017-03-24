@@ -34,7 +34,6 @@ public class PublishDeployStepExecution extends AbstractSynchronousNonBlockingSt
 
     @Override
     protected Void run() throws Exception {
-        System.out.println("Running publish deploy step");
 
         String orgName = Util.isNullOrEmpty(step.getOrgName()) ? envVars.get("IBM_CLOUD_DEVOPS_ORG") : step.getOrgName();
         String applicationName =  Util.isNullOrEmpty(step.getApplicationName()) ? envVars.get("IBM_CLOUD_DEVOPS_APP_NAME") : step.getApplicationName();

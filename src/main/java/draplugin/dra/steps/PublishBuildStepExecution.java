@@ -33,14 +33,11 @@ public class PublishBuildStepExecution extends AbstractSynchronousNonBlockingSte
 
     @Override
     protected Void run() throws Exception {
-        System.out.println("Running publish build step");
-
         String orgName = Util.isNullOrEmpty(step.getOrgName()) ? envVars.get("IBM_CLOUD_DEVOPS_ORG") : step.getOrgName();
         String applicationName =  Util.isNullOrEmpty(step.getApplicationName()) ? envVars.get("IBM_CLOUD_DEVOPS_APP_NAME") : step.getApplicationName();
         String toolchainName = Util.isNullOrEmpty(step.getToolchainId()) ? envVars.get("IBM_CLOUD_DEVOPS_TOOLCHAIN_ID") : step.getToolchainId();
         String username = envVars.get("IBM_CLOUD_DEVOPS_CREDS_USR");
         String password = envVars.get("IBM_CLOUD_DEVOPS_CREDS_PSW");
-        System.out.println("org name is " + orgName);
         PublishBuild publishBuild = new PublishBuild(
                 step.getResult(),
                 step.getGitRepo(),

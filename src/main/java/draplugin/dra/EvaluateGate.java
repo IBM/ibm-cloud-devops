@@ -231,7 +231,6 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
                 if (Util.isNullOrEmpty(this.buildJobName)) {
                     // handle the case which the build job name left empty, and the pipeline case
                     this.buildJobName = envVars.get("JOB_NAME");
-                    System.out.println("Build job name is " + this.buildJobName);
                 }
                 buildNumber = getBuildNumber(buildJobName, triggeredBuild);
             }
@@ -290,8 +289,6 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
                 if (willDisrupt) {
                     Result result = Result.FAILURE;
                     build.setResult(result);
-
-                    System.out.println("Returning false");
                     throw new AbortException("Decision is fail");
                 }
                 return;
@@ -306,8 +303,11 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             return;
 
         } catch (IOException e) {
-            printStream.print("[IBM Cloud DevOps] Error: " + e.getMessage());
-            throw new AbortException("Decision is fail");
+            if (e instanceof AbortException) {
+                throw new AbortException("Decision is fail");
+            } else {
+                printStream.print("[IBM Cloud DevOps] Error: " + e.getMessage());
+            }
         }
     }
 

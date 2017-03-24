@@ -37,7 +37,6 @@ public class EvaluateGateStepExecution extends AbstractSynchronousNonBlockingSte
 
     @Override
     protected Void run() throws Exception {
-        System.out.println("Running gate step");
 
         String orgName = Util.isNullOrEmpty(step.getOrgName()) ? envVars.get("IBM_CLOUD_DEVOPS_ORG") : step.getOrgName();
         String applicationName =  Util.isNullOrEmpty(step.getApplicationName()) ? envVars.get("IBM_CLOUD_DEVOPS_APP_NAME") : step.getApplicationName();
@@ -61,8 +60,7 @@ public class EvaluateGateStepExecution extends AbstractSynchronousNonBlockingSte
         try {
             evaluateGate.perform(build, ws, launcher, listener);
         } catch (AbortException e) {
-            System.out.println(e.getMessage());
-            throw new AbortException("Decision is fail 2");
+            throw new AbortException("Decision is fail");
         }
 
         return null;
