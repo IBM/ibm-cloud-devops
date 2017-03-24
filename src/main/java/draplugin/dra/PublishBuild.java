@@ -183,7 +183,7 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             return;
         }
 
-        String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + this.orgName + "&toolchainId=" + this.toolchainName;
+        String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
         System.out.println("link is " + link);
         if (uploadBuildInfo(bluemixToken, build, envVars)) {
             printStream.println("[IBM Cloud DevOps] Go to Control Center (" + link + ") to check your build status");
@@ -288,7 +288,11 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             printStream.println("[IBM Cloud DevOps] Invalid Json response, response: " + resStr);
         } catch (IllegalStateException e) {
             // will be triggered when 403 Forbidden
-            printStream.println("[IBM Cloud DevOps] Please check if you have the access to " + this.orgName + " org");
+            try {
+                printStream.println("[IBM Cloud DevOps] Please check if you have the access to " + URLEncoder.encode(this.orgName, "UTF-8") + " org");
+            } catch (UnsupportedEncodingException e1) {
+                e1.printStackTrace();
+            }
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         } catch (ClientProtocolException e) {

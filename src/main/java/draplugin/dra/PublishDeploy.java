@@ -240,7 +240,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		dlmsUrl = dlmsUrl.replace("{build_artifact}", URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20"));
 		dlmsUrl = dlmsUrl.replace("{build_id}", buildNumber);
 		System.out.println("dlms Url is " + dlmsUrl);
-		String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + this.orgName + "&toolchainId=" + this.toolchainName;
+		String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
 
 
 		// get the Bluemix token
@@ -320,7 +320,11 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 			printStream.println("[IBM Cloud DevOps] Invalid Json response, response: " + resStr);
 		} catch (IllegalStateException e) {
 			// will be triggered when 403 Forbidden
-			printStream.println("[IBM Cloud DevOps] Please check if you have the access to " + this.orgName + " org");
+			try {
+				printStream.println("[IBM Cloud DevOps] Please check if you have the access to " + URLEncoder.encode(this.orgName, "UTF-8") + " org");
+			} catch (UnsupportedEncodingException e1) {
+				e1.printStackTrace();
+			}
 		} catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
 		} catch (ClientProtocolException e) {

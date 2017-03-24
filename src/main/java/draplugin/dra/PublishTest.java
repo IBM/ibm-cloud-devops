@@ -338,7 +338,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         url = url.replace("{build_artifact}", URLEncoder.encode(this.applicationName, "UTF-8").replaceAll("\\+", "%20"));
         url = url.replace("{build_id}", buildNumber);
         this.dlmsUrl = url;
-        String link = chooseControlCenterUrl(env) + "buildverification?orgName=" + this.orgName + "&toolchainId=" + this.toolchainName;
+        String link = chooseControlCenterUrl(env) + "buildverification?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
 
         // get the Bluemix token
         try {
@@ -407,7 +407,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                 decision = "Failed";
             }
 
-            String cclink = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + this.orgName + "&toolchainId=" + this.toolchainName;
+            String cclink = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
 
             GatePublisherAction action = new GatePublisherAction(reportUrl + decisionId, cclink, decision, this.policyName, build);
             build.addAction(action);
