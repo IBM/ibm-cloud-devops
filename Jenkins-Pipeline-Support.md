@@ -2,6 +2,7 @@ To use IBM Cloud DevOps with the Jenkins pipeline project, you can follow the [S
 
 ## 1. Expose the required environment variables to all steps
 The plugin required 4 environment variables:
+
 1. IBM_CLOUD_DEVOPS_CREDS - the bluemix credentials ID that you defined in the jenkins, e.g `IBM_CLOUD_DEVOPS_CREDS = credentials('BM_CRED')` 
 2. IBM_CLOUD_DEVOPS_ORG - the bluemix org that you are going to use
 3. IBM_CLOUD_DEVOPS_APP_NAME - the name of your application
@@ -9,12 +10,15 @@ The plugin required 4 environment variables:
  
 ## 2. Use the IBM Cloud DevOps steps
 We provide 4 steps to upload the build/test/deploy information and use the IBM Cloud DevOps Gate
+
 ### 1. publishBuildRecord
 There are 4 required parameters:
+
 1. gitBranch
 2. gitCommit
 3. gitRepo
 4. result - the result of the build stage, the value should be either "SUCCESS" or "FAILED"
+
 Here is a usage example
 ```
 publishBuildRecord gitBranch: "${GIT_MASTER}", gitCommit: "${GIT_COMMIT}", gitRepo: "https://github.com/xunrongl/DemoDRA-1", result:"SUCCESS"
@@ -24,6 +28,7 @@ Note: Currently, jenkins pipeline does not expose git information to the environ
 
 ### 2. publishTestResult
 There are 2 required parameters:
+
 1. type - the accepted values are
     1. `unittest` for unit test
     2. `fvt` for functional verifcation test
@@ -38,6 +43,7 @@ publishTestResult type:'code', fileLocation: './tests/coverage/reports/coverage-
 
 ### 3. publishDeployRecord
 There are 4 required parameters:
+
 1. environment - the environment that you deploy your app to, the value should be either "STAGING" or "PRODUCTION"
 2. appUrl
 3. result - the result of the build stage, the value should be either "SUCCESS" or "FAILED"
@@ -48,6 +54,7 @@ publishDeployRecord environment: "STAGING", appUrl: "http://staging-Weather-App.
 
 ### 4. evaluateGate
 There is 1 required and 1 optional parameters:
+
 1. (required) policy - the policy name that you define in the DevOps Insight
 2. (optional) forceDecision - if you want to abort the pipeline based on the gate decision, set it to be `true`. It is `false` by default if you don't pass the parameter
 Here is a usage example
