@@ -49,8 +49,6 @@ import java.io.PrintStream;
 import java.net.URLEncoder;
 import java.util.List;
 
-import static java.lang.Thread.sleep;
-
 
 /**
  * Customized build step to get a gate decision from DRA backend
