@@ -7,6 +7,16 @@ The plugin required 4 environment variables:
 2. IBM_CLOUD_DEVOPS_ORG - the bluemix org that you are going to use
 3. IBM_CLOUD_DEVOPS_APP_NAME - the name of your application
 4. IBM_CLOUD_DEVOPS_TOOLCHAIN_ID - the toolchain id that you are using, you can get the toolchain id from the url after the toolchain is created. e.g https://console.ng.bluemix.net/devops/toolchains/TOOLCHAIN_ID.
+
+Here is an example to use it in the Jenkinsfile
+```
+environment {
+        IBM_CLOUD_DEVOPS_CREDS = credentials('BM_CRED')
+        IBM_CLOUD_DEVOPS_ORG = 'lix@us.ibm.com'
+        IBM_CLOUD_DEVOPS_APP_NAME = 'Weather-V1-Xunrong'
+        IBM_CLOUD_DEVOPS_TOOLCHAIN_ID = '1320cec1-daaa-4b63-bf06-7001364865d2'
+    }
+ ```
  
 ## 2. Use the IBM Cloud DevOps steps
 We provide 4 steps to upload the build/test/deploy information and use the IBM Cloud DevOps Gate
