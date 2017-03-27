@@ -59,7 +59,7 @@ publishTestResult type:'code', fileLocation: './tests/coverage/reports/coverage-
 ### 3. publishDeployRecord
 There are 4 required parameters:
 
-1. environment - the environment that you deploy your app to, the value should be either "STAGING" or "PRODUCTION"
+1. environment - the environment that you deploy your app to, if you deploy your app to the staging environment, use "STAGING"; if it is production environment, use "PRODUCTION"
 2. appUrl
 3. result - the result of the build stage, the value should be either "SUCCESS" or "FAILED"
 Here is a usage example
