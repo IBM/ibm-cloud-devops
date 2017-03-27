@@ -1,5 +1,9 @@
 To use IBM Cloud DevOps with the Jenkins pipeline project, you can follow the [Sample Jenkinsfile](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/pipeline-support/Sample-Jenkinsfile)
 
+## Prerequisites
+Make sure you are using Jenkins 2.X and have all pipeline related plugins installed 
+It has been test for Jenkins pipeline job with Pipeline plugin 2.5 version.
+
 ## 1. Expose the required environment variables to all steps
 The plugin required 4 environment variables:
 
@@ -9,6 +13,7 @@ The plugin required 4 environment variables:
 4. IBM_CLOUD_DEVOPS_TOOLCHAIN_ID - the toolchain id that you are using, you can get the toolchain id from the url after the toolchain is created. e.g https://console.ng.bluemix.net/devops/toolchains/TOOLCHAIN_ID.
 
 Here is an example to use it in the Jenkinsfile
+
 ```
 environment {
         IBM_CLOUD_DEVOPS_CREDS = credentials('BM_CRED')
@@ -16,7 +21,7 @@ environment {
         IBM_CLOUD_DEVOPS_APP_NAME = 'Weather-V1-Xunrong'
         IBM_CLOUD_DEVOPS_TOOLCHAIN_ID = '1320cec1-daaa-4b63-bf06-7001364865d2'
     }
- ```
+```
  
 ## 2. Use the IBM Cloud DevOps steps
 We provide 4 steps to upload the build/test/deploy information and use the IBM Cloud DevOps Gate
