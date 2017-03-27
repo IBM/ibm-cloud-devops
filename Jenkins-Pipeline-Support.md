@@ -27,7 +27,7 @@ There are 2 required parameters:
 1. type - the accepted values are
     1. `unittest` for unit test
     2. `fvt` for functional verifcation test
-    3. `code` for code coverage  
+    3. `code` for code coverage
 2. fileLocation - the result file location
 
 Here is a usage example
