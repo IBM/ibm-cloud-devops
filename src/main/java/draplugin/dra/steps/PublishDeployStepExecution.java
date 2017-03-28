@@ -60,7 +60,7 @@ public class PublishDeployStepExecution extends AbstractSynchronousNonBlockingSt
             return null;
         }
 
-        if (result.equals("PASS") || result.equals("FAIL")) {
+        if (result.equals("SUCCESS") || result.equals("FAIL")) {
             PublishDeploy publishDeploy = new PublishDeploy(
                     environment,
                     step.getAppUrl(),

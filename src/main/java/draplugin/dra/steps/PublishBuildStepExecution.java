@@ -61,7 +61,7 @@ public class PublishBuildStepExecution extends AbstractSynchronousNonBlockingSte
             return null;
         }
 
-        if (result.equals("PASS") || result.equals("FAIL")) {
+        if (result.equals("SUCCESS") || result.equals("FAIL")) {
             PublishBuild publishBuild = new PublishBuild(
                     result,
                     gitRepo,
