@@ -32,7 +32,7 @@ Publish the build record to the IBM Cloud DevOps, there are 4 required parameter
 1. gitBranch
 2. gitCommit
 3. gitRepo
-4. result - the result of the build stage, the value should be either "SUCCESS" or "FAILED"
+4. result - the result of the build stage, the value should be either "SUCCESS" or "FAIL"
 
 Here is a usage example
 ```
@@ -57,11 +57,11 @@ publishTestResult type:'code', fileLocation: './tests/coverage/reports/coverage-
 ```
 
 ### 3. publishDeployRecord
-Publish the deploy record to the IBM Cloud DevOps, there are 4 required parameters:
+Publish the deploy record to the IBM Cloud DevOps, there are 2 required and 1 optional parameters:
 
-1. environment - the environment that you deploy your app to, if you deploy your app to the staging environment, use "STAGING"; if it is production environment, use "PRODUCTION"
-2. appUrl - the application url that you deploy your app to
-3. result - the result of the build stage, the value should be either "SUCCESS" or "FAILED"
+1. (required) environment - the environment that you deploy your app to, if you deploy your app to the staging environment, use "STAGING"; if it is production environment, use "PRODUCTION"
+2. (required) result  - the result of the build stage, the value should be either "SUCCESS" or "FAIL"
+3. (optional) appUrl - the application url that you deploy your app to
 Here is a usage example
 ```
 publishDeployRecord environment: "STAGING", appUrl: "http://staging-Weather-App.mybluemix.net", result:"SUCCESS"

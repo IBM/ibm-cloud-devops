@@ -30,4 +30,13 @@ public class Util {
         }
         return false;
     }
+
+    public static boolean allNotNullOrEmpty(String... strs) {
+        for (String str : strs) {
+            if (isNullOrEmpty(str)) {
+                return false;
+            }
+        }
+        return true;
+    }
 }

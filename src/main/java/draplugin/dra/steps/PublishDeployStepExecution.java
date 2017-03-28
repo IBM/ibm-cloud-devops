@@ -11,6 +11,7 @@ import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousNonBlockingStepEx
 import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
 
 import javax.inject.Inject;
+import java.io.PrintStream;
 
 /**
  * Created by lix on 3/22/17.
@@ -34,23 +35,45 @@ public class PublishDeployStepExecution extends AbstractSynchronousNonBlockingSt
     @Override
     protected Void run() throws Exception {
 
+        PrintStream printStream = listener.getLogger();
+
         String orgName = Util.isNullOrEmpty(step.getOrgName()) ? envVars.get("IBM_CLOUD_DEVOPS_ORG") : step.getOrgName();
         String applicationName =  Util.isNullOrEmpty(step.getApplicationName()) ? envVars.get("IBM_CLOUD_DEVOPS_APP_NAME") : step.getApplicationName();
         String toolchainName = Util.isNullOrEmpty(step.getToolchainId()) ? envVars.get("IBM_CLOUD_DEVOPS_TOOLCHAIN_ID") : step.getToolchainId();
-
         String username = envVars.get("IBM_CLOUD_DEVOPS_CREDS_USR");
         String password = envVars.get("IBM_CLOUD_DEVOPS_CREDS_PSW");
 
-        PublishDeploy publishDeploy = new PublishDeploy(
-                step.getEnvironment(),
-                step.getAppUrl(),
-                step.getResult(),
-                toolchainName,
-                applicationName,
-                orgName,
-                username,
-                password);
-        publishDeploy.perform(build, ws, launcher, listener);
+        //check all the required env vars
+        if (!Util.allNotNullOrEmpty(orgName, applicationName,toolchainName, username, password)) {
+            printStream.println("[IBM Cloud DevOps] Missing environment variables configurations, please specify all required environment variables in the pipeline");
+            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Deploy Record.");
+            return null;
+        }
+
+        //check all the required parameters
+        String environment = step.getEnvironment();
+        String result = step.getResult();
+        if (!Util.allNotNullOrEmpty(result, environment)) {
+            printStream.println("[IBM Cloud DevOps] publishDeployRecord is missing required parameters, " +
+                    "please make sure you specify \"result\" and \"environment\"");
+            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Deploy Record.");
+            return null;
+        }
+
+        if (result.equals("PASS") || result.equals("FAIL")) {
+            PublishDeploy publishDeploy = new PublishDeploy(
+                    environment,
+                    step.getAppUrl(),
+                    result,
+                    toolchainName,
+                    applicationName,
+                    orgName,
+                    username,
+                    password);
+            publishDeploy.perform(build, ws, launcher, listener);
+        } else {
+            printStream.println("[IBM Cloud DevOps] the \"result\" in the publishDeployRecord should be either \"PASS\" or \"FAIL\"");
+        }
         return null;
     }
 }
