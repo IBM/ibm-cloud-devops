@@ -2,7 +2,7 @@ To use IBM Cloud DevOps with the Jenkins pipeline project, you can follow the [S
 
 ## Prerequisites
 Make sure you are using Jenkins 2.X and have all pipeline related plugins installed and updated to the latest version
-It has been test for Jenkins pipeline job with Pipeline plugin 2.5 version.
+It has been test for Jenkins pipeline job with Pipeline plugin 2.5 version. 
 
 ## 1. Expose the required environment variables to all steps
 The plugin required 4 environment variables:
@@ -12,7 +12,7 @@ The plugin required 4 environment variables:
 3. `IBM_CLOUD_DEVOPS_APP_NAME` - the name of your application
 4. `IBM_CLOUD_DEVOPS_TOOLCHAIN_ID` - the toolchain id that you are using, you can get the toolchain id from the url after the toolchain is created. e.g https://console.ng.bluemix.net/devops/toolchains/TOOLCHAIN_ID.
 
-Here is an example to use it in the Jenkinsfile
+Here is an example to use it in the Jenkinsfile (a.k.a Declarative Pipeline)
 
 ```
 environment {
@@ -22,7 +22,10 @@ environment {
         IBM_CLOUD_DEVOPS_TOOLCHAIN_ID = '1320cec1-daaa-4b63-bf06-7001364865d2'
     }
 ```
- 
+
+Notes: `credentials` is only available for Declarative Pipeline. For those using Scripted Pipeline, see the documentation for the `withCredentials` step.
+For the Scripted Pipeline, use `withEnv` instead of `environment`
+
 ## 2. Use the IBM Cloud DevOps steps
 We provide 4 steps to upload the build/test/deploy information and use the IBM Cloud DevOps Gate
 
