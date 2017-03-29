@@ -21,7 +21,7 @@
   </parent>
   <groupId>devops-insights-plugin</groupId>
   <artifactId>ibmclouddevops</artifactId>
-  <version>0.9.3</version>
+  <version>0.9.4</version>
   <packaging>hpi</packaging>
 
   <build>
