@@ -1,4 +1,4 @@
-To use IBM Cloud DevOps with the Jenkins pipeline project, you can follow the [Sample Jenkinsfile](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/pipeline-support/Sample-Jenkinsfile)
+To use IBM Cloud DevOps with the Jenkins pipeline project, you can follow the [Sample Jenkinsfile](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/pipeline-support/Declarative-Jenkinsfile)
 
 ## Prerequisites
 Make sure you are using Jenkins 2.X and have all pipeline related plugins installed and updated to the latest version
