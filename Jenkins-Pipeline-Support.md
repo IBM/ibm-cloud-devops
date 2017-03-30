@@ -1,17 +1,20 @@
-To use IBM Cloud DevOps with the Jenkins pipeline project, you can follow the [Sample Jenkinsfile](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/pipeline-support/Declarative-Jenkinsfile)
+To use IBM Cloud DevOps with the Jenkins pipeline project, you can follow the [declarative Jenkinsfile](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/pipeline-support/Declarative-Jenkinsfile) or [scripted jenkinsfile](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/pipeline-support/Scripted-Jenkinsfile)
 
 ## Prerequisites
 Make sure you are using Jenkins 2.X and have all pipeline related plugins installed and updated to the latest version
 It has been test for Jenkins pipeline job with Pipeline plugin 2.5 version. 
 
 ## 1. Expose the required environment variables to all steps
-The plugin required 4 environment variables:
+The plugin required 4 environment variables defined as follow:
 
-1. `IBM_CLOUD_DEVOPS_CREDS` - the bluemix credentials ID that you defined in the jenkins, e.g `IBM_CLOUD_DEVOPS_CREDS = credentials('BM_CRED')` 
+1. `IBM_CLOUD_DEVOPS_CREDS` - the bluemix credentials ID that you defined in the jenkins, e.g `IBM_CLOUD_DEVOPS_CREDS = credentials('BM_CRED')`, by using the `credentials` command, it will set two environment variables automatically:
+    1. `IBM_CLOUD_DEVOPS_CREDS_USR` for username
+    2. `IBM_CLOUD_DEVOPS_CREDS_PSW` for password
 2. `IBM_CLOUD_DEVOPS_ORG` - the bluemix org that you are going to use
 3. `IBM_CLOUD_DEVOPS_APP_NAME` - the name of your application
 4. `IBM_CLOUD_DEVOPS_TOOLCHAIN_ID` - the toolchain id that you are using, you can get the toolchain id from the url after the toolchain is created. e.g https://console.ng.bluemix.net/devops/toolchains/TOOLCHAIN_ID.
 
+In the plugin, we are going to refer to these environment variables and credentials to interact with IBM Cloud DevOps
 Here is an example to use it in the Jenkinsfile (a.k.a Declarative Pipeline)
 
 ```
@@ -24,7 +27,8 @@ environment {
 ```
 
 Notes: `credentials` is only available for Declarative Pipeline. For those using Scripted Pipeline, see the documentation for the `withCredentials` step.
-For the Scripted Pipeline, use `withEnv` instead of `environment`
+For the Scripted Pipeline, use `withEnv` instead of `environment`. You can refer to [Scripted Jenkinsfile](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/pipeline-support/Scripted-Jenkinsfile) as an example
+
 
 ## 2. Use the IBM Cloud DevOps steps
 We provide 4 steps to upload the build/test/deploy information and use the IBM Cloud DevOps Gate

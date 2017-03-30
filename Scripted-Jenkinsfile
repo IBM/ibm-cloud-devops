@@ -13,6 +13,7 @@ node {
         withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'BM_CRED',
                           usernameVariable: 'IBM_CLOUD_DEVOPS_CREDS_USR', passwordVariable: 'IBM_CLOUD_DEVOPS_CREDS_PSW']]) {
 
+            // work around to get the git commit id
             def gitCommit = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
             stage('Build') {
                 withEnv(["GIT_COMMIT=${gitCommit}",
