@@ -95,3 +95,23 @@ node {
         }
     }
 }
+
+
+/*
+
+void withDevOpsEnv(List envVars = [], def body) {
+  List jobEnv = [
+    'IBM_CLOUD_DEVOPS_ORG=lix@us.ibm.com',
+    'IBM_CLOUD_DEVOPS_APP_NAME=Weather-V1-Xunrong-Scripted',
+    'IBM_CLOUD_DEVOPS_TOOLCHAIN_ID=1320cec1-daaa-4b63-bf06-7001364865d2'
+  ]
+
+  // Add any additional environment variables.
+  jobEnv.addAll(envVars)
+
+  // Invoke the body closure we're passed within the environment we've created.
+  withEnv(jobEnv) {
+    body.call()
+  }
+}
+ */
