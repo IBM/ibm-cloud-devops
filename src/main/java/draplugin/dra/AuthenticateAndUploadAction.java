@@ -315,7 +315,7 @@ public class AuthenticateAndUploadAction extends AbstractDevOpsAction implements
 
         url = url.replace("{build_id}", buildNumber);
         this.dlmsUrl = url;
-        String link = chooseControlCenterUrl(env) + "buildverification?orgName=" + this.orgName + "&toolchainId=" + this.toolchainName;
+        String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + this.orgName + "&toolchainId=" + this.toolchainName;
 
         // get the Bluemix token
         // if it is in prod env, check if already got the token from the "Test connection" or "policy name"
