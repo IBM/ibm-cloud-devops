@@ -3,8 +3,6 @@ package draplugin.notification;
 import hudson.EnvVars;
 import hudson.model.Run;
 import hudson.model.Job;
-import hudson.model.Result;
-import hudson.model.TaskListener;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.apache.http.client.methods.CloseableHttpResponse;

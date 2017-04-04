@@ -13,14 +13,7 @@ import hudson.Extension;
 import hudson.model.*;
 import hudson.model.listeners.RunListener;
 import hudson.tasks.Publisher;
-import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.cloudfoundry.client.lib.org.springframework.security.access.method.P;
 
 import java.io.IOException;
 import java.io.PrintStream;
