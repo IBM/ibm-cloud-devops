@@ -30,7 +30,7 @@ public class OTCNotificationExecution extends AbstractSynchronousNonBlockingStep
     protected Void run() throws Exception {
         String webhookUrl = step.getWebhookUrl().trim();
         String stageName = step.getStageName().trim();
-        String status = step.getStatus().toUpperCase().trim();
+        String status = step.getStatus().trim();
 
         PrintStream printStream = listener.getLogger();
 
