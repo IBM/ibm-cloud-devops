@@ -33,11 +33,9 @@ import java.util.List;
 public class BuildListener extends RunListener<AbstractBuild> {
     private String webhook = null;
     private PrintStream printStream = TaskListener.NULL.getLogger();
-    private MessageHandler handler;
 
     public BuildListener(){
         super(AbstractBuild.class);
-        handler = new MessageHandler();
     }
 
     @Override
@@ -84,8 +82,8 @@ public class BuildListener extends RunListener<AbstractBuild> {
                         resultString = result.toString();
                     }
 
-                    JSONObject message = handler.buildMessage(r, envVars, phase, resultString);
-                    handler.postToWebhook(this.webhook, message, this.printStream);
+                    JSONObject message = MessageHandler.buildMessage(r, envVars, phase, resultString);
+                    MessageHandler.postToWebhook(this.webhook, message, this.printStream);
                 }
             }
         }

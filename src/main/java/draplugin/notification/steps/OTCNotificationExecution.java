@@ -27,10 +27,6 @@ public class OTCNotificationExecution extends AbstractSynchronousNonBlockingStep
     @StepContextParameter
     private transient TaskListener listener;
     @StepContextParameter
-    private transient FilePath ws;
-    @StepContextParameter
-    private transient Launcher launcher;
-    @StepContextParameter
     private transient Run build;
     @StepContextParameter
     private transient EnvVars envVars;
@@ -43,9 +39,8 @@ public class OTCNotificationExecution extends AbstractSynchronousNonBlockingStep
 
         PrintStream printStream = listener.getLogger();
 
-        MessageHandler messageHandler = new MessageHandler();
-        JSONObject message = messageHandler.buildMessage(build, envVars, stageName, status);
-        messageHandler.postToWebhook(webhookUrl, message, printStream);
+        JSONObject message = MessageHandler.buildMessage(build, envVars, stageName, status);
+        MessageHandler.postToWebhook(webhookUrl, message, printStream);
 
         return null;
     }

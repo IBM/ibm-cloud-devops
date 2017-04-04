@@ -20,10 +20,7 @@ import java.io.PrintStream;
  * Created by patrickjoy on 4/3/17.
  */
 public class MessageHandler {
-
-    public MessageHandler(){}
-
-    public JSONObject buildMessage(Run r, EnvVars envVars, String phase, String result){
+    public static JSONObject buildMessage(Run r, EnvVars envVars, String phase, String result){
         JSONObject message = new JSONObject();
         JSONObject build = new JSONObject();
         JSONObject scm = new JSONObject();
@@ -110,7 +107,7 @@ public class MessageHandler {
         return message;
     }
 
-    public void postToWebhook(String webhook, JSONObject message, PrintStream printStream){
+    public static void postToWebhook(String webhook, JSONObject message, PrintStream printStream){
         CloseableHttpClient httpClient = HttpClients.createDefault();
         HttpPost postMethod = new HttpPost(webhook);
         try {
