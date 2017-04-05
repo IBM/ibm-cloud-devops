@@ -4,6 +4,7 @@ import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousNonBlockingStepEx
 import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
 import javax.inject.Inject;
 import draplugin.notification.MessageHandler;
+import draplugin.notification.Util;
 import hudson.EnvVars;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -18,7 +19,6 @@ import java.io.PrintStream;
 public class OTCNotificationExecution extends AbstractSynchronousNonBlockingStepExecution<Void> {
     @Inject
     private transient OTCNotificationStep step;
-
     @StepContextParameter
     private transient TaskListener listener;
     @StepContextParameter
@@ -28,7 +28,7 @@ public class OTCNotificationExecution extends AbstractSynchronousNonBlockingStep
 
     @Override
     protected Void run() throws Exception {
-        String webhookUrl = step.getWebhookUrl().trim();
+        String webhookUrl = Util.isNullOrEmpty(step.getWebhookUrl()) ? envVars.get("IBM_CLOUD_DEVOPS_WEBHOOK_URL") : step.getWebhookUrl();
         String stageName = step.getStageName().trim();
         String status = step.getStatus().trim();
 

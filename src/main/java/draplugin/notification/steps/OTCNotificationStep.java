@@ -4,6 +4,8 @@ import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
 import hudson.Extension;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
+
 import javax.annotation.Nonnull;
 
 /**
@@ -11,15 +13,21 @@ import javax.annotation.Nonnull;
  */
 public class OTCNotificationStep extends AbstractStepImpl {
     //required parameter to support pipeline script
-    private String webhookUrl;
     private String status;
     private String stageName;
 
+    //option parameters
+    private String webhookUrl;
+
     @DataBoundConstructor
-    public OTCNotificationStep(String webhookUrl, String stageName, String status){
-        this.webhookUrl = webhookUrl;
+    public OTCNotificationStep(String stageName, String status){
         this.stageName = stageName;
         this.status = status;
+    }
+
+    @DataBoundSetter
+    public void setWebhookUrl(String webhookUrl){
+        this.webhookUrl = webhookUrl;
     }
 
     public String getWebhookUrl(){

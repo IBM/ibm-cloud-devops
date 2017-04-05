@@ -104,13 +104,18 @@ stage('Deploy') {
 
     post {
       success {
-        notifyOTC stageName: "Deploy", status: "SUCCESS", webhookUrl: "${IBM_CLOUD_DEVOPS_WEBHOOK_URL}"
+        notifyOTC stageName: "Deploy", status: "SUCCESS"
       }
       failure {
-        notifyOTC stageName: "Deploy", status: "FAILURE", webhookUrl: "${IBM_CLOUD_DEVOPS_WEBHOOK_URL}"
+        notifyOTC stageName: "Deploy", status: "FAILURE"
       }
     }
 }
+```
+
+Optionally you can override IBM_CLOUD_WEBHOOK_URL:
+```
+notifyOTC stageName: "Deploy", status: "FAILURE", webhookUrl: "https://different-webhook-url@devops-api.ng.bluemix.net/v1/toolint/messaging/webhook/publish"
 ```
 
 ### 6. Traceability
