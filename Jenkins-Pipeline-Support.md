@@ -93,7 +93,7 @@ Publish the status of your pipeline stages to your Bluemix Toolchain:
 
 1. (required) stageName - the name of the current pipeline stage.
 2. (required) status - the completion status of the current pipeline stage. ('SUCCESS', 'FAILURE', and 'ABORTED' will be augmented with color)
-3. (required) webhookUrl - the webhook obtained from the Jenkins card on your toolchain.
+3. (optional) webhookUrl - the webhook obtained from the Jenkins card on your toolchain.
 
 Here is an example of our recommended usage.
 ```
