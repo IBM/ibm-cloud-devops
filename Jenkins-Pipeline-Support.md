@@ -118,8 +118,10 @@ Configure your Jenkins jobs to create a deployable mapping and send traceability
 
 We recommend that you run `cf icd --create-connection ...` just after a deploy. Please note that you must be logged into cf and targeting an org an space before running `cf icd --create-connection ...`.  Here is an example:
 ```
+<pre>
 sh 'cf api $CF_API'
 sh 'cf login -u $IBM_CLOUD_DEVOPS_CREDS_USR -p $IBM_CLOUD_DEVOPS_CREDS_PSW -o $IBM_CLOUD_DEVOPS_ORG -s $CF_SPACE'
 sh 'cf push $IBM_CLOUD_DEVOPS_APP_NAME -n $IBM_CLOUD_DEVOPS_APP_NAME -m 64M -i 1'
-**sh 'cf icd --create-connection $IBM_CLOUD_DEVOPS_WEBHOOK_URL $IBM_CLOUD_DEVOPS_APP_NAME'**
+<b>sh 'cf icd --create-connection $IBM_CLOUD_DEVOPS_WEBHOOK_URL $IBM_CLOUD_DEVOPS_APP_NAME'</b>
+</pre>
 ```
