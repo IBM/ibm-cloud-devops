@@ -103,12 +103,12 @@ stage('Deploy') {
     }
 
     post {
-      success {
-        notifyOTC stageName: "Deploy", status: "SUCCESS"
-      }
-      failure {
-        notifyOTC stageName: "Deploy", status: "FAILURE"
-      }
+        success {
+            notifyOTC stageName: "Deploy", status: "SUCCESS"
+        }
+        failure {
+            notifyOTC stageName: "Deploy", status: "FAILURE"
+        }
     }
 }
 ```
@@ -122,9 +122,16 @@ notifyOTC stageName: "Deploy", status: "FAILURE", webhookUrl: "https://different
 Configure your Jenkins jobs to create a deployable mapping and send traceability information to your Bluemix Toolchain by following the instructions in steps 8.a and 8.b of the [Bluemix Docs](https://console.ng.bluemix.net/docs/services/ContinuousDelivery/toolchains_integrations.html#jenkins).
 
 We recommend that you run `cf icd --create-connection ...` just after a deploy. Please note that you must be logged into cf and targeting an org an space before running `cf icd --create-connection ...`.  Here is an example:
+
 <pre>
-sh 'cf api $CF_API'
-sh 'cf login -u $IBM_CLOUD_DEVOPS_CREDS_USR -p $IBM_CLOUD_DEVOPS_CREDS_PSW -o $IBM_CLOUD_DEVOPS_ORG -s $CF_SPACE'
-sh 'cf push $IBM_CLOUD_DEVOPS_APP_NAME -n $IBM_CLOUD_DEVOPS_APP_NAME -m 64M -i 1'
-<b>sh 'cf icd --create-connection $IBM_CLOUD_DEVOPS_WEBHOOK_URL $IBM_CLOUD_DEVOPS_APP_NAME'</b>
+sh '''
+    echo "CF Login..."
+    cf api https://api.ng.bluemix.net
+    cf login -u $IBM_CLOUD_DEVOPS_CREDS_USR -p $IBM_CLOUD_DEVOPS_CREDS_PSW -o $IBM_CLOUD_DEVOPS_ORG -s staging
+    echo "Deploying...."
+    export CF_APP_NAME="staging-$IBM_CLOUD_DEVOPS_APP_NAME"
+    cf delete $CF_APP_NAME -f
+    cf push $CF_APP_NAME -n $CF_APP_NAME -m 64M -i 1
+    <b>cf icd --create-connection $IBM_CLOUD_DEVOPS_WEBHOOK_URL $CF_APP_NAME</b>
+'''
 </pre>
