@@ -31,11 +31,15 @@ public class OTCNotificationExecution extends AbstractSynchronousNonBlockingStep
         String webhookUrl = Util.isNullOrEmpty(step.getWebhookUrl()) ? envVars.get("IBM_CLOUD_DEVOPS_WEBHOOK_URL") : step.getWebhookUrl();
         String stageName = step.getStageName().trim();
         String status = step.getStatus().trim();
-
         PrintStream printStream = listener.getLogger();
 
-        JSONObject message = MessageHandler.buildMessage(build, envVars, stageName, status);
-        MessageHandler.postToWebhook(webhookUrl, message, printStream);
+        //check webhookUrl
+        if(Util.isNullOrEmpty(webhookUrl)) {
+            printStream.println("[IBM Cloud DevOps] IBM_CLOUD_DEVOPS_WEBHOOK_URL not set.");
+        } else {
+            JSONObject message = MessageHandler.buildMessage(build, envVars, stageName, status);
+            MessageHandler.postToWebhook(webhookUrl, message, printStream);
+        }
 
         return null;
     }

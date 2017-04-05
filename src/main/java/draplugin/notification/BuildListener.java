@@ -65,7 +65,8 @@ public class BuildListener extends RunListener<AbstractBuild> {
             onFinalized = notifier.getOnFinalized();
             failureOnly = notifier.getFailureOnly();
 
-            if(this.webhook == null || this.webhook.isEmpty()){//check webhook
+            //check webhook
+            if(Util.isNullOrEmpty(this.webhook)){
                 this.printStream.println("[IBM Cloud DevOps] String Parameter ICD_WEBHOOK_URL not set.");
             } else if(onStarted && phase == "STARTED" || onCompleted && phase == "COMPLETED" || onFinalized && phase == "FINALIZED"){//check selections
                 if(failureOnly && result == Result.FAILURE || !failureOnly){//check failureOnly

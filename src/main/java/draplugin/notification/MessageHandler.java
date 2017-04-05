@@ -106,23 +106,26 @@ public class MessageHandler {
     }
 
     public static void postToWebhook(String webhook, JSONObject message, PrintStream printStream){
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        HttpPost postMethod = new HttpPost(webhook);
-        try {
-            StringEntity data = new StringEntity(message.toString());
-            postMethod.setEntity(data);
-            postMethod = Util.addProxyInformation(postMethod);
-            postMethod.addHeader("Content-Type", "application/json");
-            CloseableHttpResponse response = httpClient.execute(postMethod);
+        //check webhook
+        if(!Util.isNullOrEmpty(webhook)) {
+            CloseableHttpClient httpClient = HttpClients.createDefault();
+            HttpPost postMethod = new HttpPost(webhook);
+            try {
+                StringEntity data = new StringEntity(message.toString());
+                postMethod.setEntity(data);
+                postMethod = Util.addProxyInformation(postMethod);
+                postMethod.addHeader("Content-Type", "application/json");
+                CloseableHttpResponse response = httpClient.execute(postMethod);
 
-            if (response.getStatusLine().toString().matches(".*2([0-9]{2}).*")) {
-                printStream.println("[IBM Cloud DevOps] Message successfully posted to webhook.");
-            } else {
-                printStream.println("[IBM Cloud DevOps] Message failed, response status: " + response.getStatusLine());
+                if (response.getStatusLine().toString().matches(".*2([0-9]{2}).*")) {
+                    printStream.println("[IBM Cloud DevOps] Message successfully posted to webhook.");
+                } else {
+                    printStream.println("[IBM Cloud DevOps] Message failed, response status: " + response.getStatusLine());
+                }
+            } catch (IOException e) {
+                printStream.println("[IBM Cloud DevOps] IOException, could not post to webhook:");
+                e.printStackTrace(printStream);
             }
-        } catch (IOException e) {
-            printStream.println("[IBM Cloud DevOps] IOException, could not post to webhook:");
-            e.printStackTrace(printStream);
         }
     }
 }
