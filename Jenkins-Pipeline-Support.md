@@ -95,7 +95,7 @@ Publish the status of your pipeline stages to your Bluemix Toolchain:
 2. (required) status - the completion status of the current pipeline stage. ('SUCCESS', 'FAILURE', and 'ABORTED' will be augmented with color)
 3. (optional) webhookUrl - the webhook obtained from the Jenkins card on your toolchain.
 
-Here is an example of our recommended usage.
+#### Declarative Pipeline Example:
 ```
 stage('Deploy') {
     steps {
@@ -113,15 +113,30 @@ stage('Deploy') {
 }
 ```
 
-Optionally you can override IBM_CLOUD_WEBHOOK_URL:
+#### Scripted Pipeline Example:
+```
+stage('Deploy') {
+  try {
+      ... (deploy steps)
+
+      notifyOTC stageName: "Deploy", status: "SUCCESS"
+  }
+  catch (Exception e) {
+      notifyOTC stageName: "Deploy", status: "FAILURE"
+  }
+}
+```
+
+#### Optional
+In both cases you can override the IBM_CLOUD_WEBHOOK_URL:
 ```
 notifyOTC stageName: "Deploy", status: "FAILURE", webhookUrl: "https://different-webhook-url@devops-api.ng.bluemix.net/v1/toolint/messaging/webhook/publish"
 ```
 
 ### 6. Traceability
-Configure your Jenkins jobs to create a deployable mapping and send traceability information to your Bluemix Toolchain by following the instructions in steps 8.a and 8.b of the [Bluemix Docs](https://console.ng.bluemix.net/docs/services/ContinuousDelivery/toolchains_integrations.html#jenkins).
+Configure your Jenkins environment to create a deployable mapping and send traceability information to your Bluemix Toolchain by following the instructions in steps 8.a and 8.b of the [Bluemix Docs](https://console.ng.bluemix.net/docs/services/ContinuousDelivery/toolchains_integrations.html#jenkins).
 
-We recommend that you run `cf icd --create-connection ...` just after a deploy. Please note that you must be logged into cf and targeting an org an space before running `cf icd --create-connection ...`.  Here is an example:
+Simply add `cf icd --create-connection $IBM_CLOUD_DEVOPS_WEBHOOK_URL $CF_APP_NAME` just after your deploy step. Please note that you must have both the CF CLI and CF ICD plugin installed and you must also be logged into CF before you can run this command. Here is an example:
 
 <pre>
 sh '''

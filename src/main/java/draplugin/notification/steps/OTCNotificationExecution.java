@@ -4,7 +4,7 @@ import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousNonBlockingStepEx
 import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
 import javax.inject.Inject;
 import draplugin.notification.MessageHandler;
-import draplugin.notification.Util;
+import draplugin.dra.Util;
 import hudson.EnvVars;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -33,13 +33,15 @@ public class OTCNotificationExecution extends AbstractSynchronousNonBlockingStep
         String status = step.getStatus().trim();
         PrintStream printStream = listener.getLogger();
 
-        //check webhookUrl
-        if(Util.isNullOrEmpty(webhookUrl)) {
-            printStream.println("[IBM Cloud DevOps] IBM_CLOUD_DEVOPS_WEBHOOK_URL not set.");
-        } else {
-            JSONObject message = MessageHandler.buildMessage(build, envVars, stageName, status);
-            MessageHandler.postToWebhook(webhookUrl, message, printStream);
+        //check all the required env vars
+        if (!Util.allNotNullOrEmpty(stageName, status)) {
+            printStream.println("[IBM Cloud DevOps] Required parameter null or empty.");
+            printStream.println("[IBM Cloud DevOps] Error: Failed to notify OTC.");
+            return null;
         }
+
+        JSONObject message = MessageHandler.buildMessage(build, envVars, stageName, status);
+        MessageHandler.postToWebhook(webhookUrl, message, printStream);
 
         return null;
     }

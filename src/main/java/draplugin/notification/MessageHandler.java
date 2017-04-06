@@ -10,13 +10,14 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-
 import java.io.IOException;
 import java.io.PrintStream;
+import draplugin.dra.Util;
 
 /**
  * Created by patrickjoy on 4/3/17.
  */
+//build message that will be posted to the webhook
 public class MessageHandler {
     public static JSONObject buildMessage(Run r, EnvVars envVars, String phase, String result){
         JSONObject message = new JSONObject();
@@ -105,15 +106,19 @@ public class MessageHandler {
         return message;
     }
 
+    //post message to webhook
     public static void postToWebhook(String webhook, JSONObject message, PrintStream printStream){
         //check webhook
-        if(!Util.isNullOrEmpty(webhook)) {
+        if(Util.isNullOrEmpty(webhook)){
+            printStream.println("[IBM Cloud DevOps] IBM_CLOUD_DEVOPS_WEBHOOK_URL not set.");
+            printStream.println("[IBM Cloud DevOps] Error: Failed to notify OTC.");
+        } else {
             CloseableHttpClient httpClient = HttpClients.createDefault();
             HttpPost postMethod = new HttpPost(webhook);
             try {
                 StringEntity data = new StringEntity(message.toString());
                 postMethod.setEntity(data);
-                postMethod = Util.addProxyInformation(postMethod);
+                postMethod = Proxy.addProxyInformation(postMethod);
                 postMethod.addHeader("Content-Type", "application/json");
                 CloseableHttpResponse response = httpClient.execute(postMethod);
 
