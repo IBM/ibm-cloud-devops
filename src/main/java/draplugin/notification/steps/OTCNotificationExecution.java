@@ -40,13 +40,6 @@ public class OTCNotificationExecution extends AbstractSynchronousNonBlockingStep
             return null;
         }
 
-        //check webhookUrl
-        if(Util.isNullOrEmpty(webhookUrl)) {
-            printStream.println("[IBM Cloud DevOps] IBM_CLOUD_DEVOPS_WEBHOOK_URL not set.");
-            printStream.println("[IBM Cloud DevOps] Error: Failed to notify OTC.");
-            return null;
-        }
-
         JSONObject message = MessageHandler.buildMessage(build, envVars, stageName, status);
         MessageHandler.postToWebhook(webhookUrl, message, printStream);
 

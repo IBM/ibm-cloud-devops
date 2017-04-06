@@ -49,6 +49,7 @@ public class BuildListener extends RunListener<AbstractBuild> {
         filterMessages(r, TaskListener.NULL, notifier, "FINALIZED");
     }
 
+    //filter messages based on user selection on the gui
     private void filterMessages(AbstractBuild r, TaskListener listener, OTCNotifier notifier, String phase){
         EnvVars envVars = getEnv(r, listener);
         this.webhook = setWebhookFromEnv(r, listener, envVars);
@@ -59,17 +60,14 @@ public class BuildListener extends RunListener<AbstractBuild> {
         boolean failureOnly;
         Result result = r.getResult();
 
+        //Make sure OTC Notifier was found in the publisherList
         if(notifier != null){
             onStarted = notifier.getOnStarted();
             onCompleted = notifier.getOnCompleted();
             onFinalized = notifier.getOnFinalized();
             failureOnly = notifier.getFailureOnly();
 
-            //check webhook
-            if(Util.isNullOrEmpty(this.webhook)){
-                this.printStream.println("[IBM Cloud DevOps] String Parameter ICD_WEBHOOK_URL not set.");
-                this.printStream.println("[IBM Cloud DevOps] Error: Failed to notify OTC.");
-            } else if(onStarted && phase == "STARTED" || onCompleted && phase == "COMPLETED" || onFinalized && phase == "FINALIZED"){//check selections
+            if(onStarted && phase == "STARTED" || onCompleted && phase == "COMPLETED" || onFinalized && phase == "FINALIZED"){//check selections
                 if(failureOnly && result == Result.FAILURE || !failureOnly){//check failureOnly
                     String resultString = null;
 
@@ -84,6 +82,7 @@ public class BuildListener extends RunListener<AbstractBuild> {
         }
     }
 
+    //search through the list of publishers to find and return OTCNotifier,
     private OTCNotifier findPublisher(AbstractBuild r){
         List<Publisher> publisherList = r.getProject().getPublishersList().toList();
 
@@ -97,6 +96,7 @@ public class BuildListener extends RunListener<AbstractBuild> {
         return null;
     }
 
+    //get the build env
     private EnvVars getEnv(AbstractBuild r, TaskListener listener){
         try {
             return r.getEnvironment(listener);
@@ -113,12 +113,13 @@ public class BuildListener extends RunListener<AbstractBuild> {
         return null;
     }
 
+    //set the webhook from the build env
     private String setWebhookFromEnv(AbstractBuild<?, ?> r, TaskListener listener, EnvVars envVars){
         this.printStream = listener.getLogger();
         String webhook = null;
 
         if(envVars != null) {
-            webhook = envVars.get("ICD_WEBHOOK_URL");
+            webhook = envVars.get("IBM_CLOUD_DEVOPS_WEBHOOK_URL");
         }
 
         return webhook;
