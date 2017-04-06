@@ -2,10 +2,10 @@ To use IBM Cloud DevOps with the Jenkins pipeline project, you can follow the [d
 
 ## Prerequisites
 Make sure you are using Jenkins 2.X and have all pipeline related plugins installed and updated to the latest version
-It has been test for Jenkins pipeline job with Pipeline plugin 2.5 version. 
+It has been test for Jenkins pipeline job with Pipeline plugin 2.5 version.
 
 ## 1. Expose the required environment variables to all steps
-The plugin required 4 environment variables defined as follow:
+The plugin requires 5 environment variables defined as follow:
 
 1. `IBM_CLOUD_DEVOPS_CREDS` - the bluemix credentials ID that you defined in the jenkins, e.g `IBM_CLOUD_DEVOPS_CREDS = credentials('BM_CRED')`, by using the `credentials` command, it will set two environment variables automatically:
     1. `IBM_CLOUD_DEVOPS_CREDS_USR` for username
@@ -13,6 +13,7 @@ The plugin required 4 environment variables defined as follow:
 2. `IBM_CLOUD_DEVOPS_ORG` - the bluemix org that you are going to use
 3. `IBM_CLOUD_DEVOPS_APP_NAME` - the name of your application
 4. `IBM_CLOUD_DEVOPS_TOOLCHAIN_ID` - the toolchain id that you are using, you can get the toolchain id from the url after the toolchain is created. e.g https://console.ng.bluemix.net/devops/toolchains/TOOLCHAIN_ID.
+5. `IBM_CLOUD_DEVOPS_WEBHOOK_URL` - the webhook obtained from the Jenkins card on your toolchain.
 
 In the plugin, we are going to refer to these environment variables and credentials to interact with IBM Cloud DevOps
 Here is an example to use it in the Jenkinsfile (a.k.a Declarative Pipeline)
@@ -23,6 +24,7 @@ environment {
         IBM_CLOUD_DEVOPS_ORG = 'dlatest'
         IBM_CLOUD_DEVOPS_APP_NAME = 'Weather-App'
         IBM_CLOUD_DEVOPS_TOOLCHAIN_ID = '1320cec1-daaa-4b63-bf06-7001364865d2'
+        IBM_CLOUD_DEVOPS_WEBHOOK_URL = 'https://jenkins:5a55555a-a555-5555-5555-a555aa55a555:55555555-5555-5555-5555-555555555555@devops-api.ng.bluemix.net/v1/toolint/messaging/webhook/publish'
     }
 ```
 
@@ -83,3 +85,68 @@ Here is a usage example
 ```
 evaluateGate policy: 'Weather App Policy', forceDecision: 'true'
 ```
+
+### 5. notifyOTC
+Configure your Jenkins jobs to send notifications to your Bluemix Toolchain by following the instructions in the [Bluemix Docs](https://console.ng.bluemix.net/docs/services/ContinuousDelivery/toolchains_integrations.html#jenkins). (Please disregard steps 8.d, 8.e, and 8.f because these are tailored for freestyle jobs.)
+
+Publish the status of your pipeline stages to your Bluemix Toolchain:
+
+1. (required) stageName - the name of the current pipeline stage.
+2. (required) status - the completion status of the current pipeline stage. ('SUCCESS', 'FAILURE', and 'ABORTED' will be augmented with color)
+3. (optional) webhookUrl - the webhook obtained from the Jenkins card on your toolchain.
+
+#### Declarative Pipeline Example:
+```
+stage('Deploy') {
+    steps {
+      ...
+    }
+
+    post {
+        success {
+            notifyOTC stageName: "Deploy", status: "SUCCESS"
+        }
+        failure {
+            notifyOTC stageName: "Deploy", status: "FAILURE"
+        }
+    }
+}
+```
+
+#### Scripted Pipeline Example:
+```
+stage('Deploy') {
+  try {
+      ... (deploy steps)
+
+      notifyOTC stageName: "Deploy", status: "SUCCESS"
+  }
+  catch (Exception e) {
+      notifyOTC stageName: "Deploy", status: "FAILURE"
+  }
+}
+```
+
+#### Optional
+In both cases you can override the IBM_CLOUD_WEBHOOK_URL:
+```
+notifyOTC stageName: "Deploy", status: "FAILURE", webhookUrl: "https://different-webhook-url@devops-api.ng.bluemix.net/v1/toolint/messaging/webhook/publish"
+```
+
+### 6. Traceability
+Configure your Jenkins environment to create a deployable mapping and send traceability information to your Bluemix Toolchain by following the instructions in steps 8.a and 8.b of the [Bluemix Docs](https://console.ng.bluemix.net/docs/services/ContinuousDelivery/toolchains_integrations.html#jenkins).
+
+Simply add `cf icd --create-connection $IBM_CLOUD_DEVOPS_WEBHOOK_URL $CF_APP_NAME` just after your deploy step. Please note that you must have both the CF CLI and CF ICD plugin installed and you must also be logged into CF before you can run this command. Here is an example:
+
+<pre>
+sh '''
+    echo "CF Login..."
+    cf api https://api.ng.bluemix.net
+    cf login -u $IBM_CLOUD_DEVOPS_CREDS_USR -p $IBM_CLOUD_DEVOPS_CREDS_PSW -o $IBM_CLOUD_DEVOPS_ORG -s staging
+    echo "Deploying...."
+    export CF_APP_NAME="staging-$IBM_CLOUD_DEVOPS_APP_NAME"
+    cf delete $CF_APP_NAME -f
+    cf push $CF_APP_NAME -n $CF_APP_NAME -m 64M -i 1
+    <b>cf icd --create-connection $IBM_CLOUD_DEVOPS_WEBHOOK_URL $CF_APP_NAME</b>
+'''
+</pre>

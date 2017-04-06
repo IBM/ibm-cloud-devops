@@ -17,6 +17,7 @@ import hudson.ProxyConfiguration;
 import org.apache.http.HttpHost;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.config.RequestConfig;
+import draplugin.dra.Util;
 
 /**
  * Utilities functions for notification plugin
@@ -24,24 +25,12 @@ import org.apache.http.client.config.RequestConfig;
  */
 
 
-public class Util {
-    /**
-     * check if the str is null or empty
-     * @param str
-     * @return true if it is null or empty
-     */
-    public static boolean isNullOrEmpty(String str) {
-        if (str == null || str.isEmpty()) {
-            return true;
-        }
-        return false;
-    }
-
+public class Proxy {
     public static HttpPost addProxyInformation (HttpPost instance) {
         /* Add proxy to request if proxy settings in Jenkins UI are set. */
         ProxyConfiguration proxyConfig = Jenkins.getInstance().proxy;
         if(proxyConfig != null){
-            if((!isNullOrEmpty(proxyConfig.name)) && proxyConfig.port != 0) {
+            if((!Util.isNullOrEmpty(proxyConfig.name)) && proxyConfig.port != 0) {
                 HttpHost proxy = new HttpHost(proxyConfig.name, proxyConfig.port, "http");
                 RequestConfig config = RequestConfig.custom().setProxy(proxy).build();
                 instance.setConfig(config);
