@@ -136,7 +136,7 @@ notifyOTC stageName: "Deploy", status: "FAILURE", webhookUrl: "https://different
 ### 6. Traceability
 Configure your Jenkins jobs to create a deployable mapping and send traceability information to your Bluemix Toolchain by following the instructions in steps 8.a and 8.b of the [Bluemix Docs](https://console.ng.bluemix.net/docs/services/ContinuousDelivery/toolchains_integrations.html#jenkins).
 
-We recommend that you run `cf icd --create-connection ...` just after a deploy. Please note that you must be logged into cf and targeting an org an space before running `cf icd --create-connection ...`.  Here is an example:
+We recommend that you run `cf icd --create-connection ...` just after a deploy. Please note that you must be logged into cf and targeting an org and space before running `cf icd --create-connection ...`.  Here is an example:
 
 <pre>
 sh '''
