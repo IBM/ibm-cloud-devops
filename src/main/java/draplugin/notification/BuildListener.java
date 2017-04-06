@@ -14,7 +14,7 @@ import hudson.model.*;
 import hudson.model.listeners.RunListener;
 import hudson.tasks.Publisher;
 import net.sf.json.JSONObject;
-
+import draplugin.dra.Util;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
@@ -68,6 +68,7 @@ public class BuildListener extends RunListener<AbstractBuild> {
             //check webhook
             if(Util.isNullOrEmpty(this.webhook)){
                 this.printStream.println("[IBM Cloud DevOps] String Parameter ICD_WEBHOOK_URL not set.");
+                this.printStream.println("[IBM Cloud DevOps] Error: Failed to notify OTC.");
             } else if(onStarted && phase == "STARTED" || onCompleted && phase == "COMPLETED" || onFinalized && phase == "FINALIZED"){//check selections
                 if(failureOnly && result == Result.FAILURE || !failureOnly){//check failureOnly
                     String resultString = null;
@@ -101,9 +102,11 @@ public class BuildListener extends RunListener<AbstractBuild> {
             return r.getEnvironment(listener);
         } catch (IOException e) {
             this.printStream.println("[IBM Cloud DevOps] Exception: ");
+            this.printStream.println("[IBM Cloud DevOps] Error: Failed to notify OTC.");
             e.printStackTrace(this.printStream);
         } catch (InterruptedException e) {
             this.printStream.println("[IBM Cloud DevOps] Exception: ");
+            this.printStream.println("[IBM Cloud DevOps] Error: Failed to notify OTC.");
             e.printStackTrace(this.printStream);
         }
 

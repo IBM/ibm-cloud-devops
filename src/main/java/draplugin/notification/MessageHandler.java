@@ -10,9 +10,9 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-
 import java.io.IOException;
 import java.io.PrintStream;
+import draplugin.dra.Util;
 
 /**
  * Created by patrickjoy on 4/3/17.
@@ -113,7 +113,7 @@ public class MessageHandler {
             try {
                 StringEntity data = new StringEntity(message.toString());
                 postMethod.setEntity(data);
-                postMethod = Util.addProxyInformation(postMethod);
+                postMethod = Proxy.addProxyInformation(postMethod);
                 postMethod.addHeader("Content-Type", "application/json");
                 CloseableHttpResponse response = httpClient.execute(postMethod);
 
