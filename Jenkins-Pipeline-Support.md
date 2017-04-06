@@ -95,7 +95,7 @@ Publish the status of your pipeline stages to your Bluemix Toolchain:
 2. (required) status - the completion status of the current pipeline stage. ('SUCCESS', 'FAILURE', and 'ABORTED' will be augmented with color)
 3. (optional) webhookUrl - the webhook obtained from the Jenkins card on your toolchain.
 
-Here is an example of our recommended usage.
+#### Declarative Pipeline Example:
 ```
 stage('Deploy') {
     steps {
@@ -113,7 +113,22 @@ stage('Deploy') {
 }
 ```
 
-Optionally you can override IBM_CLOUD_WEBHOOK_URL:
+#### Scripted Pipeline Example:
+```
+stage('Deploy') {
+  try {
+      ... (deploy steps)
+
+      notifyOTC stageName: "Deploy", status: "SUCCESS"
+  }
+  catch (Exception e) {
+      notifyOTC stageName: "Deploy", status: "FAILURE"
+  }
+}
+```
+
+#### Optional
+In both cases you can override the IBM_CLOUD_WEBHOOK_URL:
 ```
 notifyOTC stageName: "Deploy", status: "FAILURE", webhookUrl: "https://different-webhook-url@devops-api.ng.bluemix.net/v1/toolint/messaging/webhook/publish"
 ```
