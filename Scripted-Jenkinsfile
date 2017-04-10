@@ -18,16 +18,17 @@ node {
             def gitCommit = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
             stage('Build') {
                 withEnv(["GIT_COMMIT=${gitCommit}",
-                         'GIT_BRANCH=master']) {
+                         'GIT_BRANCH=master',
+                         "GIT_REPO=https://github.com/xunrongl/DemoDRA-1"]) {
                     try {
                         sh 'npm install'
                         sh 'grunt dev-setup --no-color'
 
                         // use "publishBuildRecord" method to publish build record
-                        publishBuildRecord gitBranch: "${GIT_BRANCH}", gitCommit: "${GIT_COMMIT}", gitRepo: "https://github.com/xunrongl/DemoDRA-1", result:"SUCCESS"
+                        publishBuildRecord gitBranch: "${GIT_BRANCH}", gitCommit: "${GIT_COMMIT}", gitRepo: "${GIT_REPO}", result:"SUCCESS"
                     }
                     catch (Exception e) {
-                        publishBuildRecord gitBranch: "${GIT_BRANCH}", gitCommit: "${GIT_COMMIT}", gitRepo: "https://github.com/xunrongl/DemoDRA-1", result:"FAIL"
+                        publishBuildRecord gitBranch: "${GIT_BRANCH}", gitCommit: "${GIT_COMMIT}", gitRepo: "${GIT_REPO}", result:"FAIL"
                     }
                 }
                 stage('Unit Test and Code Coverage') {

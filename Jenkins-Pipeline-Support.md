@@ -4,7 +4,15 @@ To use IBM Cloud DevOps with the Jenkins pipeline project, you can follow the [d
 Make sure you are using Jenkins 2.X and have all pipeline related plugins installed and updated to the latest version
 It has been test for Jenkins pipeline job with Pipeline plugin 2.5 version.
 
-## 1. Expose the required environment variables to all steps
+## 1. Create a Pipeline Job
+
+Create a pipeline job, and configure it, there are 2 ways that you can do
+
+1. In the Pipeline section, choose Pipeline script from SCM, and set up the SCM that your pipeline wants to run on and specify the Path of the Jenkinsfile. You can use the [declarative Jenkinsfile](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/pipeline-support/Declarative-Jenkinsfile) as an example
+2. Set up the SCM in the general configuration, then in the Pipeline section, choose Pipeline script, and put your scripted Jenkinsfile script there. You can use the [scripted jenkinsfile](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/pipeline-support/Scripted-Jenkinsfile) as an example
+
+
+## 2. Expose the required environment variables to all steps
 The plugin requires 5 environment variables defined as follow:
 
 1. `IBM_CLOUD_DEVOPS_CREDS` - the bluemix credentials ID that you defined in the jenkins, e.g `IBM_CLOUD_DEVOPS_CREDS = credentials('BM_CRED')`, by using the `credentials` command, it will set two environment variables automatically:
@@ -32,7 +40,7 @@ Notes: `credentials` is only available for Declarative Pipeline. For those using
 For the Scripted Pipeline, use `withEnv` instead of `environment`. You can refer to [Scripted Jenkinsfile](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/pipeline-support/Scripted-Jenkinsfile) as an example
 
 
-## 2. Use the IBM Cloud DevOps steps
+## 3. Use the IBM Cloud DevOps steps
 We provide 4 steps to upload the build/test/deploy information and use the IBM Cloud DevOps Gate
 
 ### 1. publishBuildRecord
