@@ -38,9 +38,9 @@ We provide 4 steps to upload the build/test/deploy information and use the IBM C
 ### 1. publishBuildRecord
 Publish the build record to the IBM Cloud DevOps, there are 4 required parameters:
 
-1. gitBranch
-2. gitCommit
-3. gitRepo
+1. gitBranch - the name of the git branch
+2. gitCommit - the commit id of the repo
+3. gitRepo - the url of the git repo
 4. result - the result of the build stage, the value should be either "SUCCESS" or "FAIL"
 
 Here is a usage example
@@ -53,7 +53,7 @@ Note: Currently, jenkins pipeline does not expose git information to the environ
 ### 2. publishTestResult
 Publish the test result to the IBM Cloud DevOps, there are 2 required parameters:
 
-1. type - the accepted values are
+1. type - the accepted values currently are only 3:
     1. `unittest` for unit test
     2. `fvt` for functional verification test
     3. `code` for code coverage
