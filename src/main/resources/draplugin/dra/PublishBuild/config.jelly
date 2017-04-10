@@ -15,21 +15,21 @@
       This jelly script is used for per-project configuration.
     -->
 
-    <f:entry title="Credentials" field="credentialsId">
+    <f:entry title="Bluemix credentials" field="credentialsId">
         <c:select/>
     </f:entry>
 
     <f:validateButton title="Test Connection" progress="Testing..." method="testConnection" with="credentialsId,orgName" />
 
-    <f:entry title="Org Name" field="orgName">
+    <f:entry title="Org name" field="orgName">
         <f:textbox />
     </f:entry>
 
-    <f:entry title="Toolchain Name" field="toolchainName">
+    <f:entry title="Toolchain name" field="toolchainName">
         <f:select/>
     </f:entry>
 
-    <f:entry title="Application Name" field="applicationName">
+    <f:entry title="Application name" field="applicationName">
         <f:textbox />
     </f:entry>
 

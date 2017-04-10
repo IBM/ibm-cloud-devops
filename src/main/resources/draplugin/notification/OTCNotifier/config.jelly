@@ -15,19 +15,19 @@
     <!--
      This jelly script is used for per-project configuration.
    -->
-    <f:entry title="Job Started" field="onStarted">
+    <f:entry title="Job started" field="onStarted">
         <f:checkbox></f:checkbox>
     </f:entry>
 
-    <f:entry title="Job Completed" field="onCompleted">
+    <f:entry title="Job completed" field="onCompleted">
         <f:checkbox></f:checkbox>
     </f:entry>
 
-    <f:entry title="Job Finalized" field="onFinalized">
+    <f:entry title="Job finalized" field="onFinalized">
         <f:checkbox></f:checkbox>
     </f:entry>
 
-    <f:entry title="Failures Only" field="failureOnly">
+    <f:entry title="Failures only" field="failureOnly">
         <f:checkbox></f:checkbox>
     </f:entry>
 </j:jelly>

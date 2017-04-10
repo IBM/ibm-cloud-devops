@@ -21,23 +21,23 @@
 
      <f:validateButton title="Test Connection" progress="Testing..." method="testConnection" with="credentialsId,orgName" />
 
-    <f:entry title="Org Name" field="orgName">
+    <f:entry title="Org name" field="orgName">
         <f:textbox />
     </f:entry>
 
-    <f:entry title="Toolchain Name" field="toolchainName">
+    <f:entry title="Toolchain name" field="toolchainName">
         <f:select/>
     </f:entry>
 
-    <f:entry title="Build Job Name" field="buildJobName">
+    <f:entry title="Build job name" field="buildJobName">
         <f:textbox />
     </f:entry>
 
-    <f:entry title="Application Name" field="applicationName">
+    <f:entry title="Application name" field="applicationName">
         <f:textbox />
     </f:entry>
 
-    <f:entry title="Environment Name" field="environmentName">
+    <f:entry title="Environment name" field="environmentName">
         <f:textbox />
     </f:entry>
 
@@ -46,8 +46,8 @@
     </f:entry>
 
     <f:block>
-        <f:optionalBlock field="additionalBuildInfo" name="additionalBuildInfo" title="if builds are being done outside of Jenkins" checked="${instance.buildNumber != null}">
-            <f:entry title="Build Number" field="buildNumber">
+        <f:optionalBlock field="additionalBuildInfo" name="additionalBuildInfo" title="Select this check box if the deployed app is not built in Jenkins." checked="${instance.buildNumber != null}">
+            <f:entry title="Build number" field="buildNumber">
                 <f:textbox />
             </f:entry>
             <f:entry title="Build Url" field="buildUrl">
