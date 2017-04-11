@@ -81,8 +81,8 @@ public abstract class AbstractDevOpsAction extends Recorder {
     private static Map<String, String> TOOLCHAINS_URL_MAP = ImmutableMap.of(
             "production", "https://otc-api.ng.bluemix.net/api/v1/toolchains?organization_guid=",
             "dev", "https://otc-api.stage1.ng.bluemix.net/api/v1/toolchains?organization_guid=",
-            "new", "https://otc-api-integration.stage1.ng.bluemix.net/api/v1/toolchains?organization_guid=",
-            "stage1", "https://otc-api.stage1.ng.bluemix.net/api/v1/toolchains?organization_guid="
+            "stage1", "https://otc-api-integration.stage1.ng.bluemix.net/api/v1/toolchains?organization_guid=",
+            "new", "https://otc-api.stage1.ng.bluemix.net/api/v1/toolchains?organization_guid="
     );
 
     private static Map<String, String> POLICIES_URL_MAP = ImmutableMap.of(
