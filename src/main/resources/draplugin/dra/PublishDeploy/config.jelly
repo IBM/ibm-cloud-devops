@@ -1,0 +1,59 @@
+<!--
+    <notice>
+
+    Copyright 2016, 2017 IBM Corporation
+
+     Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+    The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+    </notice>
+-->
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:c="/lib/credentials" xmlns:f="/lib/form">
+    <!--
+      This jelly script is used for per-project configuration.
+    -->
+
+    <f:entry title="Bluemix Credentials" field="credentialsId">
+        <c:select/>
+    </f:entry>
+
+     <f:validateButton title="Test Connection" progress="Testing..." method="testConnection" with="credentialsId,orgName" />
+
+    <f:entry title="Org name" field="orgName">
+        <f:textbox />
+    </f:entry>
+
+    <f:entry title="Toolchain name" field="toolchainName">
+        <f:select/>
+    </f:entry>
+
+    <f:entry title="Build job name" field="buildJobName">
+        <f:textbox />
+    </f:entry>
+
+    <f:entry title="Application name" field="applicationName">
+        <f:textbox />
+    </f:entry>
+
+    <f:entry title="Environment name" field="environmentName">
+        <f:textbox />
+    </f:entry>
+
+    <f:entry title="Application URL" field="applicationUrl">
+        <f:textbox />
+    </f:entry>
+
+    <f:block>
+        <f:optionalBlock field="additionalBuildInfo" name="additionalBuildInfo" title="Select this check box if the deployed app is not built in Jenkins." checked="${instance.buildNumber != null}">
+            <f:entry title="Build number" field="buildNumber">
+                <f:textbox />
+            </f:entry>
+            <f:entry title="Build Url" field="buildUrl">
+                <f:textbox />
+            </f:entry>
+        </f:optionalBlock>
+    </f:block>
+
+</j:jelly>

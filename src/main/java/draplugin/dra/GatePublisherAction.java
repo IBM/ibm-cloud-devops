@@ -11,7 +11,6 @@
  */
 package draplugin.dra;
 
-import hudson.model.AbstractBuild;
 import hudson.model.Action;
 import hudson.model.Run;
 

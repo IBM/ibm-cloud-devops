@@ -246,6 +246,21 @@ public abstract class AbstractDevOpsAction extends Recorder {
     }
 
     /**
+     * check if the root url in the jenkins is set correctly
+     * @param printStream
+     * @return
+     */
+    public static boolean checkRootUrl(PrintStream printStream) {
+        if (Util.isNullOrEmpty(Jenkins.getInstance().getRootUrl())) {
+            printStream.println(
+                    "[IBM Cloud DevOps] The Jenkins global root url is not set. Please set it to use this postbuild Action.  \"Manage Jenkins > Configure System > Jenkins URL\"");
+            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Build Info.");
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * Get the Bluemix Token using Cloud Foundry as the authentication with DLMS and DRA backend
      * @param context - the current job
      * @param credentialsId - the credential id in Jenkins
@@ -309,6 +324,23 @@ public abstract class AbstractDevOpsAction extends Recorder {
         }
     }
 
+    public static String GetBluemixToken(String username, String password, String targetAPI) throws MalformedURLException, CloudFoundryException {
+        try {
+
+            CloudCredentials cloudCredentials = new CloudCredentials(username, password);
+
+            URL url = new URL(targetAPI);
+            HttpProxyConfiguration configuration = buildProxyConfiguration(url);
+
+            CloudFoundryClient client = new CloudFoundryClient(cloudCredentials, url, configuration, true);
+            return "bearer " + client.login().toString();
+
+        } catch (MalformedURLException e) {
+            throw e;
+        } catch (CloudFoundryException e) {
+            throw e;
+        }
+    }
 
     /**
      * build proxy for cloud foundry http connection

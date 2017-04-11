@@ -1,4 +1,4 @@
-<!--
+/*
     <notice>
 
     Copyright 2016, 2017 IBM Corporation
@@ -8,26 +8,34 @@
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
     </notice>
--->
-<?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler"
-         xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson"  xmlns:f="/lib/form">
-    <!--
-     This jelly script is used for per-project configuration.
-   -->
-    <f:entry title="Job started" field="onStarted">
-        <f:checkbox></f:checkbox>
-    </f:entry>
+ */
 
-    <f:entry title="Job completed" field="onCompleted">
-        <f:checkbox></f:checkbox>
-    </f:entry>
+package draplugin.notification;
 
-    <f:entry title="Job finalized" field="onFinalized">
-        <f:checkbox></f:checkbox>
-    </f:entry>
+import jenkins.model.Jenkins;
+import hudson.ProxyConfiguration;
+import org.apache.http.HttpHost;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.config.RequestConfig;
+import draplugin.dra.Util;
 
-    <f:entry title="Failures only" field="failureOnly">
-        <f:checkbox></f:checkbox>
-    </f:entry>
-</j:jelly>
+/**
+ * Utilities functions for notification plugin
+ * Created by Xunrong Li on 7/22/16.
+ */
+
+
+public class Proxy {
+    public static HttpPost addProxyInformation (HttpPost instance) {
+        /* Add proxy to request if proxy settings in Jenkins UI are set. */
+        ProxyConfiguration proxyConfig = Jenkins.getInstance().proxy;
+        if(proxyConfig != null){
+            if((!Util.isNullOrEmpty(proxyConfig.name)) && proxyConfig.port != 0) {
+                HttpHost proxy = new HttpHost(proxyConfig.name, proxyConfig.port, "http");
+                RequestConfig config = RequestConfig.custom().setProxy(proxy).build();
+                instance.setConfig(config);
+            }
+        }
+        return instance;
+    }
+}

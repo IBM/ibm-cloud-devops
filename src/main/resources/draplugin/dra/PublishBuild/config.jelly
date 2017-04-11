@@ -10,24 +10,29 @@
     </notice>
 -->
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler"
-         xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson"  xmlns:f="/lib/form">
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:c="/lib/credentials" xmlns:f="/lib/form">
     <!--
-     This jelly script is used for per-project configuration.
-   -->
-    <f:entry title="Job started" field="onStarted">
-        <f:checkbox></f:checkbox>
+      This jelly script is used for per-project configuration.
+    -->
+
+    <f:entry title="Bluemix credentials" field="credentialsId">
+        <c:select/>
     </f:entry>
 
-    <f:entry title="Job completed" field="onCompleted">
-        <f:checkbox></f:checkbox>
+    <f:validateButton title="Test Connection" progress="Testing..." method="testConnection" with="credentialsId,orgName" />
+
+    <f:entry title="Org name" field="orgName">
+        <f:textbox />
     </f:entry>
 
-    <f:entry title="Job finalized" field="onFinalized">
-        <f:checkbox></f:checkbox>
+    <f:entry title="Toolchain name" field="toolchainName">
+        <f:select/>
     </f:entry>
 
-    <f:entry title="Failures only" field="failureOnly">
-        <f:checkbox></f:checkbox>
+    <f:entry title="Application name" field="applicationName">
+        <f:textbox />
     </f:entry>
+
 </j:jelly>
+
+

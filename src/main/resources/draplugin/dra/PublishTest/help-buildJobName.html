@@ -9,25 +9,7 @@
 
     </notice>
 -->
-<?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler"
-         xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson"  xmlns:f="/lib/form">
-    <!--
-     This jelly script is used for per-project configuration.
-   -->
-    <f:entry title="Job started" field="onStarted">
-        <f:checkbox></f:checkbox>
-    </f:entry>
 
-    <f:entry title="Job completed" field="onCompleted">
-        <f:checkbox></f:checkbox>
-    </f:entry>
-
-    <f:entry title="Job finalized" field="onFinalized">
-        <f:checkbox></f:checkbox>
-    </f:entry>
-
-    <f:entry title="Failures only" field="failureOnly">
-        <f:checkbox></f:checkbox>
-    </f:entry>
-</j:jelly>
+<div>
+    Enter the name of the build job that triggers this test job. You can use an environment variable, such as $BUILD_JOB.
+</div>
