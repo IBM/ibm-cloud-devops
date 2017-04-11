@@ -337,7 +337,9 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         url = url.replace("{build_artifact}", URLEncoder.encode(this.applicationName, "UTF-8").replaceAll("\\+", "%20"));
         url = url.replace("{build_id}", buildNumber);
         this.dlmsUrl = url;
+
         String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
+
 
         // get the Bluemix token
         try {
