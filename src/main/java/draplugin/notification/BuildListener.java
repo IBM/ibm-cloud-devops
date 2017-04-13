@@ -120,13 +120,8 @@ public class BuildListener extends RunListener<AbstractBuild> {
 
         if(envVars != null) {
             webhook = envVars.get("IBM_CLOUD_DEVOPS_WEBHOOK_URL");
-
-            //backward compatability
-            if (Util.isNullOrEmpty(webhook)) {
-                webhook = envVars.get("ICD_WEBHOOK_URL");
-            }
         }
-        
+
         return webhook;
     }
 }
