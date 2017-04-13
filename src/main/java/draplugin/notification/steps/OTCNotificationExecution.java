@@ -28,10 +28,21 @@ public class OTCNotificationExecution extends AbstractSynchronousNonBlockingStep
 
     @Override
     protected Void run() throws Exception {
-        String webhookUrl = Util.isNullOrEmpty(step.getWebhookUrl()) ? envVars.get("IBM_CLOUD_DEVOPS_WEBHOOK_URL") : step.getWebhookUrl();
         String stageName = step.getStageName().trim();
         String status = step.getStatus().trim();
         PrintStream printStream = listener.getLogger();
+        String webhookUrl;
+
+        if(Util.isNullOrEmpty(step.getWebhookUrl())){
+            webhookUrl = envVars.get("IBM_CLOUD_DEVOPS_WEBHOOK_URL");
+
+            //backward compatability
+            if(Util.isNullOrEmpty(webhookUrl)){
+                webhookUrl = envVars.get("ICD_WEBHOOK_URL");
+            }
+        } else {
+            webhookUrl = step.getWebhookUrl();
+        }
 
         //check all the required env vars
         if (!Util.allNotNullOrEmpty(stageName, status)) {
