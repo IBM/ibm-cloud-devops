@@ -25,7 +25,7 @@ public class MessageHandler {
         JSONObject scm = new JSONObject();
 
         Job job = r.getParent();
-        String fullUrl = Jenkins.getInstance().getRootUrl();
+        String rootUrl = Jenkins.getInstance().getRootUrl();
 
         //setup scm
         if(envVars != null) {
@@ -82,8 +82,8 @@ public class MessageHandler {
         build.put("phase", phase);
         build.put("url", r.getUrl());
 
-        if(fullUrl != null){
-            build.put("full_url", fullUrl);
+        if(rootUrl != null){
+            build.put("full_url", rootUrl + r.getUrl());
         } else{
             build.put("full_url", "");
         }
