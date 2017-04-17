@@ -79,7 +79,6 @@ Publish the deploy record to the IBM Cloud DevOps, there are 2 required and 1 op
 1. (required) environment - the environment that you deploy your app to, if you deploy your app to the staging environment, use "STAGING"; if it is production environment, use "PRODUCTION"
 2. (required) result  - the result of the build stage, the value should be either "SUCCESS" or "FAIL"
 3. (optional) appUrl - the application url that you deploy your app to
-
 Here is a usage example
 ```
 publishDeployRecord environment: "STAGING", appUrl: "http://staging-Weather-App.mybluemix.net", result:"SUCCESS"
@@ -90,7 +89,6 @@ Use IBM Cloud DevOps Gate in the pipeline, there is 1 required and 1 optional pa
 
 1. (required) policy - the policy name that you define in the DevOps Insight
 2. (optional) forceDecision - if you want to abort the pipeline based on the gate decision, set it to be `true`. It is `false` by default if you don't pass the parameter
-
 Here is a usage example
 ```
 evaluateGate policy: 'Weather App Policy', forceDecision: 'true'
