@@ -1,10 +1,10 @@
 package draplugin.notification;
 
+import draplugin.dra.Util;
 import hudson.model.Job;
 import hudson.model.Run;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
-import org.apache.http.ProtocolVersion;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -15,19 +15,15 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 
 import static org.mockito.Mockito.*;
-import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.*;
 
 /**
  * Created by patrickjoy on 4/14/17.
@@ -35,6 +31,7 @@ import static junit.framework.TestCase.assertEquals;
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({Job.class, HttpClients.class, CloseableHttpResponse.class})
 public class MessageHandlerTest {
+
     //create a jenkins instance
     @Rule public JenkinsRule j = new JenkinsRule();
 
@@ -74,25 +71,41 @@ public class MessageHandlerTest {
     }
 
     @Test
-    public void testPostToWebhook() throws java.io.IOException {
+    public void testPostToWebhook() throws IOException {
         CloseableHttpClient httpClient = PowerMockito.mock(CloseableHttpClient.class);
         CloseableHttpResponse response = PowerMockito.mock(CloseableHttpResponse.class);
         PowerMockito.mockStatic(HttpClients.class);
         StatusLine statusLine = mock(StatusLine.class);
-
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream printStream = new PrintStream(baos);
+        String content;
+        JSONObject message = new JSONObject();
 
         when(HttpClients.createDefault()).thenReturn(httpClient);
         when(httpClient.execute(any(HttpPost.class))).thenReturn(response);
         when(response.getStatusLine()).thenReturn(statusLine);
         when(statusLine.toString()).thenReturn("200");
 
-        JSONObject message = new JSONObject();
+        assertTrue(Util.isNullOrEmpty(""));
+        assertTrue(Util.isNullOrEmpty(null));
+
+        MessageHandler.postToWebhook("", message, printStream);
+        content = new String(baos.toByteArray(), StandardCharsets.UTF_8);
+        System.out.println("content: " + content);
+        assertTrue(content.contains("[IBM Cloud DevOps] IBM_CLOUD_DEVOPS_WEBHOOK_URL not set."));
+
         MessageHandler.postToWebhook("http://fakewebhook", message, printStream);
+        content = new String(baos.toByteArray(), StandardCharsets.UTF_8);
+        assertTrue(content.contains("[IBM Cloud DevOps] Message successfully posted to webhook."));
 
-        String content = new String(baos.toByteArray(), StandardCharsets.UTF_8);
+        when(statusLine.toString()).thenReturn("400");
+        MessageHandler.postToWebhook("http://fakewebhook", message, printStream);
+        content = new String(baos.toByteArray(), StandardCharsets.UTF_8);
+        assertTrue(content.contains("[IBM Cloud DevOps] Message failed, response status:"));
 
-        assertEquals("[IBM Cloud DevOps] Message successfully posted to webhook.", content.trim());
+        when(httpClient.execute(any(HttpPost.class))).thenThrow(new IOException("..."));
+        MessageHandler.postToWebhook("http://fakewebhook", message, printStream);
+        content = new String(baos.toByteArray(), StandardCharsets.UTF_8);
+        assertTrue(content.contains("[IBM Cloud DevOps] IOException, could not post to webhook:"));
     }
 }

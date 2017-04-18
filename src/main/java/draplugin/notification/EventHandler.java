@@ -15,6 +15,9 @@ import java.util.List;
  * Created by patrickjoy on 4/18/17.
  */
 public final class EventHandler {
+    /*
+        find OTCNotifer in the publisher list
+     */
     public static OTCNotifier findPublisher(AbstractBuild r){
         List<Publisher> publisherList = r.getProject().getPublishersList().toList();
 
@@ -28,6 +31,9 @@ public final class EventHandler {
         return null;
     }
 
+    /*
+        return the build env variables
+     */
     public static EnvVars getEnv(AbstractBuild r, TaskListener listener, PrintStream printStream){
         try {
             return r.getEnvironment(listener);
@@ -44,6 +50,9 @@ public final class EventHandler {
         return null;
     }
 
+    /*
+        Check job config to see if message should be sent.
+     */
     public static boolean isRelevant(OTCNotifier notifier, String phase, Result result){
         boolean onStarted;
         boolean onCompleted;
@@ -67,6 +76,9 @@ public final class EventHandler {
         return false;
     }
 
+    /*
+        get the webhook from the build env
+     */
     public static String getWebhookFromEnv(EnvVars envVars){
         String webhook = null;
 
