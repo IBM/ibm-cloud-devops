@@ -18,7 +18,7 @@ import draplugin.dra.Util;
  * Created by patrickjoy on 4/3/17.
  */
 //build message that will be posted to the webhook
-public class MessageHandler {
+public final class MessageHandler {
     public static JSONObject buildMessage(Run r, EnvVars envVars, String phase, String result){
         JSONObject message = new JSONObject();
         JSONObject build = new JSONObject();

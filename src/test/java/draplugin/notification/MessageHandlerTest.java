@@ -34,7 +34,6 @@ import static junit.framework.TestCase.assertEquals;
  */
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({Job.class, HttpClients.class, CloseableHttpResponse.class})
-@PowerMockIgnore({"javax.crypto.*" })
 public class MessageHandlerTest {
     //create a jenkins instance
     @Rule public JenkinsRule j = new JenkinsRule();
