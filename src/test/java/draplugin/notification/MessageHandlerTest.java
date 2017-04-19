@@ -1,6 +1,7 @@
 package draplugin.notification;
 
 import draplugin.dra.Util;
+import hudson.EnvVars;
 import hudson.model.Job;
 import hudson.model.Run;
 import jenkins.model.Jenkins;
@@ -10,10 +11,9 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.junit.Rule;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.jvnet.hudson.test.JenkinsRule;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
@@ -29,11 +29,16 @@ import static junit.framework.TestCase.*;
  * Created by patrickjoy on 4/14/17.
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({Job.class, HttpClients.class, CloseableHttpResponse.class})
+@PrepareForTest({Jenkins.class, Job.class, HttpClients.class, CloseableHttpResponse.class})
 public class MessageHandlerTest {
+    private Jenkins jenkins = mock(Jenkins.class);
 
-    //create a jenkins instance
-    @Rule public JenkinsRule j = new JenkinsRule();
+    @Before
+    public void setUp() throws Exception {
+        PowerMockito.mockStatic(Jenkins.class);
+        PowerMockito.when(Jenkins.getInstance()).thenReturn(jenkins);
+        PowerMockito.when(jenkins.getRootUrl()).thenReturn("http://localhost:1234/");
+    }
 
     @Test
     public void testBuildMessage() {
@@ -41,6 +46,7 @@ public class MessageHandlerTest {
         String result = "SUCCESS";
 
         Run r = mock(Run.class);
+        EnvVars envVars = mock(EnvVars.class);
         Job job = PowerMockito.mock(Job.class);
 
         when(r.getParent()).thenReturn(job);
@@ -50,10 +56,29 @@ public class MessageHandlerTest {
         when(r.getDuration()).thenReturn((long)0);
         when(job.getName()).thenReturn("test");
         when(job.getUrl()).thenReturn("job/test/");
+        when(envVars.get("GIT_COMMIT")).thenReturn("commit");
+        when(envVars.get("GIT_BRANCH")).thenReturn("branch");
+        when(envVars.get("GIT_PREVIOUS_COMMIT")).thenReturn("previous");
+        when(envVars.get("GIT_PREVIOUS_SUCCESSFUL_COMMIT")).thenReturn("previous_success");
+        when(envVars.get("GIT_URL")).thenReturn("url");
+        when(envVars.get("GIT_COMMITTER_NAME")).thenReturn("committer");
+        when(envVars.get("GIT_COMMITTER_EMAIL")).thenReturn("committer_email");
+        when(envVars.get("GIT_AUTHOR_NAME")).thenReturn("author");
+        when(envVars.get("GIT_AUTHOR_EMAIL")).thenReturn("author_email");
 
         JSONObject message = new JSONObject();
         JSONObject build = new JSONObject();
         JSONObject scm = new JSONObject();
+
+        scm.put("git_commit", envVars.get("GIT_COMMIT"));
+        scm.put("git_branch", envVars.get("GIT_BRANCH"));
+        scm.put("git_previous_commit", envVars.get("GIT_PREVIOUS_COMMIT"));
+        scm.put("git_previous_successful_commit", envVars.get("GIT_PREVIOUS_SUCCESSFUL_COMMIT"));
+        scm.put("git_url", envVars.get("GIT_URL"));
+        scm.put("git_committer_name", envVars.get("GIT_COMMITTER_NAME"));
+        scm.put("git_committer_email", envVars.get("GIT_COMMITTER_EMAIL"));
+        scm.put("git_author_name", envVars.get("GIT_AUTHOR_NAME"));
+        scm.put("git_author_email", envVars.get("GIT_AUTHOR_EMAIL"));
 
         build.put("number", r.getNumber());
         build.put("queue_id", r.getQueueId());
@@ -65,6 +90,11 @@ public class MessageHandlerTest {
         build.put("scm", scm);
         message.put("name", job.getName());
         message.put("url", job.getUrl());
+        message.put("build", build);
+
+        assertEquals(message, MessageHandler.buildMessage(r, envVars, phase, result));
+
+        build.put("scm", new JSONObject());
         message.put("build", build);
 
         assertEquals(message, MessageHandler.buildMessage(r, null, phase, result));
