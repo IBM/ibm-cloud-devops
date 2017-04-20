@@ -334,8 +334,34 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
             return;
         }
 
-        //
+        String SQCredentials = getSQcredentials(SQUsername, SQPassword);
+        printStream.println("Auth String is: " + SQCredentials);
     }
+
+    /**
+     * Method that returns a String that can be used as the Auth header for
+     * requests to the SQ API.
+     *
+     * @param SQUsername SQ Username provided from Jenkins Credentials
+     * @param SQPassword SQ Password provided from Jenkins Credentials
+     * @return String that is the auth header for SQ API calls
+     */
+    public String getSQcredentials(String SQUsername, String SQPassword) {
+
+        // User is using a SQ API token
+        if(SQUsername.equals("SONARQUBE_AUTH_TOKEN")) {
+            printStream.println("User is using a SonarQube auth token to auth with the API");
+            return SQUsername + ":";
+        } else {
+            printStream.println("User is using a SonarQube Username and Password");
+            return SQUsername + ":" + SQPassword;
+        }
+    }
+
+    public JSONObject getSQQualityGateResults() {
+        return null;
+    }
+
 
     @Override
     public BuildStepMonitor getRequiredMonitorService() {
