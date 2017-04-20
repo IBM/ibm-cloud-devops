@@ -25,7 +25,7 @@ pipeline {
                 // get git commit from Jenkins
                 GIT_COMMIT = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
                 GIT_BRANCH = 'master'
-                GIT_REPO = 'https://github.com/xunrongl/DemoDRA-1'
+                GIT_REPO = 'GIT_REPO_URL_PLACEHOLDER'
             }
             steps {
                 checkout scm
