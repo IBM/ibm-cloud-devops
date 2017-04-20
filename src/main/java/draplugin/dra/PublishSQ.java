@@ -256,30 +256,13 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         printStream = listener.getLogger();
         printPluginVersion(this.getClass().getClassLoader(), printStream);
 
-        // create root dir for storing test result
-
         // Get the project name and build id from environment
         EnvVars envVars = build.getEnvironment(listener);
 
-        printStream.println("orgName" + this.orgName);
-        printStream.println("applicationName" + this.applicationName);
-        printStream.println("toolchainName" + this.toolchainName);
-        printStream.println("SQProjectKey" + this.SQProjectKey);
-        printStream.println("SQHostName" + this.SQHostName);
-        printStream.println("SQUsername" + this.SQUsername);
-        printStream.println("SQPassword" + this.SQPassword);
-
         // verify if user chooses advanced option to input customized DLMS
-        //printStream.println("About to get the host");
         String env = getDescriptor().getEnvironment();
-        //printStream.println("Got the host" + env);
         String targetAPI = chooseTargetAPI(env);
-        //printStream.println("Got the host" + targetAPI);
-        //printStream.println("THE API HERE IS: " + targetAPI);
         String url = chooseDLMSUrl(env) + API_PART;
-        //printStream.println("THE url HERE IS: " + url);
-        //printStream.println("JOB NAME: " + envVars.get("JOB_NAME"));
-        //printStream.println("JOB buildNumber: " + this.buildNumber);
         // expand to support env vars
         this.orgName = envVars.expand(this.orgName);
         this.applicationName = envVars.expand(this.applicationName);
@@ -289,20 +272,15 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
             this.environmentName = envVars.expand(this.envName);
         }
 
-        printStream.println("Do I get ehre?");
-
         String buildNumber, buildUrl;
         // if user does not specify the build number
         if (Util.isNullOrEmpty(this.buildNumber)) {
-            printStream.println("is null");
             // locate the build job that triggers current build
             Run triggeredBuild = getTriggeredBuild(build, buildJobName, envVars, printStream);
             if (triggeredBuild == null) {
                 //failed to find the build job
-                printStream.println("all is lost");
                 return;
             } else {
-                printStream.println("all is not lost");
                 if (Util.isNullOrEmpty(this.buildJobName)) {
                     // handle the case which the build job name left empty, and the pipeline case
                     this.buildJobName = envVars.get("JOB_NAME");
@@ -312,7 +290,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
                 buildUrl = rootUrl + triggeredBuild.getUrl();
             }
         } else {
-            printStream.println("Not null");
             buildNumber = envVars.expand(this.buildNumber);
             buildUrl = envVars.expand(this.buildUrl);
         }
@@ -349,11 +326,28 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
             JsonObject SQqualityGate = sendGETRequest(this.SQHostName + "/api/qualitygates/project_status?projectKey=" + this.SQProjectKey, headers);
             JsonObject SQissues = sendGETRequest(this.SQHostName + "/api/issues/search?statuses=OPEN&componentKeys=" + this.SQProjectKey, headers);
             JsonObject SQratings = sendGETRequest(this.SQHostName + "/api/measures/component?metricKeys=reliability_rating,security_rating,sqale_rating&componentKey=" + this.SQProjectKey, headers);
+
+            JsonObject payload = createDLMSPayload(SQqualityGate, SQissues, SQratings);
+
         } catch (Exception e) {
-            printStream.println("ERROR ALERT");
+            printStream.println("Error querying SonarQube for data. Check to make sure SonarQube credentials are correct");
             e.printStackTrace();
         }
     }
+
+    /**
+     * Combines all SQ information into one gson that can be sent to DLMS
+     *
+     * @param qualityGateDate information pertaining to SQ gate status
+     * @param issuesData information pertaining to SQ issues raised
+     * @param ratingsData information pertaining to SQ ratings
+     * @return combined gson object
+     */
+    public JsonObject createDLMSPayload(JsonObject qualityGateDate, JsonObject issuesData, JsonObject ratingsData) {
+
+
+    }
+
 
     /**
      * Method that returns a String that can be used as the Auth header for
@@ -386,15 +380,13 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         // optional default is GET
         connection.setRequestMethod("GET");
 
-        //add request header
-        //con.setRequestProperty("User-Agent", USER_AGENT);
+        //add request headers
         for(String headerName: headers.keySet()) {
             connection.setRequestProperty(headerName, headers.get(headerName));
             printStream.println("Header is: " + headers.get("Authorization"));
         }
-        int responseCode = connection.getResponseCode();
-        System.out.println("\nSending 'GET' request to URL : " + url);
-        System.out.println("Response Code : " + responseCode);
+
+        printStream.println("response from " + url + " was " + connection.getResponseCode());
 
         BufferedReader in = new BufferedReader(
                 new InputStreamReader(connection.getInputStream()));
