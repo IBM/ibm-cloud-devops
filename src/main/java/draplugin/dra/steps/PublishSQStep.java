@@ -18,17 +18,15 @@ public class PublishSQStep extends AbstractStepImpl {
     private String credentialsId;
     private String toolchainId;
     private String environment;
+    private String SQProjectKey;
 
     // required parameters
-    private String type;
-    private String fileLocation;
-    private String name;
+    private String SQHostURL;
 
     @DataBoundConstructor
-    public PublishSQStep(String name, String fileLocation) {
+    public PublishSQStep(String SQHostURL) {
 
-        this.name = name;
-        this.fileLocation = fileLocation;
+        this.SQHostURL = SQHostURL;
     }
 
     @DataBoundSetter
@@ -56,6 +54,16 @@ public class PublishSQStep extends AbstractStepImpl {
         this.environment = environment;
     }
 
+    @DataBoundSetter
+    public void setSQHostURL(String SQHostURL) {
+        this.SQHostURL = SQHostURL;
+    }
+
+    @DataBoundSetter
+    public void setSQProjectKey(String SQProjectKey) {
+        this.SQProjectKey = SQProjectKey;
+    }
+
     public String getApplicationName() {
         return applicationName;
     }
@@ -76,15 +84,13 @@ public class PublishSQStep extends AbstractStepImpl {
         return environment;
     }
 
-    public String getType() {
-        return type;
+    public String getSQHostURL() {
+        return SQHostURL;
     }
 
-    public String getFileLocation() {
-        return fileLocation;
+    public String getSQProjectKey() {
+        return SQProjectKey;
     }
-
-    public String getName() { return this.name; }
 
     @Extension
     public static class DescriptorImpl extends AbstractStepDescriptorImpl {

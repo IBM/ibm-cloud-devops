@@ -56,7 +56,7 @@ import java.util.HashSet;
  */
 public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, Serializable {
 
-    private final static String API_PART = "/organizations/{org_name}/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/results_multipart";
+    private final static String API_PART = "/organizations/{org_name}/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/results";
     private final static String CONTENT_TYPE_JSON = "application/json";
     private final static String CONTENT_TYPE_XML = "application/xml";
 
@@ -75,9 +75,21 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
     private String policyName;
     private boolean willDisrupt;
 
+
+    private String SQProjectKey;
+    private String SQHostName;
+    private String SQUsername;
+    private String SQPassword;
+    private String IBMusername;
+    private String IBMpassword;
+
     private EnvironmentScope testEnv;
     private String envName;
     private boolean isDeploy;
+
+
+
+
 
     private PrintStream printStream;
     private File root;
@@ -90,62 +102,27 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
     private String username;
     private String password;
 
-    @DataBoundConstructor
-    public PublishSQ(String contents,
-                       String applicationName,
-                       String orgName,
-                       String toolchainName,
-                       String buildJobName,
-                       String credentialsId,
-                       OptionalUploadBlock additionalUpload,
-                       OptionalBuildInfo additionalBuildInfo,
-                       OptionalGate additionalGate,
-                       EnvironmentScope testEnv) {
-        this.contents = contents;
-        this.credentialsId = credentialsId;
-        this.applicationName = applicationName;
-        this.orgName = orgName;
-        this.toolchainName = toolchainName;
-        this.buildJobName = buildJobName;
-        this.testEnv = testEnv;
-        this.envName = testEnv.getEnvName();
-        this.isDeploy = testEnv.isDeploy();
 
-        if (additionalUpload == null) {
-            this.additionalContents = null;
-            this.additionalLifecycleStage = null;
-        } else {
-            this.additionalLifecycleStage = additionalUpload.additionalLifecycleStage;
-            this.additionalContents = additionalUpload.additionalContents;
-        }
-
-        if (additionalBuildInfo == null) {
-            this.buildNumber = null;
-            this.buildUrl = null;
-        } else {
-            this.buildNumber = additionalBuildInfo.buildNumber;
-            this.buildUrl = additionalBuildInfo.buildUrl;
-        }
-
-        if (additionalGate == null) {
-            this.policyName = null;
-            this.willDisrupt = false;
-        } else {
-            this.policyName = additionalGate.getPolicyName();
-            this.willDisrupt = additionalGate.isWillDisrupt();
-        }
-    }
-
+    // need to add projectkey
+    // need to add host url
     public PublishSQ(String orgName,
                         String applicationName,
                         String toolchainName,
-                        String username,
-                        String password) {
+                        String SQProjectKey,
+                        String SQHostName,
+                        String SQUsername,
+                        String SQPassword,
+                        String IBMusername,
+                        String IBMpassword) {
         this.orgName = orgName;
         this.applicationName = applicationName;
         this.toolchainName = toolchainName;
-        this.username = username;
-        this.password = password;
+        this.SQProjectKey = SQProjectKey;
+        this.SQHostName = SQHostName;
+        this.SQUsername = SQUsername;
+        this.SQPassword = SQPassword;
+        this.IBMusername = IBMusername;
+        this.IBMpassword = IBMpassword;
     }
 
     /**
@@ -276,17 +253,25 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         // Get the project name and build id from environment
         EnvVars envVars = build.getEnvironment(listener);
 
+        printStream.println("orgName" + this.orgName);
+        printStream.println("applicationName" + this.applicationName);
+        printStream.println("toolchainName" + this.toolchainName);
+        printStream.println("SQProjectKey" + this.SQProjectKey);
+        printStream.println("SQHostName" + this.SQHostName);
+        printStream.println("SQUsername" + this.SQUsername);
+        printStream.println("SQPassword" + this.SQPassword);
 
         // verify if user chooses advanced option to input customized DLMS
-        printStream.println("About to get the host");
+        //printStream.println("About to get the host");
         String env = getDescriptor().getEnvironment();
-        printStream.println("Got the host" + env);
+        //printStream.println("Got the host" + env);
         String targetAPI = chooseTargetAPI(env);
-        printStream.println("Got the host" + targetAPI);
-        printStream.println("THE API HERE IS: " + targetAPI);
+        //printStream.println("Got the host" + targetAPI);
+        //printStream.println("THE API HERE IS: " + targetAPI);
         String url = chooseDLMSUrl(env) + API_PART;
-        printStream.println("THE url HERE IS: " + url);
-        printStream.println("JOB NAME: " + envVars.get("JOB_NAME"));
+        //printStream.println("THE url HERE IS: " + url);
+        //printStream.println("JOB NAME: " + envVars.get("JOB_NAME"));
+        //printStream.println("JOB buildNumber: " + this.buildNumber);
         // expand to support env vars
         this.orgName = envVars.expand(this.orgName);
         this.applicationName = envVars.expand(this.applicationName);
@@ -296,15 +281,20 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
             this.environmentName = envVars.expand(this.envName);
         }
 
+        printStream.println("Do I get ehre?");
+
         String buildNumber, buildUrl;
         // if user does not specify the build number
         if (Util.isNullOrEmpty(this.buildNumber)) {
+            printStream.println("is null");
             // locate the build job that triggers current build
             Run triggeredBuild = getTriggeredBuild(build, buildJobName, envVars, printStream);
             if (triggeredBuild == null) {
                 //failed to find the build job
+                printStream.println("all is lost");
                 return;
             } else {
+                printStream.println("all is not lost");
                 if (Util.isNullOrEmpty(this.buildJobName)) {
                     // handle the case which the build job name left empty, and the pipeline case
                     this.buildJobName = envVars.get("JOB_NAME");
@@ -314,25 +304,25 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
                 buildUrl = rootUrl + triggeredBuild.getUrl();
             }
         } else {
+            printStream.println("Not null");
             buildNumber = envVars.expand(this.buildNumber);
             buildUrl = envVars.expand(this.buildUrl);
         }
 
-        System.out.println("BUILD NUMBER: " + buildNumber);
-        System.out.println("ORGNAME: " + this.orgName);
+        printStream.println("buildNumber is: " + buildNumber);
+        printStream.println("ORGNAME is: " + this.orgName);
         url = url.replace("{org_name}", this.orgName);
         url = url.replace("{toolchain_id}", this.toolchainName);
         url = url.replace("{build_artifact}", URLEncoder.encode(this.applicationName, "UTF-8").replaceAll("\\+", "%20"));
         url = url.replace("{build_id}", buildNumber);
         this.dlmsUrl = url;
 
-        String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
-
+        printStream.println("DLMS URL IS: " + this.dlmsUrl);
 
         // get the Bluemix token
         try {
             if (Util.isNullOrEmpty(this.credentialsId)) {
-                bluemixToken = GetBluemixToken(username, password, targetAPI);
+                bluemixToken = GetBluemixToken(IBMusername, IBMpassword, targetAPI);
             } else {
                 bluemixToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
             }
@@ -344,88 +334,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
             return;
         }
 
-        // parse the wildcard result files
-        /*try {
-            if(!scanAndUpload(build, workspace, contents, lifecycleStage, bluemixToken, buildNumber, buildUrl)){
-                // if there is any error when scanning and uploading
-                return;
-            }
-
-            // check to see if we need to upload additional result file
-            if (!Util.isNullOrEmpty(additionalContents) && !Util.isNullOrEmpty(additionalLifecycleStage)) {
-                if(!scanAndUpload(build, workspace, additionalContents, additionalLifecycleStage,
-                        bluemixToken, buildNumber, buildUrl)) {
-                    return;
-                }
-            }
-        } catch (Exception e) {
-            printStream.print("[IBM Cloud DevOps] Got Exception: " + e.getMessage());
-            e.printStackTrace();
-            return;
-        }*/
-
-        printStream.println("[IBM Cloud DevOps] Go to Control Center (" + link + ") to check your build status");
-
-        // Gate
-        // verify if user chooses advanced option to input customized DRA
-        if (Util.isNullOrEmpty(policyName)) {
-            return;
-        }
-
-        this.draUrl = chooseDRAUrl(env);
-        String reportUrl = chooseReportUrl(env);
-
-        // get decision response from DRA
-        try {
-            JsonObject decisionJson = getDecisionFromDRA(bluemixToken, buildNumber);
-            if (decisionJson == null) {
-                printStream.println("[IBM Cloud DevOps] get empty decision");
-                return;
-            }
-
-            // retrieve the decision id to compose the report link
-            String decisionId = String.valueOf(decisionJson.get("decision_id"));
-            // remove the double quotes
-            decisionId = decisionId.replace("\"","");
-
-            // Show Proceed or Failed based on the decision
-            String decision = String.valueOf(decisionJson.get("contents").getAsJsonObject().get("proceed"));
-            if (decision.equals("true")) {
-                decision = "Succeed";
-            } else {
-                decision = "Failed";
-            }
-
-            String cclink = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
-
-            GatePublisherAction action = new GatePublisherAction(reportUrl + decisionId, cclink, decision, this.policyName, build);
-            build.addAction(action);
-
-            // console output for a "fail" decision
-            if (decision.equals("Failed")) {
-                printStream.println("************************************");
-                printStream.println("Check IBM Cloud DevOps Gate Evaluation report here -" + reportUrl + decisionId);
-                printStream.println("Check IBM Cloud DevOps Deployment Risk Dashboard here -" + cclink);
-                printStream.println("IBM Cloud DevOps decision to proceed is:  false");
-                printStream.println("************************************");
-                if (willDisrupt) {
-                    Result result = Result.FAILURE;
-                    build.setResult(result);
-                }
-                return;
-            }
-
-            // console output for a "proceed" decision
-            printStream.println("************************************");
-            printStream.println("Check IBM Cloud DevOps Gate Evaluation report here -" + reportUrl + decisionId);
-            printStream.println("Check IBM Cloud DevOps Deployment Risk Dashboard here -" + cclink);
-            printStream.println("IBM Cloud DevOps decision to proceed is:  true");
-            printStream.println("************************************");
-            return;
-
-        } catch (IOException e) {
-            printStream.print("[IBM Cloud DevOps] Error: " + e.getMessage());
-        }
+        //
     }
 
     @Override

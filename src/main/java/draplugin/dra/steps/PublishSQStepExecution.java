@@ -36,23 +36,36 @@ public class PublishSQStepExecution extends AbstractSynchronousNonBlockingStepEx
 
         PrintStream printStream = listener.getLogger();
 
-        printStream.println("WE MADE IT TO PublishSQStepExecution. Name is: " + step.getName());
-
         String orgName = Util.isNullOrEmpty(step.getOrgName()) ? envVars.get("IBM_CLOUD_DEVOPS_ORG") : step.getOrgName();
         String applicationName =  Util.isNullOrEmpty(step.getApplicationName()) ? envVars.get("IBM_CLOUD_DEVOPS_APP_NAME") : step.getApplicationName();
         String toolchainName = Util.isNullOrEmpty(step.getToolchainId()) ? envVars.get("IBM_CLOUD_DEVOPS_TOOLCHAIN_ID") : step.getToolchainId();
-        String username = envVars.get("IBM_CLOUD_DEVOPS_CREDS_USR");
-        String password = envVars.get("IBM_CLOUD_DEVOPS_CREDS_PSW");
+        String IBMusername = envVars.get("IBM_CLOUD_DEVOPS_CREDS_USR");
+        String IBMpassword = envVars.get("IBM_CLOUD_DEVOPS_CREDS_PSW");
+        // Project Key defaults to app name if nothing is passed in
+        String SQProjectKey = Util.isNullOrEmpty(step.getSQProjectKey()) ? applicationName : step.getSQProjectKey();
+        String SQHostURL = step.getSQHostURL();
+
+        String SQUsername = envVars.get("SQ_CREDS_USR");
+        String SQPassword = envVars.get("SQ_CREDS_PSW");
+
+        printStream.println("SQ USERNAME: " + SQUsername);
+        printStream.println("SQ Password: " + SQPassword);
 
         printStream.println(orgName);
-        printStream.println(applicationName);
+        printStream.println("APP NAME: " + applicationName);
         printStream.println(toolchainName);
-        printStream.println(username);
-        printStream.println(password);
+        printStream.println(IBMusername);
+        printStream.println(IBMpassword);
+
+        if(Util.isNullOrEmpty(SQPassword)) {
+            printStream.println("That is empty yo!");
+        } else {
+            printStream.println("That is NOT empty yo!");
+        }
 
 
         //check all the required env vars
-        if (!Util.allNotNullOrEmpty(orgName, applicationName,toolchainName, username, password)) {
+        if (!Util.allNotNullOrEmpty(orgName, applicationName, toolchainName, IBMusername, IBMpassword, SQPassword)) {
             printStream.println("[IBM Cloud DevOps] Missing environment variables configurations, please specify all required environment variables in the pipeline");
             printStream.println("[IBM Cloud DevOps] Error: Failed to upload Test Result.");
             return null;
@@ -64,8 +77,12 @@ public class PublishSQStepExecution extends AbstractSynchronousNonBlockingStepEx
                     orgName,
                     applicationName,
                     toolchainName,
-                    username,
-                    password);
+                    SQProjectKey,
+                    SQHostURL,
+                    SQUsername,
+                    SQPassword,
+                    IBMusername,
+                    IBMpassword);
             publisher.perform(build, ws, launcher, listener);
         } else {
             printStream.println("[IBM Cloud DevOps] the \"result\" in the publishBuildRecord should be either \"PASS\" or \"FAIL\"");
