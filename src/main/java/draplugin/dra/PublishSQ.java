@@ -46,9 +46,17 @@ import javax.servlet.ServletException;
 import java.io.*;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.HashSet;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Base64;
+import java.util.Base64.Encoder;
 
 /**
  * Authenticate with Bluemix and then upload the result file to DRA
@@ -334,8 +342,17 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
             return;
         }
 
-        String SQCredentials = getSQcredentials(SQUsername, SQPassword);
-        printStream.println("Auth String is: " + SQCredentials);
+        String SQAuthHeader = getAuthHeader(SQUsername, SQPassword);
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("Authorization", "Basic " + SQAuthHeader);
+        try {
+            JsonObject SQqualityGate = sendGETRequest(this.SQHostName + "/api/qualitygates/project_status?projectKey=" + this.SQProjectKey, headers);
+            JsonObject SQissues = sendGETRequest(this.SQHostName + "/api/issues/search?statuses=OPEN&componentKeys=" + this.SQProjectKey, headers);
+            JsonObject SQratings = sendGETRequest(this.SQHostName + "/api/measures/component?metricKeys=reliability_rating,security_rating,sqale_rating&componentKey=" + this.SQProjectKey, headers);
+        } catch (Exception e) {
+            printStream.println("ERROR ALERT");
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -346,21 +363,53 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
      * @param SQPassword SQ Password provided from Jenkins Credentials
      * @return String that is the auth header for SQ API calls
      */
-    public String getSQcredentials(String SQUsername, String SQPassword) {
+    public String getAuthHeader(String SQUsername, String SQPassword) {
 
+        String SQAuthHeader;
         // User is using a SQ API token
         if(SQUsername.equals("SONARQUBE_AUTH_TOKEN")) {
             printStream.println("User is using a SonarQube auth token to auth with the API");
-            return SQUsername + ":";
+            SQAuthHeader = SQPassword + ":";
         } else {
             printStream.println("User is using a SonarQube Username and Password");
-            return SQUsername + ":" + SQPassword;
+            SQAuthHeader = SQUsername + ":" + SQPassword;
         }
+
+        return Base64.getEncoder().encodeToString(SQAuthHeader.getBytes());
     }
 
-    public JSONObject getSQQualityGateResults() {
-        return null;
+    private JsonObject sendGETRequest(String url, Map<String, String> headers) throws Exception {
+
+        URL obj = new URL(url);
+        HttpURLConnection connection = (HttpURLConnection) obj.openConnection();
+
+        // optional default is GET
+        connection.setRequestMethod("GET");
+
+        //add request header
+        //con.setRequestProperty("User-Agent", USER_AGENT);
+        for(String headerName: headers.keySet()) {
+            connection.setRequestProperty(headerName, headers.get(headerName));
+            printStream.println("Header is: " + headers.get("Authorization"));
+        }
+        int responseCode = connection.getResponseCode();
+        System.out.println("\nSending 'GET' request to URL : " + url);
+        System.out.println("Response Code : " + responseCode);
+
+        BufferedReader in = new BufferedReader(
+                new InputStreamReader(connection.getInputStream()));
+        String inputLine;
+        StringBuffer response = new StringBuffer();
+
+        while ((inputLine = in.readLine()) != null) {
+            response.append(inputLine);
+        }
+        in.close();
+
+        JsonParser parser = new JsonParser();
+        return parser.parse(response.toString()).getAsJsonObject();
     }
+
 
 
     @Override
