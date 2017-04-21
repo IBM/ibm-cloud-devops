@@ -29,16 +29,14 @@ import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import net.sf.json.JSONObject;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.http.HttpEntity;
+
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.mime.HttpMultipartMode;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.entity.StringEntity;
 import org.kohsuke.stapler.*;
 
 import javax.annotation.Nonnull;
@@ -65,6 +63,7 @@ import java.util.Base64.Encoder;
 public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, Serializable {
 
     private final static String API_PART = "/organizations/{org_name}/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/results";
+    private final static String CONTENT_TYPE_JSON = "application/json";
 
     // form fields from UI
     private String contents;
@@ -281,12 +280,10 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
             buildUrl = envVars.expand(this.buildUrl);
         }
 
-        printStream.println("buildNumber is: " + buildNumber);
-        printStream.println("ORGNAME is: " + this.orgName);
         url = url.replace("{org_name}", this.orgName);
         url = url.replace("{toolchain_id}", this.toolchainName);
         url = url.replace("{build_artifact}", URLEncoder.encode(this.applicationName, "UTF-8").replaceAll("\\+", "%20"));
-        url = url.replace("{build_id}", buildNumber);
+        url = url.replace("{build_id}", URLEncoder.encode(buildNumber, "UTF-8").replaceAll("\\+", "%20"));
         this.dlmsUrl = url;
 
         printStream.println("DLMS URL IS: " + this.dlmsUrl);
@@ -318,7 +315,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
 
             JsonObject payload = createDLMSPayload(SQqualityGate, SQissues, SQratings);
 
-            sendPayloadToDLMS();
+            sendPayloadToDLMS(bluemixToken, payload);
 
         } catch (Exception e) {
             printStream.println("Error querying SonarQube for data. Check to make sure SonarQube credentials are correct");
@@ -401,13 +398,77 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         return parser.parse(response.toString()).getAsJsonObject();
     }
 
-    public String sendPayloadToDLMS() throws IOException {
+    private boolean sendPayloadToDLMS(String bluemixToken, JsonObject payload) {
+        String resStr = "";
 
-        // create http client and post method
-        return "good to go";
+        try {
+            CloseableHttpClient httpClient = HttpClients.createDefault();
+
+            printStream.println("What is this encoded: " + URLEncoder.encode(this.applicationName, "UTF-8"));
+            printStream.println("About to send payload to : " + this.dlmsUrl);
+
+            //String cardCodedUrl = "https://dlms.ng.bluemix.net/v2/organizations/dlatest/toolchainids/1320cec1-daaa-4b63-bf06-7001364865d2/buildartifacts/Weather-V1-Scripted/builds/sample%20pipeline:81/results";
+
+            HttpPost postMethod = new HttpPost(this.dlmsUrl);
+            postMethod = addProxyInformation(postMethod);
+            postMethod.setHeader("Authorization", bluemixToken);
+            postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);
+
+            //SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+            //TimeZone utc = TimeZone.getTimeZone("UTC");
+            //dateFormat.setTimeZone(utc);
+            //String timestamp = dateFormat.format(new java.util.Date());
+
+
+            JsonObject body = new JsonObject();
+
+            body.addProperty("contents", Base64.getEncoder().encodeToString(payload.toString().getBytes()));
+            body.addProperty("contents_type", CONTENT_TYPE_JSON);
+            body.addProperty("timestamp", new java.util.Date().toString());
+
+            printStream.print("lel, actually sending: " + body.toString());
+
+            //String json = gson.toJson(buildInfo);
+            StringEntity data = new StringEntity(body.toString());
+            postMethod.setEntity(data);
+            CloseableHttpResponse response = httpClient.execute(postMethod);
+            resStr = EntityUtils.toString(response.getEntity());
+            if (response.getStatusLine().toString().contains("200")) {
+                // get 200 response
+                printStream.println("[IBM Cloud DevOps] Upload Build Information successfully");
+                return true;
+
+            } else {
+                // if gets error status
+                printStream.println("[IBM Cloud DevOps] Error: Failed to upload, response status " + response.getStatusLine());
+
+                JsonParser parser = new JsonParser();
+                JsonElement element = parser.parse(resStr);
+                JsonObject resJson = element.getAsJsonObject();
+                if (resJson != null && resJson.has("user_error")) {
+                    printStream.println("[IBM Cloud DevOps] Reason: " + resJson.get("user_error"));
+                }
+            }
+        } catch (JsonSyntaxException e) {
+            printStream.println("[IBM Cloud DevOps] Invalid Json response, response: " + resStr);
+        } catch (IllegalStateException e) {
+            // will be triggered when 403 Forbidden
+            try {
+                printStream.println("[IBM Cloud DevOps] Please check if you have the access to " + URLEncoder.encode(this.orgName, "UTF-8") + " org");
+            } catch (UnsupportedEncodingException e1) {
+                e1.printStackTrace();
+            }
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        } catch (ClientProtocolException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
-    @Override
+        @Override
     public BuildStepMonitor getRequiredMonitorService() {
         return BuildStepMonitor.NONE;
     }
