@@ -327,6 +327,8 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
             JsonObject SQissues = sendGETRequest(this.SQHostName + "/api/issues/search?statuses=OPEN&componentKeys=" + this.SQProjectKey, headers);
             JsonObject SQratings = sendGETRequest(this.SQHostName + "/api/measures/component?metricKeys=reliability_rating,security_rating,sqale_rating&componentKey=" + this.SQProjectKey, headers);
 
+            printStream.println("issues data: " + SQissues.toString());
+
             JsonObject payload = createDLMSPayload(SQqualityGate, SQissues, SQratings);
 
         } catch (Exception e) {
@@ -338,16 +340,27 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
     /**
      * Combines all SQ information into one gson that can be sent to DLMS
      *
-     * @param qualityGateDate information pertaining to SQ gate status
+     * @param qualityGateData information pertaining to SQ gate status
      * @param issuesData information pertaining to SQ issues raised
      * @param ratingsData information pertaining to SQ ratings
      * @return combined gson object
      */
-    public JsonObject createDLMSPayload(JsonObject qualityGateDate, JsonObject issuesData, JsonObject ratingsData) {
+    public JsonObject createDLMSPayload(JsonObject qualityGateData, JsonObject issuesData, JsonObject ratingsData) {
+
+        JsonObject payload = new JsonObject();
+
+        payload.add("qualityGate", qualityGateData.get("projectStatus"));
+        payload.add("issues", issuesData.get("issues"));
+
+        JsonParser parser = new JsonParser();
+        JsonObject component = (JsonObject)parser.parse(ratingsData.get("component").toString());
+        payload.add("ratings", component.get("measures"));
 
 
+        printStream.println("going to send payload: " + payload.toString());
+
+        return payload;
     }
-
 
     /**
      * Method that returns a String that can be used as the Auth header for
