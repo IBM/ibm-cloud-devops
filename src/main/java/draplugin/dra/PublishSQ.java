@@ -286,8 +286,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         url = url.replace("{build_id}", URLEncoder.encode(buildNumber, "UTF-8").replaceAll("\\+", "%20"));
         this.dlmsUrl = url;
 
-        printStream.println("DLMS URL IS: " + this.dlmsUrl);
-
         // get the Bluemix token
         try {
             if (Util.isNullOrEmpty(this.credentialsId)) {
@@ -308,17 +306,17 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         headers.put("Authorization", "Basic " + SQAuthHeader);
         try {
             JsonObject SQqualityGate = sendGETRequest(this.SQHostName + "/api/qualitygates/project_status?projectKey=" + this.SQProjectKey, headers);
+            printStream.println("[IBM Cloud DevOps] Successfully queried SonarQube for quality gate information");
             JsonObject SQissues = sendGETRequest(this.SQHostName + "/api/issues/search?statuses=OPEN&componentKeys=" + this.SQProjectKey, headers);
+            printStream.println("[IBM Cloud DevOps] Successfully queried SonarQube for issue information");
             JsonObject SQratings = sendGETRequest(this.SQHostName + "/api/measures/component?metricKeys=reliability_rating,security_rating,sqale_rating&componentKey=" + this.SQProjectKey, headers);
-
-            printStream.println("issues data: " + SQissues.toString());
+            printStream.println("[IBM Cloud DevOps] Successfully queried SonarQube for metric information");
 
             JsonObject payload = createDLMSPayload(SQqualityGate, SQissues, SQratings);
-
             sendPayloadToDLMS(bluemixToken, payload);
 
         } catch (Exception e) {
-            printStream.println("Error querying SonarQube for data. Check to make sure SonarQube credentials are correct");
+            printStream.println("[IBM Cloud DevOps] Error: Unable to upload results. Please make sure all parameters are valid");
             e.printStackTrace();
         }
     }
@@ -358,31 +356,35 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         String SQAuthHeader;
         // User is using a SQ API token
         if(SQUsername.equals("SONARQUBE_AUTH_TOKEN")) {
-            printStream.println("User is using a SonarQube auth token to auth with the API");
+            printStream.println("Using a SonarQube auth token to auth with the API");
             SQAuthHeader = SQPassword + ":";
         } else {
-            printStream.println("User is using a SonarQube Username and Password");
+            printStream.println("Using a SonarQube Username and Password to auth with the API");
             SQAuthHeader = SQUsername + ":" + SQPassword;
         }
 
         return Base64.getEncoder().encodeToString(SQAuthHeader.getBytes());
     }
 
+    /**
+     * Sends a GET request to the provided url
+     *
+     * @param url the endpoint of the request
+     * @param headers a map of headers where key is the header name and the map value is the header value
+     * @return a JSON parsed representation of the payload returneds
+     * @throws Exception
+     */
     private JsonObject sendGETRequest(String url, Map<String, String> headers) throws Exception {
 
         URL obj = new URL(url);
         HttpURLConnection connection = (HttpURLConnection) obj.openConnection();
 
-        // optional default is GET
         connection.setRequestMethod("GET");
 
         //add request headers
         for(String headerName: headers.keySet()) {
             connection.setRequestProperty(headerName, headers.get(headerName));
-            printStream.println("Header is: " + headers.get("Authorization"));
         }
-
-        printStream.println("response from " + url + " was " + connection.getResponseCode());
 
         BufferedReader in = new BufferedReader(
                 new InputStreamReader(connection.getInputStream()));
@@ -398,37 +400,35 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         return parser.parse(response.toString()).getAsJsonObject();
     }
 
+    /**
+     * Sends POST method to DLMS to upload SQ results
+     *
+     * @param bluemixToken the bluemix auth header that allows us to talk to dlms
+     * @param payload the content part of the payload to send to dlms
+     * @return boolean based on if the request was successful or not
+     */
     private boolean sendPayloadToDLMS(String bluemixToken, JsonObject payload) {
         String resStr = "";
-
+        printStream.println("[IBM Cloud DevOps] Uploading SonarQube results...");
         try {
             CloseableHttpClient httpClient = HttpClients.createDefault();
-
-            printStream.println("What is this encoded: " + URLEncoder.encode(this.applicationName, "UTF-8"));
-            printStream.println("About to send payload to : " + this.dlmsUrl);
-
-            //String cardCodedUrl = "https://dlms.ng.bluemix.net/v2/organizations/dlatest/toolchainids/1320cec1-daaa-4b63-bf06-7001364865d2/buildartifacts/Weather-V1-Scripted/builds/sample%20pipeline:81/results";
 
             HttpPost postMethod = new HttpPost(this.dlmsUrl);
             postMethod = addProxyInformation(postMethod);
             postMethod.setHeader("Authorization", bluemixToken);
             postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);
 
-            //SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-            //TimeZone utc = TimeZone.getTimeZone("UTC");
-            //dateFormat.setTimeZone(utc);
-            //String timestamp = dateFormat.format(new java.util.Date());
-
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+            TimeZone utc = TimeZone.getTimeZone("UTC");
+            dateFormat.setTimeZone(utc);
+            String timestamp = dateFormat.format(new java.util.Date());
 
             JsonObject body = new JsonObject();
 
             body.addProperty("contents", Base64.getEncoder().encodeToString(payload.toString().getBytes()));
             body.addProperty("contents_type", CONTENT_TYPE_JSON);
-            body.addProperty("timestamp", new java.util.Date().toString());
+            body.addProperty("timestamp", timestamp);
 
-            printStream.print("lel, actually sending: " + body.toString());
-
-            //String json = gson.toJson(buildInfo);
             StringEntity data = new StringEntity(body.toString());
             postMethod.setEntity(data);
             CloseableHttpResponse response = httpClient.execute(postMethod);
