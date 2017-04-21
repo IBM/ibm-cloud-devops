@@ -356,9 +356,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         JsonObject component = (JsonObject)parser.parse(ratingsData.get("component").toString());
         payload.add("ratings", component.get("measures"));
 
-
-        printStream.println("going to send payload: " + payload.toString());
-
         return payload;
     }
 
@@ -420,135 +417,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
     @Override
     public BuildStepMonitor getRequiredMonitorService() {
         return BuildStepMonitor.NONE;
-    }
-
-    /**
-     * Support wildcard for the result file path, scan the path and upload each matching result file to the DLMS
-     * @param build - the current build
-     * @param bluemixToken - the Bluemix toekn
-     * @param buildNumber - the build number
-     * @param buildUrl - the url to build job in Jenkins
-     * @return false if there is any error when scan and upload the file
-     */
-    public boolean scanAndUpload(Run build, FilePath workspace, String path, String lifecycleStage, String bluemixToken, String buildNumber, String buildUrl) throws InterruptedException, IOException {
-        boolean errorFlag = true;
-        FilePath[] filePaths = null;
-
-        if (Util.isNullOrEmpty(path)) {
-            // if no result file specified, create dummy result based on the build status
-            filePaths = new FilePath[]{createDummyFile(build, workspace)};
-        } else {
-
-            // remove "./" prefix of the path if it exists
-            if (path.startsWith("./")) {
-                path = path.substring(2);
-            }
-
-            try {
-                filePaths = workspace.list(path);
-            } catch(InterruptedException ie) {
-                printStream.println("[IBM Cloud DevOps] catching interrupt" + ie.getMessage());
-                ie.printStackTrace();
-                throw ie;
-            } catch (IOException e) {
-                printStream.println("[IBM Cloud DevOps] catching act" + e.getMessage());
-                e.printStackTrace();
-                throw e;
-            }
-        }
-
-        if (filePaths == null || filePaths.length < 1) {
-            printStream.println("[IBM Cloud DevOps] Error: Fail to find the file, please check the path");
-            return false;
-        } else {
-
-            for (FilePath fp : filePaths) {
-
-                // make sure the file path is for file, and copy to the master build folder
-                if (!fp.isDirectory()) {
-                    FilePath resultFileLocation = new FilePath(new File(root, fp.getName()));
-                    fp.copyTo(resultFileLocation);
-                }
-
-                //get timestamp
-                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-                TimeZone utc = TimeZone.getTimeZone("UTC");
-                dateFormat.setTimeZone(utc);
-                String timestamp = dateFormat.format(build.getTime());
-
-                // upload the result file to DLMS
-                String res = sendFormToDLMS(bluemixToken, fp, lifecycleStage, buildNumber, buildUrl, timestamp);
-                if(!printUploadMessage(res, fp.getName())) {
-                    errorFlag = false;
-                }
-            }
-        }
-
-        return errorFlag;
-    }
-
-    /**
-     * create a dummy result file following mocha format for some testing which does not generate test report
-     * @param build - current build
-     * @param workspace - current workspace, if it runs on slave, then it will be the path on slave
-     * @return simple test result file
-     */
-    private FilePath createDummyFile(Run build, FilePath workspace) throws InterruptedException {
-
-        // if user did not specify the result file location, upload the dummy json file
-        Gson gson = new Gson();
-
-        //set the passes and failures based on the test status
-        int passes, failures;
-        if (!build.getResult().equals(Result.SUCCESS)) {
-            passes = 0;
-            failures = 1;
-        } else {
-            passes = 1;
-            failures = 0;
-        }
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-        TimeZone utc = TimeZone.getTimeZone("UTC");
-        dateFormat.setTimeZone(utc);
-        String start = dateFormat.format(build.getStartTimeInMillis());
-        long duration = build.getDuration();
-        String end = dateFormat.format(build.getStartTimeInMillis() + duration);
-
-        TestResultModel.Stats stats = new TestResultModel.Stats(1, 1, passes, 0, failures, start, end, duration);
-        TestResultModel.Test test = new TestResultModel.Test("unknown test", "unknown test", duration, 0, null);
-        TestResultModel.Test[] tests = {test};
-        String[] emptyArray = {};
-        TestResultModel testResultModel = new TestResultModel(stats, tests, emptyArray, emptyArray, emptyArray);
-
-        // create new dummy file
-        try {
-            FilePath filePath = workspace.child("simpleTest.json");
-            filePath.write(gson.toJson(testResultModel), "UTF8");
-            return filePath;
-        } catch (IOException e) {
-            printStream.println("[IBM Cloud DevOps] Failed to create dummy file in current workspace, Exception: " + e.getMessage());
-        }
-
-        return null;
-    }
-
-    /**
-     * print out the response message from DLMS to the console log
-     * @param response - response from DLMS
-     * @param fileName - uploaded filename
-     * @return true if upload succeed, otherwise return false
-     */
-    private boolean printUploadMessage(String response, String fileName) {
-        if (response.contains("Error")) {
-            printStream.println("[IBM Cloud DevOps] " + response);
-        } else if (response.contains("200")) {
-            printStream.println("[IBM Cloud DevOps] Upload [" + fileName + "] SUCCESSFUL");
-            return true;
-        } else {
-            printStream.println("[IBM Cloud DevOps]" + response + ", Upload [" + fileName + "] FAILED");
-        }
-
-        return false;
     }
 
     /**
@@ -632,63 +500,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
             e.printStackTrace();
             throw e;
         }
-    }
-
-
-    /**
-     * Send a request to DRA backend to get a decision
-     * @param buildId - build ID, get from Jenkins environment
-     * @return - the response decision Json file
-     */
-    private JsonObject getDecisionFromDRA(String bluemixToken, String buildId) throws IOException {
-        // create http client and post method
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-
-        String url = this.draUrl;
-        url = url + "/organizations/" + orgName +
-                "/toolchainids/" + toolchainName +
-                "/buildartifacts/" + URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20") +
-                "/builds/" + buildId +
-                "/policies/" + URLEncoder.encode(policyName, "UTF-8").replaceAll("\\+", "%20") +
-                "/decisions";
-        if (this.isDeploy) {
-            url = url.concat("?environment_name=" + environmentName);
-        }
-
-        HttpPost postMethod = new HttpPost(url);
-
-        postMethod = addProxyInformation(postMethod);
-        postMethod.setHeader("Authorization", bluemixToken);
-        postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);
-
-        CloseableHttpResponse response = httpClient.execute(postMethod);
-        String resStr = EntityUtils.toString(response.getEntity());
-
-        try {
-            if (response.getStatusLine().toString().contains("200")) {
-                // get 200 response
-                JsonParser parser = new JsonParser();
-                JsonElement element = parser.parse(resStr);
-                JsonObject resJson = element.getAsJsonObject();
-                printStream.println("[IBM Cloud DevOps] Get decision successfully");
-                return resJson;
-            } else {
-                // if gets error status
-                printStream.println("[IBM Cloud DevOps] Error: Failed to get a decision, response status " + response.getStatusLine());
-
-                JsonParser parser = new JsonParser();
-                JsonElement element = parser.parse(resStr);
-                JsonObject resJson = element.getAsJsonObject();
-                if (resJson != null && resJson.has("message")) {
-                    printStream.println("[IBM Cloud DevOps] Reason: " + resJson.get("message"));
-                }
-            }
-        } catch (JsonSyntaxException e) {
-            printStream.println("[IBM Cloud DevOps] Invalid Json response, response: " + resStr);
-        }
-
-        return null;
-
     }
 
     // Overridden for better type safety.
