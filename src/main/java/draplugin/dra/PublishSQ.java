@@ -65,8 +65,6 @@ import java.util.Base64.Encoder;
 public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, Serializable {
 
     private final static String API_PART = "/organizations/{org_name}/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/results";
-    private final static String CONTENT_TYPE_JSON = "application/json";
-    private final static String CONTENT_TYPE_XML = "application/xml";
 
     // form fields from UI
     private String contents;
@@ -83,7 +81,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
     private String policyName;
     private boolean willDisrupt;
 
-
     private String SQProjectKey;
     private String SQHostName;
     private String SQUsername;
@@ -95,21 +92,11 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
     private String envName;
     private boolean isDeploy;
 
-
-
-
-
     private PrintStream printStream;
-    private File root;
     private static String dlmsUrl;
     private static String draUrl;
     public static String bluemixToken;
     public static String preCredentials;
-
-    //fields to support jenkins pipeline
-    private String username;
-    private String password;
-
 
     // need to add projectkey
     // need to add host url
@@ -331,6 +318,8 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
 
             JsonObject payload = createDLMSPayload(SQqualityGate, SQissues, SQratings);
 
+            sendPayloadToDLMS();
+
         } catch (Exception e) {
             printStream.println("Error querying SonarQube for data. Check to make sure SonarQube credentials are correct");
             e.printStackTrace();
@@ -412,94 +401,15 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         return parser.parse(response.toString()).getAsJsonObject();
     }
 
+    public String sendPayloadToDLMS() throws IOException {
 
+        // create http client and post method
+        return "good to go";
+    }
 
     @Override
     public BuildStepMonitor getRequiredMonitorService() {
         return BuildStepMonitor.NONE;
-    }
-
-    /**
-     * * Send POST request to DLMS back end with the result file
-     * @param bluemixToken - the Bluemix token
-     * @param contents - the result file
-     * @param buildNumber - the build number of the build job in Jenkins
-     * @param buildUrl -  the build url of the build job in Jenkins
-     * @param timestamp
-     * @return - response/error message from DLMS
-     */
-    public String sendFormToDLMS(String bluemixToken, FilePath contents, String lifecycleStage, String buildNumber, String buildUrl, String timestamp) throws IOException {
-
-        // create http client and post method
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        HttpPost postMethod = new HttpPost(this.dlmsUrl);
-
-        postMethod = addProxyInformation(postMethod);
-        // build up multi-part forms
-        MultipartEntityBuilder builder = MultipartEntityBuilder.create();
-        builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
-        if (contents != null) {
-
-            File file = new File(root, contents.getName());
-            FileBody fileBody = new FileBody(file);
-            builder.addPart("contents", fileBody);
-
-
-            builder.addTextBody("test_artifact", file.getName());
-            if (this.isDeploy) {
-                builder.addTextBody("environment_name", environmentName);
-            }
-            //Todo check the value of lifecycleStage
-            builder.addTextBody("lifecycle_stage", lifecycleStage);
-            builder.addTextBody("url", buildUrl);
-            builder.addTextBody("timestamp", timestamp);
-
-            String fileExt = FilenameUtils.getExtension(contents.getName());
-            String contentType;
-            switch (fileExt) {
-                case "json":
-                    contentType = CONTENT_TYPE_JSON;
-                    break;
-                case "xml":
-                    contentType = CONTENT_TYPE_XML;
-                    break;
-                default:
-                    return "Error: " + contents.getName() + " is an invalid result file type";
-            }
-
-            builder.addTextBody("contents_type", contentType);
-            HttpEntity entity = builder.build();
-            postMethod.setEntity(entity);
-            postMethod.setHeader("Authorization", bluemixToken);
-        } else {
-            return "Error: File is null";
-        }
-
-
-        CloseableHttpResponse response = null;
-        try {
-            response = httpClient.execute(postMethod);
-            // parse the response json body to display detailed info
-            String resStr = EntityUtils.toString(response.getEntity());
-            JsonParser parser = new JsonParser();
-            JsonElement element =  parser.parse(resStr);
-
-            if (!element.isJsonObject()) {
-                // 401 Forbidden
-                return "Error: Upload is Forbidden, please check your org name. Error message: " + element.toString();
-            } else {
-                JsonObject resJson = element.getAsJsonObject();
-                if (resJson != null && resJson.has("status")) {
-                    return String.valueOf(response.getStatusLine()) + "\n" + resJson.get("status");
-                } else {
-                    // other cases
-                    return String.valueOf(response.getStatusLine());
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw e;
-        }
     }
 
     // Overridden for better type safety.
