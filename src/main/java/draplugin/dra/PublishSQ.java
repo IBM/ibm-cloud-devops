@@ -311,12 +311,27 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
             printStream.println("[IBM Cloud DevOps] Successfully queried SonarQube for metric information");
 
             JsonObject payload = createDLMSPayload(SQqualityGate, SQissues, SQratings);
-            sendPayloadToDLMS(bluemixToken, payload);
+            JsonArray urls = createPayloadUrls(this.SQHostName, this.SQProjectKey);
+            sendPayloadToDLMS(bluemixToken, payload, urls);
 
         } catch (Exception e) {
             printStream.println("[IBM Cloud DevOps] Error: Unable to upload results. Please make sure all parameters are valid");
             e.printStackTrace();
         }
+    }
+
+    /**
+     *
+     * @param SQHostname hostname of the SQ instance
+     * @param SQKey project key of the SQ instance
+     * @return an array of URLs that should be sent to dlms along with the payload
+     */
+    public JsonArray createPayloadUrls(String SQHostname, String SQKey) {
+
+        JsonArray urls = new JsonArray();
+        String url = SQHostname + "/dashboard/index/" + SQKey;
+        urls.add(url);
+        return urls;
     }
 
     /**
@@ -380,9 +395,10 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
      *
      * @param bluemixToken the bluemix auth header that allows us to talk to dlms
      * @param payload the content part of the payload to send to dlms
+     * @param urls a json array that holds the urls for a payload
      * @return boolean based on if the request was successful or not
      */
-    private boolean sendPayloadToDLMS(String bluemixToken, JsonObject payload) {
+    private boolean sendPayloadToDLMS(String bluemixToken, JsonObject payload, JsonArray urls) {
         String resStr = "";
         printStream.println("[IBM Cloud DevOps] Uploading SonarQube results...");
         try {
@@ -403,6 +419,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
             body.addProperty("contents", Base64.getEncoder().encodeToString(payload.toString().getBytes()));
             body.addProperty("contents_type", CONTENT_TYPE_JSON);
             body.addProperty("timestamp", timestamp);
+            body.add("url", urls);
 
             StringEntity data = new StringEntity(body.toString());
             postMethod.setEntity(data);
