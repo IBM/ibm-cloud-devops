@@ -22,11 +22,13 @@ public class PublishSQStep extends AbstractStepImpl {
 
     // required parameters
     private String SQHostURL;
+    private String SQAuthToken;
 
     @DataBoundConstructor
-    public PublishSQStep(String SQHostURL) {
+    public PublishSQStep(String SQHostURL, String SQAuthToken) {
 
         this.SQHostURL = SQHostURL;
+        this.SQAuthToken = SQAuthToken;
     }
 
     @DataBoundSetter
@@ -60,6 +62,12 @@ public class PublishSQStep extends AbstractStepImpl {
     }
 
     @DataBoundSetter
+    public void setSQAuthToken(String SQAuthToken) {
+        this.SQAuthToken = SQAuthToken;
+    }
+
+
+    @DataBoundSetter
     public void setSQProjectKey(String SQProjectKey) {
         this.SQProjectKey = SQProjectKey;
     }
@@ -86,6 +94,10 @@ public class PublishSQStep extends AbstractStepImpl {
 
     public String getSQHostURL() {
         return SQHostURL;
+    }
+
+    public String getSQAuthToken() {
+        return SQAuthToken;
     }
 
     public String getSQProjectKey() {

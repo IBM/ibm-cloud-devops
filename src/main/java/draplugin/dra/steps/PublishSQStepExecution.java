@@ -44,33 +44,14 @@ public class PublishSQStepExecution extends AbstractSynchronousNonBlockingStepEx
         // Project Key defaults to app name if nothing is passed in
         String SQProjectKey = Util.isNullOrEmpty(step.getSQProjectKey()) ? applicationName : step.getSQProjectKey();
         String SQHostURL = step.getSQHostURL();
-
-        String SQUsername = envVars.get("SQ_CREDS_USR");
-        String SQPassword = envVars.get("SQ_CREDS_PSW");
-
-        printStream.println("SQ USERNAME: " + SQUsername);
-        printStream.println("SQ Password: " + SQPassword);
-
-        printStream.println(orgName);
-        printStream.println("APP NAME: " + applicationName);
-        printStream.println(toolchainName);
-        printStream.println(IBMusername);
-        printStream.println(IBMpassword);
-
-        if(Util.isNullOrEmpty(SQPassword)) {
-            printStream.println("That is empty yo!");
-        } else {
-            printStream.println("That is NOT empty yo!");
-        }
-
+        String SQAuthToken = step.getSQAuthToken();
 
         //check all the required env vars
-        if (!Util.allNotNullOrEmpty(orgName, applicationName, toolchainName, IBMusername, IBMpassword, SQPassword)) {
+        if (!Util.allNotNullOrEmpty(orgName, applicationName, toolchainName, IBMusername, IBMpassword, SQAuthToken)) {
             printStream.println("[IBM Cloud DevOps] Missing environment variables configurations, please specify all required environment variables in the pipeline");
             printStream.println("[IBM Cloud DevOps] Error: Failed to upload Test Result.");
             return null;
         }
-
 
         if (true) {
             PublishSQ publisher = new PublishSQ(
@@ -79,8 +60,7 @@ public class PublishSQStepExecution extends AbstractSynchronousNonBlockingStepEx
                     toolchainName,
                     SQProjectKey,
                     SQHostURL,
-                    SQUsername,
-                    SQPassword,
+                    SQAuthToken,
                     IBMusername,
                     IBMpassword);
             publisher.perform(build, ws, launcher, listener);

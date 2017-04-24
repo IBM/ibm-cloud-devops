@@ -82,8 +82,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
 
     private String SQProjectKey;
     private String SQHostName;
-    private String SQUsername;
-    private String SQPassword;
+    private String SQAuthToken;
     private String IBMusername;
     private String IBMpassword;
 
@@ -104,8 +103,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
                         String toolchainName,
                         String SQProjectKey,
                         String SQHostName,
-                        String SQUsername,
-                        String SQPassword,
+                        String SQAuthToken,
                         String IBMusername,
                         String IBMpassword) {
         this.orgName = orgName;
@@ -113,8 +111,8 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         this.toolchainName = toolchainName;
         this.SQProjectKey = SQProjectKey;
         this.SQHostName = SQHostName;
-        this.SQUsername = SQUsername;
-        this.SQPassword = SQPassword;
+        // ':' needs to be added so the SQ api knows an auth token is being used
+        this.SQAuthToken = Base64.getEncoder().encodeToString((SQAuthToken + ":").getBytes());
         this.IBMusername = IBMusername;
         this.IBMpassword = IBMpassword;
     }
@@ -301,12 +299,12 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
             return;
         }
 
-        String SQAuthHeader = getAuthHeader(SQUsername, SQPassword);
         Map<String, String> headers = new HashMap<String, String>();
-        headers.put("Authorization", "Basic " + SQAuthHeader);
+        headers.put("Authorization", "Basic " + this.SQAuthToken);
         try {
             JsonObject SQqualityGate = sendGETRequest(this.SQHostName + "/api/qualitygates/project_status?projectKey=" + this.SQProjectKey, headers);
             printStream.println("[IBM Cloud DevOps] Successfully queried SonarQube for quality gate information");
+            printStream.println(SQqualityGate);
             JsonObject SQissues = sendGETRequest(this.SQHostName + "/api/issues/search?statuses=OPEN&componentKeys=" + this.SQProjectKey, headers);
             printStream.println("[IBM Cloud DevOps] Successfully queried SonarQube for issue information");
             JsonObject SQratings = sendGETRequest(this.SQHostName + "/api/measures/component?metricKeys=reliability_rating,security_rating,sqale_rating&componentKey=" + this.SQProjectKey, headers);
@@ -341,29 +339,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         payload.add("ratings", component.get("measures"));
 
         return payload;
-    }
-
-    /**
-     * Method that returns a String that can be used as the Auth header for
-     * requests to the SQ API.
-     *
-     * @param SQUsername SQ Username provided from Jenkins Credentials
-     * @param SQPassword SQ Password provided from Jenkins Credentials
-     * @return String that is the auth header for SQ API calls
-     */
-    public String getAuthHeader(String SQUsername, String SQPassword) {
-
-        String SQAuthHeader;
-        // User is using a SQ API token
-        if(SQUsername.equals("SONARQUBE_AUTH_TOKEN")) {
-            printStream.println("Using a SonarQube auth token to auth with the API");
-            SQAuthHeader = SQPassword + ":";
-        } else {
-            printStream.println("Using a SonarQube Username and Password to auth with the API");
-            SQAuthHeader = SQUsername + ":" + SQPassword;
-        }
-
-        return Base64.getEncoder().encodeToString(SQAuthHeader.getBytes());
     }
 
     /**
