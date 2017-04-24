@@ -1,0 +1,50 @@
+node {
+
+	def sonarHost;
+	def authToken;
+
+	withEnv([
+		// You need to specify 3 required environment variables and your bluemix credentials first, they are going to be used for the following IBM Cloud DevOps steps
+		'IBM_CLOUD_DEVOPS_ORG=dlatest',
+		'IBM_CLOUD_DEVOPS_APP_NAME=Weather-V1-Scripted',
+		'IBM_CLOUD_DEVOPS_TOOLCHAIN_ID=1320cec1-daaa-4b63-bf06-7001364865d2',
+		'IBM_CLOUD_DEVOPS_WEBHOOK_URL=WEBHOOK_URL_PLACEHOLDER'
+	]) {
+		withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'BM_CRED',
+						  usernameVariable: 'IBM_CLOUD_DEVOPS_CREDS_USR', passwordVariable: 'IBM_CLOUD_DEVOPS_CREDS_PSW']]) {
+			stage('SCM') {
+				git 'https://github.com/ccox-IBM/simple-toolchain-1488583960040.git';
+			}
+			stage('SonarQube analysis') {
+				// requires SonarQube Scanner 2.8+
+				def scannerHome = tool 'Default SQ Scanner';
+
+				withSonarQubeEnv('Default SQ Server') {
+					sh "${scannerHome}/bin/sonar-scanner \
+							-Dsonar.projectKey=simple-toolchain-1488583960040 \
+							-Dsonar.sources=. \
+							-Dsonar.organization=ccox-ibm-github";
+					//save host and auth token used to configure the SQ tool
+					sonarHost = SONAR_HOST_URL;
+					authToken = SONAR_AUTH_TOKEN + ":";
+				}
+			}
+
+			stage("Quality Gate") {
+
+				timeout(time: 1, unit: 'HOURS') { // Just in case something goes wrong, pipeline will be killed after a timeout
+					def qg = waitForQualityGate(); // Reuse taskId previously collected by withSonarQubeEnv
+
+                    echo "WHAT IS IT HERE"
+                    echo SONAR_AUTH_TOKEN
+
+                    publishSQResults SQHostURL:sonarHost, SQProjectKey:simple-toolchain-1488583960040
+
+					if (qg.status != 'OK') {
+						error "Pipeline aborted due to quality gate failure: ${qg.status}"
+					}
+				}
+			}
+		}
+	}
+}
