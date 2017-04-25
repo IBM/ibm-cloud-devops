@@ -53,8 +53,8 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Base64;
-import java.util.Base64.Encoder;
+
+import javax.xml.bind.DatatypeConverter;
 
 /**
  * Authenticate with Bluemix and then upload the result file to DRA
@@ -112,7 +112,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         this.SQProjectKey = SQProjectKey;
         this.SQHostName = SQHostName;
         // ':' needs to be added so the SQ api knows an auth token is being used
-        this.SQAuthToken = Base64.getEncoder().encodeToString((SQAuthToken + ":").getBytes());
+        this.SQAuthToken = DatatypeConverter.printBase64Binary((SQAuthToken + ":").getBytes());
         this.IBMusername = IBMusername;
         this.IBMpassword = IBMpassword;
     }
@@ -304,7 +304,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         try {
             JsonObject SQqualityGate = sendGETRequest(this.SQHostName + "/api/qualitygates/project_status?projectKey=" + this.SQProjectKey, headers);
             printStream.println("[IBM Cloud DevOps] Successfully queried SonarQube for quality gate information");
-            printStream.println(SQqualityGate);
             JsonObject SQissues = sendGETRequest(this.SQHostName + "/api/issues/search?statuses=OPEN&componentKeys=" + this.SQProjectKey, headers);
             printStream.println("[IBM Cloud DevOps] Successfully queried SonarQube for issue information");
             JsonObject SQratings = sendGETRequest(this.SQHostName + "/api/measures/component?metricKeys=reliability_rating,security_rating,sqale_rating&componentKey=" + this.SQProjectKey, headers);
@@ -416,7 +415,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
 
             JsonObject body = new JsonObject();
 
-            body.addProperty("contents", Base64.getEncoder().encodeToString(payload.toString().getBytes()));
+            body.addProperty("contents", DatatypeConverter.printBase64Binary(payload.toString().getBytes()));
             body.addProperty("contents_type", CONTENT_TYPE_JSON);
             body.addProperty("timestamp", timestamp);
             body.add("url", urls);
