@@ -1,6 +1,7 @@
 package draplugin.notification;
 
-import draplugin.dra.Util;
+import com.ibm.devops.dra.Util;
+import com.ibm.devops.notification.MessageHandler;
 import hudson.EnvVars;
 import hudson.model.Job;
 import hudson.model.Run;

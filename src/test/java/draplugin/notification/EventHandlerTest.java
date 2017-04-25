@@ -1,5 +1,7 @@
 package draplugin.notification;
 
+import com.ibm.devops.notification.EventHandler;
+import com.ibm.devops.notification.OTCNotifier;
 import hudson.EnvVars;
 import hudson.model.*;
 import hudson.tasks.Publisher;
