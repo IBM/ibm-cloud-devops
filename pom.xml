@@ -14,16 +14,19 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
+  <groupId>com.ibm.devops</groupId>
+  <artifactId>ibmclouddevops</artifactId>
+  <version>0.10.1</version>
+  <packaging>hpi</packaging>
+  <name>IBM Cloud DevOps</name>
+  <description>IBM® Cloud DevOps aggregates and provides visualizations of the indications of a continuous delivery project’s health. Use its built-in dashboards and data reporting services to learn where you most need to improve your build, test, and delivery processes. You can also define test coverage policies to prevent bad code from being promoted to critical environments. </description>
+  <url>https://wiki.jenkins-ci.org/display/JENKINS/IBM+Cloud+DevOps+Plugin</url>
 
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
     <version>2.12</version>
   </parent>
-  <groupId>com.ibm.devops</groupId>
-  <artifactId>ibmclouddevops</artifactId>
-  <version>0.10.1</version>
-  <packaging>hpi</packaging>
 
   <build>
     <plugins>
@@ -62,12 +65,6 @@
     <powermock.version>1.7.0RC2</powermock.version>
   </properties>
 
-  <name>IBM Cloud DevOps</name>
-  <description>IBM® Cloud DevOps aggregates and provides visualizations of the indications of a continuous delivery project’s health. Use its built-in dashboards and data reporting services to learn where you most need to improve your build, test, and delivery processes. You can also define test coverage policies to prevent bad code from being promoted to critical environments. </description>
-  <!--<url>https://wiki.jenkins-ci.org/display/JENKINS/IBM+Cloud+DevOps+Plugin</url>-->
-  <url>https://github.com/imvijay2007/Jenkins-IBM-Bluemix-Toolchains</url>
-  <!-- The default licence for Jenkins OSS Plugins is MIT. Substitute for the applicable one if needed. -->
-
   <licenses>
     <license>
       <name>MIT License</name>
@@ -96,7 +93,6 @@
       <id>repo.jenkins-ci.org</id>
       <url>http://repo.jenkins-ci.org/public/</url>
     </repository>
-
     <!-- A CF Java client shaded library is pre-installed in a local repository
          to allow building the project in a single 'mvn clean install'.
          See README.md for more details. -->
@@ -104,7 +100,6 @@
       <id>Local repository</id>
       <url>file://${basedir}/lib</url>
     </repository>
-
     <repository>
       <id>spring-snapshots</id>
       <name>Spring Snapshots</name>
@@ -113,7 +108,6 @@
         <enabled>true</enabled>
       </snapshots>
     </repository>
-
   </repositories>
 
   <pluginRepositories>
@@ -122,7 +116,7 @@
       <url>http://repo.jenkins-ci.org/public/</url>
     </pluginRepository>
   </pluginRepositories>
-  <!-- If you want to depend on other plugins:-->
+
   <dependencies>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -144,8 +138,6 @@
       <artifactId>httpclient</artifactId>
       <version>4.3.6</version>
     </dependency>
-
-    <!--other dependencies-->
     <dependency>
       <groupId>com.google.code.gson</groupId>
       <artifactId>gson</artifactId>
