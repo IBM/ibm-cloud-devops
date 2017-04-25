@@ -25,7 +25,7 @@ import draplugin.dra.Util;
  */
 
 
-public class Proxy {
+public final class Proxy {
     public static HttpPost addProxyInformation (HttpPost instance) {
         /* Add proxy to request if proxy settings in Jenkins UI are set. */
         ProxyConfiguration proxyConfig = Jenkins.getInstance().proxy;

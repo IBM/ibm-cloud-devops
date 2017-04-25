@@ -12,20 +12,14 @@ import hudson.EnvVars;
 import hudson.Extension;
 import hudson.model.*;
 import hudson.model.listeners.RunListener;
-import hudson.tasks.Publisher;
 import net.sf.json.JSONObject;
-import draplugin.dra.Util;
-import java.io.IOException;
 import java.io.PrintStream;
-import java.util.List;
 
 /**
  * Created by patrickjoy on 2/3/17.
  */
 @Extension
 public class BuildListener extends RunListener<AbstractBuild> {
-    private String webhook = null;
-    private PrintStream printStream = TaskListener.NULL.getLogger();
 
     public BuildListener(){
         super(AbstractBuild.class);
@@ -33,100 +27,36 @@ public class BuildListener extends RunListener<AbstractBuild> {
 
     @Override
     public void onStarted(AbstractBuild r, TaskListener listener) {
-        OTCNotifier notifier = findPublisher(r);
-        filterMessages(r, listener, notifier, "STARTED");
+        handleEvent(r, listener, "STARTED");
     }
 
     @Override
-    public void onCompleted(AbstractBuild r, TaskListener listener){
-        OTCNotifier notifier = findPublisher(r);
-        filterMessages(r, listener, notifier, "COMPLETED");
+    public void onCompleted(AbstractBuild r, TaskListener listener) {
+        handleEvent(r, listener, "COMPLETED");
     }
 
     @Override
     public void onFinalized(AbstractBuild r){
-        OTCNotifier notifier = findPublisher(r);
-        filterMessages(r, TaskListener.NULL, notifier, "FINALIZED");
+        handleEvent(r, TaskListener.NULL, "FINALIZED");
     }
 
-    //filter messages based on user selection on the gui
-    private void filterMessages(AbstractBuild r, TaskListener listener, OTCNotifier notifier, String phase){
-        EnvVars envVars = getEnv(r, listener);
-        this.webhook = setWebhookFromEnv(r, listener, envVars);
-        this.printStream = listener.getLogger();
-        boolean onStarted;
-        boolean onCompleted;
-        boolean onFinalized;
-        boolean failureOnly;
+    private void handleEvent(AbstractBuild r, TaskListener listener, String phase) {
+        OTCNotifier notifier = EventHandler.findPublisher(r);
+        PrintStream printStream = listener.getLogger();
+        EnvVars envVars = EventHandler.getEnv(r, listener, printStream);
+        String webhook = EventHandler.getWebhookFromEnv(envVars);
         Result result = r.getResult();
+        Boolean isRelevant = EventHandler.isRelevant(notifier, phase, result);
 
-        //Make sure OTC Notifier was found in the publisherList
-        if(notifier != null){
-            onStarted = notifier.getOnStarted();
-            onCompleted = notifier.getOnCompleted();
-            onFinalized = notifier.getOnFinalized();
-            failureOnly = notifier.getFailureOnly();
+        if(isRelevant) {
+            String resultString = null;
 
-            if(onStarted && phase == "STARTED" || onCompleted && phase == "COMPLETED" || onFinalized && phase == "FINALIZED"){//check selections
-                if(failureOnly && result == Result.FAILURE || !failureOnly){//check failureOnly
-                    String resultString = null;
-
-                    if(result != null){
-                        resultString = result.toString();
-                    }
-
-                    JSONObject message = MessageHandler.buildMessage(r, envVars, phase, resultString);
-                    MessageHandler.postToWebhook(this.webhook, message, this.printStream);
-                }
+            if(result != null){
+                resultString = result.toString();
             }
+
+            JSONObject message = MessageHandler.buildMessage(r, envVars, phase, resultString);
+            MessageHandler.postToWebhook(webhook, message, printStream);
         }
-    }
-
-    //search through the list of publishers to find and return OTCNotifier,
-    private OTCNotifier findPublisher(AbstractBuild r){
-        List<Publisher> publisherList = r.getProject().getPublishersList().toList();
-
-        //ensure that there is an OTCNotifier in the project
-        for(Publisher publisher: publisherList){
-            if(publisher instanceof OTCNotifier){
-                return (OTCNotifier) publisher;
-            }
-        }
-
-        return null;
-    }
-
-    //get the build env
-    private EnvVars getEnv(AbstractBuild r, TaskListener listener){
-        try {
-            return r.getEnvironment(listener);
-        } catch (IOException e) {
-            this.printStream.println("[IBM Cloud DevOps] Exception: ");
-            this.printStream.println("[IBM Cloud DevOps] Error: Failed to notify OTC.");
-            e.printStackTrace(this.printStream);
-        } catch (InterruptedException e) {
-            this.printStream.println("[IBM Cloud DevOps] Exception: ");
-            this.printStream.println("[IBM Cloud DevOps] Error: Failed to notify OTC.");
-            e.printStackTrace(this.printStream);
-        }
-
-        return null;
-    }
-
-    //set the webhook from the build env
-    private String setWebhookFromEnv(AbstractBuild<?, ?> r, TaskListener listener, EnvVars envVars){
-        this.printStream = listener.getLogger();
-        String webhook = null;
-
-        if(envVars != null) {
-            webhook = envVars.get("IBM_CLOUD_DEVOPS_WEBHOOK_URL");
-
-            //backward compatability
-            if (Util.isNullOrEmpty(webhook)) {
-                webhook = envVars.get("ICD_WEBHOOK_URL");
-            }
-        }
-
-        return webhook;
     }
 }

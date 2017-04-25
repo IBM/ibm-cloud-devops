@@ -36,7 +36,7 @@ public class OTCNotificationExecution extends AbstractSynchronousNonBlockingStep
         if(Util.isNullOrEmpty(step.getWebhookUrl())){
             webhookUrl = envVars.get("IBM_CLOUD_DEVOPS_WEBHOOK_URL");
 
-            //backward compatability
+            //backward compatibility
             if(Util.isNullOrEmpty(webhookUrl)){
                 webhookUrl = envVars.get("ICD_WEBHOOK_URL");
             }
