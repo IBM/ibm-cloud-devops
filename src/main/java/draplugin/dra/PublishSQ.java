@@ -66,19 +66,13 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
     private final static String CONTENT_TYPE_JSON = "application/json";
 
     // form fields from UI
-    private String contents;
-    private String additionalLifecycleStage;
-    private String additionalContents;
     private String buildNumber;
-    private String buildUrl;
     private String applicationName;
     private String buildJobName;
     private String orgName;
     private String toolchainName;
     private String environmentName;
     private String credentialsId;
-    private String policyName;
-    private boolean willDisrupt;
 
     private String SQProjectKey;
     private String SQHostName;
@@ -86,15 +80,12 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
     private String IBMusername;
     private String IBMpassword;
 
-    private EnvironmentScope testEnv;
     private String envName;
     private boolean isDeploy;
 
     private PrintStream printStream;
     private static String dlmsUrl;
-    private static String draUrl;
     public static String bluemixToken;
-    public static String preCredentials;
 
     // need to add projectkey
     // need to add host url
@@ -144,36 +135,8 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         return credentialsId;
     }
 
-    public String getContents() {
-        return contents;
-    }
-
-    public String getAdditionalLifecycleStage() {
-        return additionalLifecycleStage;
-    }
-
-    public String getAdditionalContents() {
-        return additionalContents;
-    }
-
     public String getBuildNumber() {
         return buildNumber;
-    }
-
-    public String getBuildUrl() {
-        return buildUrl;
-    }
-
-    public String getPolicyName() {
-        return policyName;
-    }
-
-    public boolean isWillDisrupt() {
-        return willDisrupt;
-    }
-
-    public EnvironmentScope getTestEnv() {
-        return testEnv;
     }
 
     public String getEnvName() {
@@ -183,56 +146,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
     public boolean isDeploy() {
         return isDeploy;
     }
-
-    /**
-     * Sub class for Optional Upload Block
-     */
-    public static class OptionalUploadBlock {
-        private String additionalLifecycleStage;
-        private String additionalContents;
-
-        @DataBoundConstructor
-        public OptionalUploadBlock(String additionalLifecycleStage, String additionalContents) {
-            this.additionalLifecycleStage = additionalLifecycleStage;
-            this.additionalContents = additionalContents;
-        }
-    }
-
-    public static class OptionalBuildInfo {
-        private String buildNumber;
-        private String buildUrl;
-
-        @DataBoundConstructor
-        public OptionalBuildInfo(String buildNumber, String buildUrl) {
-            this.buildNumber = buildNumber;
-            this.buildUrl = buildUrl;
-        }
-    }
-
-    public static class OptionalGate {
-        private String policyName;
-        private boolean willDisrupt;
-
-        @DataBoundConstructor
-        public OptionalGate(String policyName, boolean willDisrupt) {
-            this.policyName = policyName;
-            setWillDisrupt(willDisrupt);
-        }
-
-        public String getPolicyName() {
-            return policyName;
-        }
-
-        public boolean isWillDisrupt() {
-            return willDisrupt;
-        }
-
-        @DataBoundSetter
-        public void setWillDisrupt(boolean willDisrupt) {
-            this.willDisrupt = willDisrupt;
-        }
-    }
-
 
     @Override
     public void perform(@Nonnull Run build, @Nonnull FilePath workspace, @Nonnull Launcher launcher, @Nonnull TaskListener listener) throws InterruptedException, IOException {
@@ -251,12 +164,11 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         this.orgName = envVars.expand(this.orgName);
         this.applicationName = envVars.expand(this.applicationName);
         this.toolchainName = envVars.expand(this.toolchainName);
-        this.contents = envVars.expand(this.contents);
         if (this.isDeploy || !Util.isNullOrEmpty(this.envName)) {
             this.environmentName = envVars.expand(this.envName);
         }
 
-        String buildNumber, buildUrl;
+        String buildNumber;
         // if user does not specify the build number
         if (Util.isNullOrEmpty(this.buildNumber)) {
             // locate the build job that triggers current build
@@ -271,11 +183,9 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
                 }
                 buildNumber = getBuildNumber(buildJobName, triggeredBuild);
                 String rootUrl = Jenkins.getInstance().getRootUrl();
-                buildUrl = rootUrl + triggeredBuild.getUrl();
             }
         } else {
             buildNumber = envVars.expand(this.buildNumber);
-            buildUrl = envVars.expand(this.buildUrl);
         }
 
         url = url.replace("{org_name}", this.orgName);
@@ -515,154 +425,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         private String environment;
         private boolean debug_mode;
 
-        public FormValidation doCheckOrgName(@QueryParameter String value)
-                throws IOException, ServletException {
-            return FormValidation.validateRequired(value);
-        }
-
-        public FormValidation doCheckApplicationName(@QueryParameter String value)
-                throws IOException, ServletException {
-            return FormValidation.validateRequired(value);
-        }
-
-        public FormValidation doCheckToolchainName(@QueryParameter String value)
-                throws IOException, ServletException {
-            if (value == null || value.equals("empty")) {
-                return FormValidation.errorWithMarkup("Could not retrieve list of toolchains. Please check your username and password. If you have not created a toolchain, create one <a target='_blank' href='https://console.ng.bluemix.net/devops/create'>here</a>.");
-            }
-            return FormValidation.ok();
-        }
-
-        public FormValidation doCheckEnvironmentName(@QueryParameter String value)
-                throws IOException, ServletException {
-            return FormValidation.validateRequired(value);
-        }
-
-        public FormValidation doCheckPolicyName(@QueryParameter String value) {
-
-            if (value == null || value.equals("empty")) {
-                return FormValidation.errorWithMarkup("Fail to get the policies, please check your username/password or org name and make sure you have created policies for this org and toolchain.");
-            }
-            return FormValidation.ok();
-        }
-
-        public FormValidation doTestConnection(@AncestorInPath ItemGroup context,
-                                               @QueryParameter("credentialsId") final String credentialsId) {
-            String targetAPI = chooseTargetAPI(environment);
-            if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
-                preCredentials = credentialsId;
-                try {
-                    String bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
-                    if (Util.isNullOrEmpty(bluemixToken)) {
-                        PublishTest.bluemixToken = bluemixToken;
-                        return FormValidation.warning("<b>Got empty token</b>");
-                    } else {
-                        return FormValidation.okWithMarkup("<b>Connection successful</b>");
-                    }
-                } catch (Exception e) {
-                    return FormValidation.error("Failed to log in to Bluemix, please check your username/password");
-                }
-            } else {
-
-                return FormValidation.okWithMarkup("<b>Connection successful</b>");
-            }
-        }
-
-        /**
-         * Autocompletion for build job name field
-         * @param value - user input for the build job name field
-         * @return
-         */
-        public AutoCompletionCandidates doAutoCompleteBuildJobName(@QueryParameter String value) {
-            AutoCompletionCandidates auto = new AutoCompletionCandidates();
-
-            // get all jenkins job
-            List<Job> jobs = Jenkins.getInstance().getAllItems(Job.class);
-            HashSet<String> jobSet = new HashSet<>();
-            for (int i = 0; i < jobs.size(); i++) {
-                String jobName = jobs.get(i).getName();
-
-                if (jobName.toLowerCase().startsWith(value.toLowerCase())) {
-                    jobSet.add(jobName);
-                }
-            }
-
-            for (String s : jobSet) {
-                auto.add(s);
-            }
-
-            return auto;
-        }
-
-        /**
-         * This method is called to populate the credentials list on the Jenkins config page.
-         */
-        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath ItemGroup context,
-                                                     @QueryParameter("target") final String target) {
-            StandardListBoxModel result = new StandardListBoxModel();
-            result.includeEmptyValue();
-            result.withMatching(CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
-                    CredentialsProvider.lookupCredentials(
-                            StandardUsernameCredentials.class,
-                            context,
-                            ACL.SYSTEM,
-                            URIRequirementBuilder.fromUri(target).build()
-                    )
-            );
-            return result;
-        }
-
-        /**
-         * This method is called to populate the policy list on the Jenkins config page.
-         * @param context
-         * @param orgName
-         * @param credentialsId
-         * @return
-         */
-        public ListBoxModel doFillPolicyNameItems(@AncestorInPath ItemGroup context,
-                                                  @RelativePath("..") @QueryParameter final String orgName,
-                                                  @RelativePath("..") @QueryParameter final String toolchainName,
-                                                  @RelativePath("..") @QueryParameter final String credentialsId) {
-            String targetAPI = chooseTargetAPI(environment);
-            try {
-                // if user changes to a different credential, need to get a new token
-                if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
-                    bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
-                    preCredentials = credentialsId;
-                }
-            } catch (Exception e) {
-                return new ListBoxModel();
-            }
-            if(debug_mode){
-                LOGGER.info("#######UPLOAD TEST RESULTS : calling getPolicyList#######");
-            }
-            return getPolicyList(bluemixToken, orgName, toolchainName, environment, debug_mode);
-        }
-
-        /**
-         * This method is called to populate the toolchain list on the Jenkins config page.
-         * @param context
-         * @param orgName
-         * @param credentialsId
-         * @return
-         */
-        public ListBoxModel doFillToolchainNameItems(@AncestorInPath ItemGroup context,
-                                                     @QueryParameter("credentialsId") final String credentialsId,
-                                                     @QueryParameter("orgName") final String orgName) {
-            String targetAPI = chooseTargetAPI(environment);
-            try {
-                bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
-            } catch (Exception e) {
-                return new ListBoxModel();
-            }
-            if(debug_mode){
-                LOGGER.info("#######UPLOAD TEST RESULTS : calling getToolchainList#######");
-            }
-            ListBoxModel toolChainListBox = getToolchainList(bluemixToken, orgName, environment, debug_mode);
-            return toolChainListBox;
-
-        }
-
         /**
          * Required Method
          * This is used to determine if this build step is applicable for your chosen project type. (FreeStyle, MultiConfiguration, Maven)
@@ -675,27 +437,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
             // Indicates that this builder can be used with all kinds of project types
             // return FreeStyleProject.class.isAssignableFrom(aClass);
             return true;
-        }
-
-        public ListBoxModel doFillLifecycleStageItems(@QueryParameter("lifecycleStage") final String selection) {
-            return fillTestType();
-        }
-
-        public ListBoxModel doFillAdditionalLifecycleStageItems(@QueryParameter("additionalLifecycleStage") final String selection) {
-            return fillTestType();
-        }
-
-        /**
-         * fill the dropdown list of rule type
-         * @return the dropdown list model
-         */
-        public ListBoxModel fillTestType() {
-            ListBoxModel model = new ListBoxModel();
-
-            model.add("Unit Test", "unittest");
-            model.add("Functional Verification Test", "fvt");
-            model.add("Code Coverage", "code");
-            return model;
         }
 
         /**
