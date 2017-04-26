@@ -165,7 +165,7 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         this.toolchainName = envVars.expand(this.toolchainName);
 
         // Check required parameters
-        if (com.ibm.devops.dra.Util.isNullOrEmpty(orgName) || com.ibm.devops.dra.Util.isNullOrEmpty(applicationName) || com.ibm.devops.dra.Util.isNullOrEmpty(toolchainName)) {
+        if (Util.isNullOrEmpty(orgName) || Util.isNullOrEmpty(applicationName) || Util.isNullOrEmpty(toolchainName)) {
             printStream.println("[IBM Cloud DevOps] Missing few required configurations");
             printStream.println("[IBM Cloud DevOps] Error: Failed to upload Build Info.");
             return;
@@ -173,7 +173,7 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
 
         // get the Bluemix token
         try {
-            if (com.ibm.devops.dra.Util.isNullOrEmpty(this.credentialsId)) {
+            if (Util.isNullOrEmpty(this.credentialsId)) {
                 bluemixToken = GetBluemixToken(username, password, targetAPI);
             } else {
                 bluemixToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
@@ -204,10 +204,10 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         String branch = envVars.get("GIT_BRANCH");
         String commitId = envVars.get("GIT_COMMIT");
 
-        repoUrl = com.ibm.devops.dra.Util.isNullOrEmpty(repoUrl) ? this.gitRepo : repoUrl;
-        branch = com.ibm.devops.dra.Util.isNullOrEmpty(branch) ? this.gitBranch : branch;
-        commitId = com.ibm.devops.dra.Util.isNullOrEmpty(commitId) ? this.gitCommit : commitId;
-        if (!com.ibm.devops.dra.Util.isNullOrEmpty(branch)) {
+        repoUrl = Util.isNullOrEmpty(repoUrl) ? this.gitRepo : repoUrl;
+        branch = Util.isNullOrEmpty(branch) ? this.gitBranch : branch;
+        commitId = Util.isNullOrEmpty(commitId) ? this.gitCommit : commitId;
+        if (!Util.isNullOrEmpty(branch)) {
             String[] parts = branch.split("/");
             branch = parts[parts.length - 1];
         }
@@ -383,11 +383,11 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         public FormValidation doTestConnection(@AncestorInPath ItemGroup context,
                                                @QueryParameter("credentialsId") final String credentialsId) {
             String targetAPI = chooseTargetAPI(environment);
-            if (!credentialsId.equals(preCredentials) || com.ibm.devops.dra.Util.isNullOrEmpty(bluemixToken)) {
+            if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
                 preCredentials = credentialsId;
                 try {
                     String newToken = GetBluemixToken(context, credentialsId, targetAPI);
-                    if (com.ibm.devops.dra.Util.isNullOrEmpty(newToken)) {
+                    if (Util.isNullOrEmpty(newToken)) {
                         bluemixToken = newToken;
                         return FormValidation.warning("<b>Got empty token</b>");
                     } else {

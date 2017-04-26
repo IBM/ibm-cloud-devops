@@ -12,10 +12,9 @@
  </notice>
  */
 
-package draplugin.notification;
+package com.ibm.devops.notification;
 
 import com.ibm.devops.dra.Util;
-import com.ibm.devops.notification.MessageHandler;
 import hudson.EnvVars;
 import hudson.model.Job;
 import hudson.model.Run;

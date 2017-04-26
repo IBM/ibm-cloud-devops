@@ -309,20 +309,20 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         this.applicationName = envVars.expand(this.applicationName);
         this.toolchainName = envVars.expand(this.toolchainName);
         this.contents = envVars.expand(this.contents);
-        if (this.isDeploy || !com.ibm.devops.dra.Util.isNullOrEmpty(this.envName)) {
+        if (this.isDeploy || !Util.isNullOrEmpty(this.envName)) {
             this.environmentName = envVars.expand(this.envName);
         }
 
         String buildNumber, buildUrl;
         // if user does not specify the build number
-        if (com.ibm.devops.dra.Util.isNullOrEmpty(this.buildNumber)) {
+        if (Util.isNullOrEmpty(this.buildNumber)) {
             // locate the build job that triggers current build
             Run triggeredBuild = getTriggeredBuild(build, buildJobName, envVars, printStream);
             if (triggeredBuild == null) {
                 //failed to find the build job
                 return;
             } else {
-                if (com.ibm.devops.dra.Util.isNullOrEmpty(this.buildJobName)) {
+                if (Util.isNullOrEmpty(this.buildJobName)) {
                     // handle the case which the build job name left empty, and the pipeline case
                     this.buildJobName = envVars.get("JOB_NAME");
                 }
@@ -346,7 +346,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
 
         // get the Bluemix token
         try {
-            if (com.ibm.devops.dra.Util.isNullOrEmpty(this.credentialsId)) {
+            if (Util.isNullOrEmpty(this.credentialsId)) {
                 bluemixToken = GetBluemixToken(username, password, targetAPI);
             } else {
                 bluemixToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
@@ -367,7 +367,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             }
 
             // check to see if we need to upload additional result file
-            if (!com.ibm.devops.dra.Util.isNullOrEmpty(additionalContents) && !com.ibm.devops.dra.Util.isNullOrEmpty(additionalLifecycleStage)) {
+            if (!Util.isNullOrEmpty(additionalContents) && !Util.isNullOrEmpty(additionalLifecycleStage)) {
                 if(!scanAndUpload(build, workspace, additionalContents, additionalLifecycleStage,
                         bluemixToken, buildNumber, buildUrl)) {
                     return;
@@ -383,7 +383,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
 
         // Gate
         // verify if user chooses advanced option to input customized DRA
-        if (com.ibm.devops.dra.Util.isNullOrEmpty(policyName)) {
+        if (Util.isNullOrEmpty(policyName)) {
             return;
         }
 
@@ -461,7 +461,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         boolean errorFlag = true;
         FilePath[] filePaths = null;
 
-        if (com.ibm.devops.dra.Util.isNullOrEmpty(path)) {
+        if (Util.isNullOrEmpty(path)) {
             // if no result file specified, create dummy result based on the build status
             filePaths = new FilePath[]{createDummyFile(build, workspace)};
         } else {
@@ -803,11 +803,11 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         public FormValidation doTestConnection(@AncestorInPath ItemGroup context,
                                                @QueryParameter("credentialsId") final String credentialsId) {
             String targetAPI = chooseTargetAPI(environment);
-            if (!credentialsId.equals(preCredentials) || com.ibm.devops.dra.Util.isNullOrEmpty(bluemixToken)) {
+            if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
                 preCredentials = credentialsId;
                 try {
                     String bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
-                    if (com.ibm.devops.dra.Util.isNullOrEmpty(bluemixToken)) {
+                    if (Util.isNullOrEmpty(bluemixToken)) {
                         PublishTest.bluemixToken = bluemixToken;
                         return FormValidation.warning("<b>Got empty token</b>");
                     } else {
@@ -880,7 +880,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             String targetAPI = chooseTargetAPI(environment);
             try {
                 // if user changes to a different credential, need to get a new token
-                if (!credentialsId.equals(preCredentials) || com.ibm.devops.dra.Util.isNullOrEmpty(bluemixToken)) {
+                if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
                     bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
                     preCredentials = credentialsId;
                 }

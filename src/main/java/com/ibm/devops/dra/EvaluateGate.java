@@ -210,7 +210,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             return;
         }
 
-        if (this.isDeploy || !com.ibm.devops.dra.Util.isNullOrEmpty(this.envName)) {
+        if (this.isDeploy || !Util.isNullOrEmpty(this.envName)) {
             this.environmentName = envVars.expand(this.envName);
         }
 
@@ -222,14 +222,14 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
 
         String buildNumber;
         // if user does not specify the build number
-        if (com.ibm.devops.dra.Util.isNullOrEmpty(this.buildNumber)) {
+        if (Util.isNullOrEmpty(this.buildNumber)) {
             // locate the build job that triggers current build
             Run triggeredBuild = getTriggeredBuild(build, buildJobName, envVars, printStream);
             if (triggeredBuild == null) {
                 //failed to find the build job
                 return;
             } else {
-                if (com.ibm.devops.dra.Util.isNullOrEmpty(this.buildJobName)) {
+                if (Util.isNullOrEmpty(this.buildJobName)) {
                     // handle the case which the build job name left empty, and the pipeline case
                     this.buildJobName = envVars.get("JOB_NAME");
                 }
@@ -241,7 +241,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
 
         // get the Bluemix token
         try {
-            if (com.ibm.devops.dra.Util.isNullOrEmpty(this.credentialsId)) {
+            if (Util.isNullOrEmpty(this.credentialsId)) {
                 bluemixToken = GetBluemixToken(username, password, targetAPI);
             } else {
                 bluemixToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
@@ -336,7 +336,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
                 "/builds/" + buildId +
                 "/policies/" + URLEncoder.encode(policyName, "UTF-8").replaceAll("\\+", "%20") +
                 "/decisions";
-        if (!com.ibm.devops.dra.Util.isNullOrEmpty(this.environmentName)) {
+        if (!Util.isNullOrEmpty(this.environmentName)) {
             url = url.concat("?environment_name=" + environmentName);
         }
 
@@ -450,11 +450,11 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         public FormValidation doTestConnection(@AncestorInPath ItemGroup context,
                                                @QueryParameter("credentialsId") final String credentialsId) {
             String targetAPI = chooseTargetAPI(environment);
-            if (!credentialsId.equals(preCredentials) || com.ibm.devops.dra.Util.isNullOrEmpty(bluemixToken)) {
+            if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
                 preCredentials = credentialsId;
                 try {
                     String bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
-                    if (com.ibm.devops.dra.Util.isNullOrEmpty(bluemixToken)) {
+                    if (Util.isNullOrEmpty(bluemixToken)) {
                         EvaluateGate.bluemixToken = bluemixToken;
                         return FormValidation.warning("<b>Got empty token</b>");
                     } else {
@@ -522,7 +522,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             String targetAPI = chooseTargetAPI(environment);
             try {
                 // if user changes to a different credential, need to get a new token
-                if (!credentialsId.equals(preCredentials) || com.ibm.devops.dra.Util.isNullOrEmpty(bluemixToken)) {
+                if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
                     bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
                     preCredentials = credentialsId;
                 }
