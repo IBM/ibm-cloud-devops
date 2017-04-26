@@ -32,6 +32,7 @@ import net.sf.json.JSONObject;
 
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
@@ -201,8 +202,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
             } else {
                 bluemixToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
             }
-
-            printStream.println("[IBM Cloud DevOps] Log in successfully, get the Bluemix token");
+            printStream.println("[IBM Cloud DevOps] Log in successfully, got the Bluemix token");
         } catch (Exception e) {
             printStream.println("[IBM Cloud DevOps] Username/Password is not correct, fail to authenticate with Bluemix");
             printStream.println("[IBM Cloud DevOps]" + e.toString());
@@ -275,28 +275,25 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
      */
     private JsonObject sendGETRequest(String url, Map<String, String> headers) throws Exception {
 
-        URL obj = new URL(url);
-        HttpURLConnection connection = (HttpURLConnection) obj.openConnection();
+        String resStr;
+        CloseableHttpClient httpClient = HttpClients.createDefault();
 
-        connection.setRequestMethod("GET");
+        HttpGet getMethod = new HttpGet(url);
+        getMethod = addProxyInformation(getMethod);
 
         //add request headers
         for(String headerName: headers.keySet()) {
-            connection.setRequestProperty(headerName, headers.get(headerName));
+            getMethod.setHeader(headerName, headers.get(headerName));
         }
 
-        BufferedReader in = new BufferedReader(
-                new InputStreamReader(connection.getInputStream()));
-        String inputLine;
-        StringBuffer response = new StringBuffer();
-
-        while ((inputLine = in.readLine()) != null) {
-            response.append(inputLine);
-        }
-        in.close();
+        CloseableHttpResponse response = httpClient.execute(getMethod);
+        resStr = EntityUtils.toString(response.getEntity());
 
         JsonParser parser = new JsonParser();
-        return parser.parse(response.toString()).getAsJsonObject();
+        JsonElement element = parser.parse(resStr);
+        JsonObject resJson = element.getAsJsonObject();
+
+        return resJson;
     }
 
     /**
@@ -328,6 +325,8 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
             body.addProperty("contents", DatatypeConverter.printBase64Binary(payload.toString().getBytes()));
             body.addProperty("contents_type", CONTENT_TYPE_JSON);
             body.addProperty("timestamp", timestamp);
+            body.addProperty("tool_name", "sonarqube");
+            body.addProperty("lifecycle_stage", "sonarqube");
             body.add("url", urls);
 
             StringEntity data = new StringEntity(body.toString());
