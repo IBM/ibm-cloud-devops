@@ -501,7 +501,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                 SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
                 TimeZone utc = TimeZone.getTimeZone("UTC");
                 dateFormat.setTimeZone(utc);
-                String timestamp = dateFormat.format(build.getTime());
+                String timestamp = dateFormat.format(System.currentTimeMillis());
 
                 // upload the result file to DLMS
                 String res = sendFormToDLMS(bluemixToken, fp, lifecycleStage, buildNumber, buildUrl, timestamp);

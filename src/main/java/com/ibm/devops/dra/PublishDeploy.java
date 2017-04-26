@@ -283,7 +283,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 			SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 			TimeZone utc = TimeZone.getTimeZone("UTC");
 			dateFormat.setTimeZone(utc);
-			String timestamp = dateFormat.format(build.getTime());
+			String timestamp = dateFormat.format(System.currentTimeMillis());
 
 			// build up the json body
 			Gson gson = new Gson();
