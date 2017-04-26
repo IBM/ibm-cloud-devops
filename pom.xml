@@ -15,7 +15,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.ibm.devops</groupId>
-  <artifactId>ibmclouddevops</artifactId>
+  <artifactId>ibm-cloud-devops</artifactId>
   <version>0.10.1</version>
   <packaging>hpi</packaging>
   <name>IBM Cloud DevOps</name>
@@ -68,13 +68,11 @@
     </developer>
   </developers>
 
-  <!--
   <scm>
     <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
     <url>http://github.com/jenkinsci/${project.artifactId}-plugin</url>
   </scm>
-  -->
 
   <repositories>
     <repository>
