@@ -18,14 +18,14 @@ import draplugin.dra.Util;
  * Created by patrickjoy on 4/3/17.
  */
 //build message that will be posted to the webhook
-public class MessageHandler {
+public final class MessageHandler {
     public static JSONObject buildMessage(Run r, EnvVars envVars, String phase, String result){
         JSONObject message = new JSONObject();
         JSONObject build = new JSONObject();
         JSONObject scm = new JSONObject();
 
         Job job = r.getParent();
-        String fullUrl = Jenkins.getInstance().getRootUrl();
+        String rootUrl = Jenkins.getInstance().getRootUrl();
 
         //setup scm
         if(envVars != null) {
@@ -82,8 +82,8 @@ public class MessageHandler {
         build.put("phase", phase);
         build.put("url", r.getUrl());
 
-        if(fullUrl != null){
-            build.put("full_url", fullUrl);
+        if(rootUrl != null){
+            build.put("full_url", rootUrl + r.getUrl());
         } else{
             build.put("full_url", "");
         }

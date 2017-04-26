@@ -19,7 +19,7 @@ node {
             stage('Build') {
                 withEnv(["GIT_COMMIT=${gitCommit}",
                          'GIT_BRANCH=master',
-                         "GIT_REPO=https://github.com/xunrongl/DemoDRA-1"]) {
+                         "GIT_REPO=GIT_REPO_URL_PLACEHOLDER"]) {
                     try {
                         sh 'npm install'
                         sh 'grunt dev-setup --no-color'
