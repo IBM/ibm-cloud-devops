@@ -353,7 +353,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 	 *
 	 * <p>
 	 * See
-	 * <tt>src/main/resources/draplugin/dra/PublishBuild/*.jelly</tt>
+	 * <tt>src/main/resources/com/ibm/devops/dra/PublishBuild/*.jelly</tt>
 	 * for the actual HTML fragment for the configuration screen.
 	 */
 	@Extension // This indicates to Jenkins that this is an implementation of an

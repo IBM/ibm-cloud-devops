@@ -319,7 +319,7 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
      * The class is marked as public so that it can be accessed from views.
      *
      * <p>
-     * See <tt>src/main/resources/draplugin/dra/PublishBuild/*.jelly</tt>
+     * See <tt>src/main/resources/com/ibm/devops/dra/PublishBuild/*.jelly</tt>
      * for the actual HTML fragment for the configuration screen.
      */
     @Extension // This indicates to Jenkins that this is an implementation of an extension point.
