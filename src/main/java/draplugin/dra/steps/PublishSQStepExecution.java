@@ -42,12 +42,12 @@ public class PublishSQStepExecution extends AbstractSynchronousNonBlockingStepEx
         String IBMusername = envVars.get("IBM_CLOUD_DEVOPS_CREDS_USR");
         String IBMpassword = envVars.get("IBM_CLOUD_DEVOPS_CREDS_PSW");
         // Project Key defaults to app name if nothing is passed in
-        String SQProjectKey = Util.isNullOrEmpty(step.getSQProjectKey()) ? applicationName : step.getSQProjectKey();
+        String SQProjectKey = step.getSQProjectKey();
         String SQHostURL = step.getSQHostURL();
         String SQAuthToken = step.getSQAuthToken();
 
         //check all the required env vars
-        if (!Util.allNotNullOrEmpty(orgName, applicationName, toolchainName, IBMusername, IBMpassword, SQAuthToken)) {
+        if (!Util.allNotNullOrEmpty(orgName, applicationName, toolchainName, IBMusername, IBMpassword, SQAuthToken, SQProjectKey, SQHostURL)) {
             printStream.println("[IBM Cloud DevOps] Missing environment variables configurations, please specify all required environment variables in the pipeline");
             printStream.println("[IBM Cloud DevOps] Error: Failed to upload Test Result.");
             return null;

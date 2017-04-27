@@ -18,17 +18,18 @@ public class PublishSQStep extends AbstractStepImpl {
     private String credentialsId;
     private String toolchainId;
     private String environment;
-    private String SQProjectKey;
 
     // required parameters
     private String SQHostURL;
     private String SQAuthToken;
+    private String SQProjectKey;
 
     @DataBoundConstructor
-    public PublishSQStep(String SQHostURL, String SQAuthToken) {
+    public PublishSQStep(String SQHostURL, String SQAuthToken, String SQProjectKey) {
 
         this.SQHostURL = SQHostURL;
         this.SQAuthToken = SQAuthToken;
+        this.SQProjectKey = SQProjectKey;
     }
 
     @DataBoundSetter

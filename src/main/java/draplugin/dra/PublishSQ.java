@@ -87,7 +87,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
     private PrintStream printStream;
     private static String dlmsUrl;
     public static String bluemixToken;
-    
+
     public PublishSQ(String orgName,
                         String applicationName,
                         String toolchainName,
