@@ -228,6 +228,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
     }
 
     /**
+     * Constructs the urls that should be sent with the DLMS message
      *
      * @param SQHostname hostname of the SQ instance
      * @param SQKey project key of the SQ instance
@@ -296,7 +297,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
 
     /**
      * Sends POST method to DLMS to upload SQ results
-     *
+     *F
      * @param bluemixToken the bluemix auth header that allows us to talk to dlms
      * @param payload the content part of the payload to send to dlms
      * @param urls a json array that holds the urls for a payload
@@ -316,7 +317,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
             TimeZone utc = TimeZone.getTimeZone("UTC");
             dateFormat.setTimeZone(utc);
-            String timestamp = dateFormat.format(new java.util.Date());
+            String timestamp = dateFormat.format(System.currentTimeMillis());
 
             JsonObject body = new JsonObject();
 
