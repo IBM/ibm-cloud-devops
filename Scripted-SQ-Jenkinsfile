@@ -5,10 +5,7 @@ node {
 		'IBM_CLOUD_DEVOPS_ORG=dlatest',
 		'IBM_CLOUD_DEVOPS_APP_NAME=Weather-V1-Scripted',
 		'IBM_CLOUD_DEVOPS_TOOLCHAIN_ID=1320cec1-daaa-4b63-bf06-7001364865d2',
-		'IBM_CLOUD_DEVOPS_WEBHOOK_URL=WEBHOOK_URL_PLACEHOLDER',
-		'SQ_PROJECT_KEY=simple-toolchain-1488583960040',
-		'SQ_HOSTNAME=',
-		'SQ_AUTHENTICATION_TOKEN='
+		'IBM_CLOUD_DEVOPS_WEBHOOK_URL=WEBHOOK_URL_PLACEHOLDER'
 	]) {
 		withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'BM_CRED',
 						  usernameVariable: 'IBM_CLOUD_DEVOPS_CREDS_USR', passwordVariable: 'IBM_CLOUD_DEVOPS_CREDS_PSW']]) {
@@ -20,13 +17,16 @@ node {
 				def scannerHome = tool 'Default SQ Scanner';
 
 				withSonarQubeEnv('Default SQ Server') {
+
+                    env.SQ_HOSTNAME = SONAR_HOST_URL;
+                    env.SQ_AUTHENTICATION_TOKEN = SONAR_AUTH_TOKEN;
+                    env.SQ_PROJECT_KEY = "simple-toolchain-1488583960040";
+
 					sh "${scannerHome}/bin/sonar-scanner \
 							-Dsonar.projectKey=${SQ_PROJECT_KEY} \
 							-Dsonar.sources=. \
 							-Dsonar.organization=ccox-ibm-github";
 					//save host and auth token used to configure the SQ tool
-					SQ_HOSTNAME = SONAR_HOST_URL;
-					SQ_AUTHENTICATION_TOKEN = SONAR_AUTH_TOKEN;
 				}
 			}
 
@@ -36,7 +36,7 @@ node {
 
 					def qg = waitForQualityGate(); // Reuse taskId previously collected by withSonarQubeEnv
 
-                    publishSQResults SQHostURL:SQ_HOSTNAME, SQAuthToken:SQ_AUTHENTICATION_TOKEN, SQProjectKey:SQ_PROJECT_KEY
+                    publishSQResults SQHostURL: "${SQ_HOSTNAME}", SQAuthToken: "${SQ_AUTHENTICATION_TOKEN}", SQProjectKey: "${SQ_PROJECT_KEY}"
 
 					if (qg.status != 'OK') {
 						error "Pipeline aborted due to quality gate failure: ${qg.status}"

@@ -7,9 +7,6 @@ pipeline {
             IBM_CLOUD_DEVOPS_APP_NAME = 'Weather-V1'
             IBM_CLOUD_DEVOPS_TOOLCHAIN_ID = '1320cec1-daaa-4b63-bf06-7001364865d2'
             IBM_CLOUD_DEVOPS_WEBHOOK_URL = 'WEBHOOK_URL_PLACEHOLDER'
-            SQ_PROJECT_KEY = 'simple-toolchain-1488583960040'
-            SQ_HOSTNAME = ''
-            SQ_AUTHENTICATION_TOKEN = ''
         }
     stages {
         stage('SCM') {
@@ -24,12 +21,15 @@ pipeline {
                     def scannerHome = tool 'Default SQ Scanner';
 
                     withSonarQubeEnv('Default SQ Server') {
+
+                        env.SQ_HOSTNAME = SONAR_HOST_URL;
+                        env.SQ_AUTHENTICATION_TOKEN = SONAR_AUTH_TOKEN;
+                        env.SQ_PROJECT_KEY = "simple-toolchain-1488583960040";
+
                         sh "${scannerHome}/bin/sonar-scanner \
                                 -Dsonar.projectKey=${SQ_PROJECT_KEY} \
                                 -Dsonar.sources=. \
                                 -Dsonar.organization=ccox-ibm-github";
-                        SQ_HOSTNAME = SONAR_HOST_URL;
-                        SQ_AUTHENTICATION_TOKEN = SONAR_AUTH_TOKEN;
                     }
                 }
             }
@@ -37,6 +37,7 @@ pipeline {
         stage ("SonarQube Quality Gate") {
              steps {
                 script {
+
                     def qualitygate = waitForQualityGate()
                     if (qualitygate.status != "OK") {
                         error "Pipeline aborted due to quality gate coverage failure: ${qualitygate.status}"
@@ -45,7 +46,7 @@ pipeline {
              }
              post {
                 always {
-                    publishSQResults SQHostURL:SQ_HOSTNAME, SQAuthToken:SQ_AUTHENTICATION_TOKEN, SQProjectKey:SQ_PROJECT_KEY
+                    publishSQResults SQHostURL: "${SQ_HOSTNAME}", SQAuthToken: "${SQ_AUTHENTICATION_TOKEN}", SQProjectKey:"${SQ_PROJECT_KEY}"
                 }
              }
         }
