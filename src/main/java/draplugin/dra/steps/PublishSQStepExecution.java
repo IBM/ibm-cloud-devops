@@ -53,20 +53,16 @@ public class PublishSQStepExecution extends AbstractSynchronousNonBlockingStepEx
             return null;
         }
 
-        if (true) {
-            PublishSQ publisher = new PublishSQ(
-                    orgName,
-                    applicationName,
-                    toolchainName,
-                    SQProjectKey,
-                    SQHostURL,
-                    SQAuthToken,
-                    IBMusername,
-                    IBMpassword);
-            publisher.perform(build, ws, launcher, listener);
-        } else {
-            printStream.println("[IBM Cloud DevOps] the \"result\" in the publishBuildRecord should be either \"PASS\" or \"FAIL\"");
-        }
+        PublishSQ publisher = new PublishSQ(
+                orgName,
+                applicationName,
+                toolchainName,
+                SQProjectKey,
+                SQHostURL,
+                SQAuthToken,
+                IBMusername,
+                IBMpassword);
+        publisher.perform(build, ws, launcher, listener);
 
         return null;
     }
