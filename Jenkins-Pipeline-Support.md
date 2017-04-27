@@ -83,6 +83,35 @@ Publish the results of your latest SonarQube scan to IBM Cloud DevOps, there are
 2. (required) SQAuthToken - your SonarQube API authentication token. This is extracted from the configuration above.
 3. (required) SQProjectKey - the project key of the SonarQube project you wish to scan.
 
+Here is a usage example
+```
+stage ('SonarQube analysis') {
+    steps {
+        script {
+            def scannerHome = tool 'Default SQ Scanner';
+            withSonarQubeEnv('Default SQ Server') {
+               
+                env.SQ_HOSTNAME = SONAR_HOST_URL;
+                env.SQ_AUTHENTICATION_TOKEN = SONAR_AUTH_TOKEN;
+                env.SQ_PROJECT_KEY = "My Project Key";
+                
+                run SonarQube scan ...
+            }
+        }
+    }
+}
+stage ("SonarQube Quality Gate") {
+     steps {
+        ...
+     }
+     post {
+        always {
+            publishSQResults SQHostURL: "${SQ_HOSTNAME}", SQAuthToken: "${SQ_AUTHENTICATION_TOKEN}", SQProjectKey:"${SQ_PROJECT_KEY}"
+        }
+     }
+}
+```
+
 ### 4. publishDeployRecord
 Publish the deploy record to the IBM Cloud DevOps, there are 2 required and 1 optional parameters:
 
