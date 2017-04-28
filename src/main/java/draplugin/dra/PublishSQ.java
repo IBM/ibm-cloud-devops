@@ -87,6 +87,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
     private PrintStream printStream;
     private static String dlmsUrl;
     public static String bluemixToken;
+    public static String preCredentials;
 
     public PublishSQ(String orgName,
                         String applicationName,
@@ -423,6 +424,92 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         private String environment;
         private boolean debug_mode;
 
+        public FormValidation doCheckOrgName(@QueryParameter String value)
+                throws IOException, ServletException {
+            return FormValidation.validateRequired(value);
+        }
+
+        public FormValidation doCheckToolchainName(@QueryParameter String value)
+                throws IOException, ServletException {
+            if (value == null || value.equals("empty")) {
+                return FormValidation.errorWithMarkup("Could not retrieve list of toolchains. Please check your username and password. If you have not created a toolchain, create one <a target='_blank' href='https://console.ng.bluemix.net/devops/create'>here</a>.");
+            }
+            return FormValidation.ok();
+        }
+
+        public FormValidation doCheckApplicationName(@QueryParameter String value)
+                throws IOException, ServletException {
+            return FormValidation.validateRequired(value);
+        }
+
+        public FormValidation doCheckEnvironmentName(@QueryParameter String value)
+                throws IOException, ServletException {
+            return FormValidation.validateRequired(value);
+        }
+
+        public FormValidation doTestConnection(@AncestorInPath ItemGroup context,
+                                               @QueryParameter("credentialsId") final String credentialsId) {
+            String targetAPI = chooseTargetAPI(environment);
+            if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
+                preCredentials = credentialsId;
+                try {
+                    String newToken = GetBluemixToken(context, credentialsId, targetAPI);
+                    if (Util.isNullOrEmpty(newToken)) {
+                        bluemixToken = newToken;
+                        return FormValidation.warning("<b>Got empty token</b>");
+                    } else {
+                        return FormValidation.okWithMarkup("<b>Connection successful</b>");
+                    }
+                } catch (Exception e) {
+                    return FormValidation.error("Failed to log in to Bluemix, please check your username/password");
+                }
+            } else {
+                return FormValidation.okWithMarkup("<b>Connection successful</b>");
+            }
+        }
+
+        /**
+         * This method is called to populate the credentials list on the Jenkins config page.
+         */
+        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath ItemGroup context,
+                                                     @QueryParameter("target") final String target) {
+            StandardListBoxModel result = new StandardListBoxModel();
+            result.includeEmptyValue();
+            result.withMatching(CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
+                    CredentialsProvider.lookupCredentials(
+                            StandardUsernameCredentials.class,
+                            context,
+                            ACL.SYSTEM,
+                            URIRequirementBuilder.fromUri(target).build()
+                    )
+            );
+            return result;
+        }
+
+        /**
+         * This method is called to populate the toolchain list on the Jenkins config page.
+         * @param context
+         * @param orgName
+         * @param credentialsId
+         * @return
+         */
+        public ListBoxModel doFillToolchainNameItems(@AncestorInPath ItemGroup context,
+                                                     @QueryParameter("credentialsId") final String credentialsId,
+                                                     @QueryParameter("orgName") final String orgName) {
+            String targetAPI = chooseTargetAPI(environment);
+            try {
+                bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
+            } catch (Exception e) {
+                return new ListBoxModel();
+            }
+            if(debug_mode){
+                LOGGER.info("#######UPLOAD BUILD INFO : calling getToolchainList#######");
+            }
+            ListBoxModel toolChainListBox = getToolchainList(bluemixToken, orgName, environment, debug_mode);
+            return toolChainListBox;
+
+        }
+
         /**
          * Required Method
          * This is used to determine if this build step is applicable for your chosen project type. (FreeStyle, MultiConfiguration, Maven)
@@ -442,7 +529,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
          * @return The text to be displayed when selecting your build in the project
          */
         public String getDisplayName() {
-            return "Publish test result to IBM Cloud DevOps";
+            return "Publish SonarQube test result to IBM Cloud DevOps";
         }
 
         @Override
