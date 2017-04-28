@@ -73,7 +73,46 @@ publishTestResult type:'unittest', fileLocation: './mochatest.json'
 publishTestResult type:'code', fileLocation: './tests/coverage/reports/coverage-summary.json'
 ```
 
-### 3. publishDeployRecord
+### 3. publishSQResults
+
+Configure a SonarQube scanner and a SonarQube server by following the instructions in the [SonarQube docs](https://docs.sonarqube.org/display/SCAN/Analyzing+with+SonarQube+Scanner+for+Jenkins).
+
+Publish the results of your latest SonarQube scan to IBM Cloud DevOps, there are 3 required parameters
+
+1. (required) SQHostURL - the host portion of your SonarQube scanner's URL. This is extracted from the configuration above.
+2. (required) SQAuthToken - your SonarQube API authentication token. This is extracted from the configuration above.
+3. (required) SQProjectKey - the project key of the SonarQube project you wish to scan.
+
+Here is a usage example
+```
+stage ('SonarQube analysis') {
+    steps {
+        script {
+            def scannerHome = tool 'Default SQ Scanner';
+            withSonarQubeEnv('Default SQ Server') {
+               
+                env.SQ_HOSTNAME = SONAR_HOST_URL;
+                env.SQ_AUTHENTICATION_TOKEN = SONAR_AUTH_TOKEN;
+                env.SQ_PROJECT_KEY = "My Project Key";
+                
+                run SonarQube scan ...
+            }
+        }
+    }
+}
+stage ("SonarQube Quality Gate") {
+     steps {
+        ...
+     }
+     post {
+        always {
+            publishSQResults SQHostURL: "${SQ_HOSTNAME}", SQAuthToken: "${SQ_AUTHENTICATION_TOKEN}", SQProjectKey:"${SQ_PROJECT_KEY}"
+        }
+     }
+}
+```
+
+### 4. publishDeployRecord
 Publish the deploy record to the IBM Cloud DevOps, there are 2 required and 1 optional parameters:
 
 1. (required) environment - the environment that you deploy your app to, if you deploy your app to the staging environment, use "STAGING"; if it is production environment, use "PRODUCTION"
@@ -85,7 +124,7 @@ Here is a usage example
 publishDeployRecord environment: "STAGING", appUrl: "http://staging-Weather-App.mybluemix.net", result:"SUCCESS"
 ```
 
-### 4. evaluateGate
+### 5. evaluateGate
 Use IBM Cloud DevOps Gate in the pipeline, there is 1 required and 1 optional parameters:
 
 1. (required) policy - the policy name that you define in the DevOps Insight
@@ -96,7 +135,7 @@ Here is a usage example
 evaluateGate policy: 'Weather App Policy', forceDecision: 'true'
 ```
 
-### 5. notifyOTC
+### 6. notifyOTC
 Configure your Jenkins jobs to send notifications to your Bluemix Toolchain by following the instructions in the [Bluemix Docs](https://console.ng.bluemix.net/docs/services/ContinuousDelivery/toolchains_integrations.html#jenkins). (Please disregard steps 8.d, 8.e, and 8.f because these are tailored for freestyle jobs.)
 
 Publish the status of your pipeline stages to your Bluemix Toolchain:
@@ -143,7 +182,7 @@ In both cases you can override the IBM_CLOUD_WEBHOOK_URL:
 notifyOTC stageName: "Deploy", status: "FAILURE", webhookUrl: "https://different-webhook-url@devops-api.ng.bluemix.net/v1/toolint/messaging/webhook/publish"
 ```
 
-### 6. Traceability
+### 7. Traceability
 Configure your Jenkins environment to create a deployable mapping and send traceability information to your Bluemix Toolchain by following the instructions in steps 8.a and 8.b of the [Bluemix Docs](https://console.ng.bluemix.net/docs/services/ContinuousDelivery/toolchains_integrations.html#jenkins).
 
 Simply add `cf icd --create-connection $IBM_CLOUD_DEVOPS_WEBHOOK_URL $CF_APP_NAME` just after your deploy step. Please note that you must have both the CF CLI and CF ICD plugin installed and you must also be logged into CF before you can run this command. Here is an example:
@@ -151,7 +190,7 @@ Simply add `cf icd --create-connection $IBM_CLOUD_DEVOPS_WEBHOOK_URL $CF_APP_NAM
 <pre>
 sh '''
     echo "CF Login..."
-    cf api https://api.ng.bluemix.net
+    cf api https://api.ng.bluemix.ginet
     cf login -u $IBM_CLOUD_DEVOPS_CREDS_USR -p $IBM_CLOUD_DEVOPS_CREDS_PSW -o $IBM_CLOUD_DEVOPS_ORG -s staging
     echo "Deploying...."
     export CF_APP_NAME="staging-$IBM_CLOUD_DEVOPS_APP_NAME"

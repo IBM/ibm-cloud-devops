@@ -1,0 +1,54 @@
+pipeline {
+    agent any
+    environment {
+            // You need to specify 4 required environment variables first, they are going to be used for the following IBM Cloud DevOps steps
+            IBM_CLOUD_DEVOPS_CREDS = credentials('BM_CRED')
+            IBM_CLOUD_DEVOPS_ORG = 'dlatest'
+            IBM_CLOUD_DEVOPS_APP_NAME = 'Weather-V1'
+            IBM_CLOUD_DEVOPS_TOOLCHAIN_ID = '1320cec1-daaa-4b63-bf06-7001364865d2'
+            IBM_CLOUD_DEVOPS_WEBHOOK_URL = 'WEBHOOK_URL_PLACEHOLDER'
+        }
+    stages {
+        stage('SCM') {
+            steps {
+                git 'https://github.com/ccox-IBM/simple-toolchain-1488583960040.git'
+            }
+        }
+        stage ('SonarQube analysis') {
+            steps {
+                script {
+                    // requires SonarQube Scanner 2.8+
+                    def scannerHome = tool 'Default SQ Scanner';
+
+                    withSonarQubeEnv('Default SQ Server') {
+
+                        env.SQ_HOSTNAME = SONAR_HOST_URL;
+                        env.SQ_AUTHENTICATION_TOKEN = SONAR_AUTH_TOKEN;
+                        env.SQ_PROJECT_KEY = "simple-toolchain-1488583960040";
+
+                        sh "${scannerHome}/bin/sonar-scanner \
+                                -Dsonar.projectKey=${SQ_PROJECT_KEY} \
+                                -Dsonar.sources=. \
+                                -Dsonar.organization=ccox-ibm-github";
+                    }
+                }
+            }
+        }
+        stage ("SonarQube Quality Gate") {
+             steps {
+                script {
+
+                    def qualitygate = waitForQualityGate()
+                    if (qualitygate.status != "OK") {
+                        error "Pipeline aborted due to quality gate coverage failure: ${qualitygate.status}"
+                    }
+                }
+             }
+             post {
+                always {
+                    publishSQResults SQHostURL: "${SQ_HOSTNAME}", SQAuthToken: "${SQ_AUTHENTICATION_TOKEN}", SQProjectKey:"${SQ_PROJECT_KEY}"
+                }
+             }
+        }
+    }
+}
