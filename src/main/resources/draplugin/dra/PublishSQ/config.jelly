@@ -33,7 +33,7 @@
         <f:textbox />
     </f:entry>
 
-    <f:entry title="SonarQube host URL" field="SQHostURL">
+    <f:entry title="SonarQube host name" field="SQHostName">
         <f:textbox />
     </f:entry>
 
