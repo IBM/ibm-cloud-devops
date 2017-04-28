@@ -72,13 +72,13 @@
       <email>patrick.joy1@ibm.com</email>
     </developer>
     <developer>
-      <id>Vijay Jegaselvan</id>
-      <name>imvijay2007</name>
+      <id>imvijay2007</id>
+      <name>Vijay Jegaselvan</name>
       <email>vjegase@us.ibm.com</email>
     </developer>
     <developer>
-      <id>Charlie Cox</id>
-      <name>ccox_ibm</name>
+      <id>ccox_ibm</id>
+      <name>Charlie Cox</name>
       <email>charlie.cox@ibm.com</email>
     </developer>
   </developers>
