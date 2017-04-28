@@ -89,6 +89,23 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
     public static String bluemixToken;
     public static String preCredentials;
 
+    @DataBoundConstructor
+    public PublishSQ(String credentialsId,
+                        String orgName,
+                        String toolchainName,
+                        String applicationName,
+                        String SQHostName,
+                        String SQAuthToken,
+                        String SQProjectKey) {
+        this.credentialsId = credentialsId;
+        this.orgName = orgName;
+        this.toolchainName = toolchainName;
+        this.applicationName = applicationName;
+        this.SQHostName = SQHostName;
+        this.SQAuthToken = SQAuthToken;
+        this.SQProjectKey = SQProjectKey;
+    }
+
     public PublishSQ(String orgName,
                         String applicationName,
                         String toolchainName,
@@ -102,8 +119,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         this.toolchainName = toolchainName;
         this.SQProjectKey = SQProjectKey;
         this.SQHostName = SQHostName;
-        // ':' needs to be added so the SQ api knows an auth token is being used
-        this.SQAuthToken = DatatypeConverter.printBase64Binary((SQAuthToken + ":").getBytes());
+        this.SQAuthToken = SQAuthToken;
         this.IBMusername = IBMusername;
         this.IBMpassword = IBMpassword;
     }
@@ -209,7 +225,9 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         }
 
         Map<String, String> headers = new HashMap<String, String>();
-        headers.put("Authorization", "Basic " + this.SQAuthToken);
+        // ':' needs to be added so the SQ api knows an auth token is being used
+        String SQAuthToken = DatatypeConverter.printBase64Binary((this.SQAuthToken + ":").getBytes());
+        headers.put("Authorization", "Basic " + SQAuthToken);
         try {
             JsonObject SQqualityGate = sendGETRequest(this.SQHostName + "/api/qualitygates/project_status?projectKey=" + this.SQProjectKey, headers);
             printStream.println("[IBM Cloud DevOps] Successfully queried SonarQube for quality gate information");
@@ -442,7 +460,17 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
             return FormValidation.validateRequired(value);
         }
 
-        public FormValidation doCheckEnvironmentName(@QueryParameter String value)
+        public FormValidation doCheckSQHostName(@QueryParameter String value)
+                throws IOException, ServletException {
+            return FormValidation.validateRequired(value);
+        }
+
+        public FormValidation doCheckSQAuthToken(@QueryParameter String value)
+                throws IOException, ServletException {
+            return FormValidation.validateRequired(value);
+        }
+
+        public FormValidation doCheckSQProjectKey(@QueryParameter String value)
                 throws IOException, ServletException {
             return FormValidation.validateRequired(value);
         }
