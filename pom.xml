@@ -62,9 +62,24 @@
 
   <developers>
     <developer>
+      <id>xunrongl</id>
+      <name>Xunrong Li</name>
+      <email>xunrongli@us.ibm.com</email>
+    </developer>
+    <developer>
       <id>patjoy</id>
       <name>Patrick Joy</name>
       <email>patrick.joy1@ibm.com</email>
+    </developer>
+    <developer>
+      <id>Vijay Jegaselvan</id>
+      <name>imvijay2007</name>
+      <email>vjegase@us.ibm.com</email>
+    </developer>
+    <developer>
+      <id>Charlie Cox</id>
+      <name>ccox_ibm</name>
+      <email>charlie.cox@ibm.com</email>
     </developer>
   </developers>
 
