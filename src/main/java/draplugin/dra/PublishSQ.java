@@ -139,24 +139,24 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         return orgName;
     }
 
-    public String getEnvironmentName() {
-        return environmentName;
-    }
-
-    public String getBuildJobName() {
-        return buildJobName;
-    }
-
     public String getCredentialsId() {
         return credentialsId;
     }
 
-    public String getBuildNumber() {
-        return buildNumber;
+    public String getSQHostName() {
+        return this.SQHostName;
     }
 
-    public String getEnvName() {
-        return envName;
+    public String getSQAuthToken() {
+        return this.SQAuthToken;
+    }
+
+    public String getSQProjectKey() {
+        return this.SQProjectKey;
+    }
+
+    public String getBuildNumber() {
+        return buildNumber;
     }
 
     public boolean isDeploy() {
