@@ -29,6 +29,10 @@
         <f:select/>
     </f:entry>
 
+    <f:entry title="Build job name" field="buildJobName">
+        <f:textbox />
+    </f:entry>
+
     <f:entry title="Application name" field="applicationName">
         <f:textbox />
     </f:entry>
