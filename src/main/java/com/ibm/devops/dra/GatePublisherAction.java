@@ -19,8 +19,6 @@ import hudson.model.Run;
 
 /**
  * DRA action for builds, show the decision and report link in the build status page
- *
- * @author Xunrong Li
  */
 public class GatePublisherAction implements Action {
 

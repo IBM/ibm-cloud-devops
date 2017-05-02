@@ -39,9 +39,6 @@ import java.nio.charset.StandardCharsets;
 import static org.mockito.Mockito.*;
 import static junit.framework.TestCase.*;
 
-/**
- * Created by patrickjoy on 4/14/17.
- */
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({Jenkins.class, Job.class, HttpClients.class, CloseableHttpResponse.class})
 public class MessageHandlerTest {

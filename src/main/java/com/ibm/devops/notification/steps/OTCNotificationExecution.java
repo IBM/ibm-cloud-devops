@@ -28,9 +28,6 @@ import net.sf.json.JSONObject;
 
 import java.io.PrintStream;
 
-/**
- * Created by patrickjoy on 3/30/17.
- */
 public class OTCNotificationExecution extends AbstractSynchronousNonBlockingStepExecution<Void> {
     @Inject
     private transient OTCNotificationStep step;

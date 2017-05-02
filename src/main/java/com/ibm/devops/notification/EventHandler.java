@@ -25,9 +25,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
 
-/**
- * Created by patrickjoy on 4/18/17.
- */
 public final class EventHandler {
     /*
         find OTCNotifer in the publisher list

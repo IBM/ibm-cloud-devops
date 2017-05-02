@@ -29,9 +29,6 @@ import java.util.Map;
 import static org.mockito.Mockito.*;
 import static junit.framework.TestCase.*;
 
-/**
- * Created by patrickjoy on 4/18/17.
- */
 public class EventHandlerTest {
 
     @Test

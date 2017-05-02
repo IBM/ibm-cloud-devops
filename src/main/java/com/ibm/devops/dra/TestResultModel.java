@@ -16,7 +16,6 @@ package com.ibm.devops.dra;
 
 /**
  * Object for creating dummy test result file following mocha format
- * Created by Xunrong Li on 8/9/16.
  */
 public class TestResultModel{
 

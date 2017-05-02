@@ -28,9 +28,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import com.ibm.devops.dra.Util;
 
-/**
- * Created by patrickjoy on 4/3/17.
- */
 //build message that will be posted to the webhook
 public final class MessageHandler {
     public static JSONObject buildMessage(Run r, EnvVars envVars, String phase, String result){

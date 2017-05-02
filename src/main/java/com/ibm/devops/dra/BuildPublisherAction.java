@@ -16,9 +16,6 @@ package com.ibm.devops.dra;
 
 import hudson.model.Action;
 
-/**
- * Created by lix on 8/29/16.
- */
 public class BuildPublisherAction implements Action {
 
     private final String link;

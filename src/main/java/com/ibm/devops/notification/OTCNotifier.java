@@ -26,9 +26,6 @@ import hudson.tasks.Publisher;
 import org.kohsuke.stapler.DataBoundConstructor;
 import java.io.IOException;
 
-/**
- * Created by Patrick Joy on 2/1/17.
- */
 public class OTCNotifier extends Notifier {
     private boolean onStarted;
     private boolean onCompleted;

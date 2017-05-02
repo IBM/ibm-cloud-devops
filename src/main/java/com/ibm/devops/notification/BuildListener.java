@@ -21,9 +21,6 @@ import hudson.model.listeners.RunListener;
 import net.sf.json.JSONObject;
 import java.io.PrintStream;
 
-/**
- * Created by patrickjoy on 2/3/17.
- */
 @Extension
 public class BuildListener extends RunListener<AbstractBuild> {
 

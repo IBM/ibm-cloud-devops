@@ -22,9 +22,6 @@ import org.kohsuke.stapler.DataBoundSetter;
 
 import javax.annotation.Nonnull;
 
-/**
- * Created by lix on 3/22/17.
- */
 public class PublishDeployStep extends AbstractStepImpl {
     // optional form fields from UI
     private String applicationName;

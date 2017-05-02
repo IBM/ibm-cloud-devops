@@ -22,9 +22,6 @@ import org.kohsuke.stapler.DataBoundSetter;
 
 import javax.annotation.Nonnull;
 
-/**
- * Created by patrickjoy on 3/30/17.
- */
 public class OTCNotificationStep extends AbstractStepImpl {
     //required parameter to support pipeline script
     private String status;

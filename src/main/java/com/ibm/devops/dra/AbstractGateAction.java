@@ -19,8 +19,6 @@ import hudson.model.Action;
 
 /**
  * Abstract Decision Text Action
- *
- * @author Xunrong Li
  */
 public abstract class AbstractGateAction implements Action {
     public abstract Boolean getShowHeader();

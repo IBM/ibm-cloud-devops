@@ -14,9 +14,6 @@
 
 package com.ibm.devops.dra;
 
-/**
- * Created by lix on 8/25/16.
- */
 public class BuildInfoModel {
     private String build_id;
     private String job_url;

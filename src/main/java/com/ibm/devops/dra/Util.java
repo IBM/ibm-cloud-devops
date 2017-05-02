@@ -16,9 +16,7 @@ package com.ibm.devops.dra;
 
 /**
  * Utilities functions
- * Created by Xunrong Li on 7/22/16.
  */
-
 
 public class Util {
     /**

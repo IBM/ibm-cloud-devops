@@ -28,9 +28,6 @@ import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
 import javax.inject.Inject;
 import java.io.PrintStream;
 
-/**
- * Created by lix on 3/23/17.
- */
 public class EvaluateGateStepExecution extends AbstractSynchronousNonBlockingStepExecution<Void> {
     @Inject
     private transient EvaluateGateStep step;

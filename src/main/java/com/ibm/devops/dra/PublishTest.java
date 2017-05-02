@@ -58,7 +58,6 @@ import java.util.HashSet;
 
 /**
  * Authenticate with Bluemix and then upload the result file to DRA
- * Created by Xunrong Li on 8/3/16.
  */
 public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep, Serializable {
 

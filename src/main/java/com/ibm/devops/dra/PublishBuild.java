@@ -48,9 +48,6 @@ import java.text.SimpleDateFormat;
 import java.util.TimeZone;
 import java.net.URLEncoder;
 
-/**
- * Created by lix on 8/24/16.
- */
 public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildStep, Serializable {
 
     private static String BUILD_API_URL = "/organizations/{org_name}/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds";

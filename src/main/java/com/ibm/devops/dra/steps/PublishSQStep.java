@@ -22,9 +22,6 @@ import org.kohsuke.stapler.DataBoundSetter;
 
 import javax.annotation.Nonnull;
 
-/**
- * Created by charlie cox on 4/19/17.
- */
 public class PublishSQStep extends AbstractStepImpl {
     // optional form fields from UI
     private String applicationName;

@@ -55,7 +55,6 @@ import java.util.List;
 
 /**
  * Customized build step to get a gate decision from DRA backend
- * @author Xunrong Li
  */
 
 public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildStep{

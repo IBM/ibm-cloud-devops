@@ -22,9 +22,6 @@ import org.kohsuke.stapler.DataBoundSetter;
 
 import javax.annotation.Nonnull;
 
-/**
- * Created by lix on 3/23/17.
- */
 public class EvaluateGateStep extends AbstractStepImpl {
     // optional form fields from UI
     private String applicationName;

@@ -27,9 +27,6 @@ import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
 import javax.inject.Inject;
 import java.io.PrintStream;
 
-/**
- * Created by lix on 3/21/17.
- */
 public class PublishBuildStepExecution extends AbstractSynchronousNonBlockingStepExecution<Void> {
     @Inject
     private transient PublishBuildStep step;

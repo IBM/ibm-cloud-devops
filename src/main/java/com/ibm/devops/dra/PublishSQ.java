@@ -58,7 +58,6 @@ import javax.xml.bind.DatatypeConverter;
 
 /**
  * Authenticate with Bluemix and then upload the result file to DRA
- * Created by charlie cox on 4/19/17.
  */
 public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, Serializable {
 

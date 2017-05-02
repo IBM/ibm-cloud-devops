@@ -58,9 +58,7 @@ import java.util.logging.Logger;
 import java.util.logging.Level;
 
 /**
- *
  * Abstract DRA Builder to share common method between two different post-build actions
- * Created by Xunrong Li on 6/15/16.
  */
 public abstract class AbstractDevOpsAction extends Recorder {
 
