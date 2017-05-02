@@ -61,6 +61,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
     private String orgName;
     private String toolchainName;
     private String environmentName;
+    private String buildJobName;
     private String credentialsId;
 
     private String SQProjectKey;
@@ -75,6 +76,26 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
     private PrintStream printStream;
     private static String dlmsUrl;
     public static String bluemixToken;
+    public static String preCredentials;
+
+    @DataBoundConstructor
+    public PublishSQ(String credentialsId,
+                        String orgName,
+                        String toolchainName,
+                        String buildJobName,
+                        String applicationName,
+                        String SQHostName,
+                        String SQAuthToken,
+                        String SQProjectKey) {
+        this.credentialsId = credentialsId;
+        this.orgName = orgName;
+        this.toolchainName = toolchainName;
+        this.buildJobName = buildJobName;
+        this.applicationName = applicationName;
+        this.SQHostName = SQHostName;
+        this.SQAuthToken = SQAuthToken;
+        this.SQProjectKey = SQProjectKey;
+    }
 
     public PublishSQ(String orgName,
                         String applicationName,
@@ -89,8 +110,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         this.toolchainName = toolchainName;
         this.SQProjectKey = SQProjectKey;
         this.SQHostName = SQHostName;
-        // ':' needs to be added so the SQ api knows an auth token is being used
-        this.SQAuthToken = DatatypeConverter.printBase64Binary((SQAuthToken + ":").getBytes());
+        this.SQAuthToken = SQAuthToken;
         this.IBMusername = IBMusername;
         this.IBMpassword = IBMpassword;
     }
@@ -110,24 +130,28 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         return orgName;
     }
 
-    public String getEnvironmentName() {
-        return environmentName;
+    public String getCredentialsId() {
+        return credentialsId;
     }
 
     public String getBuildJobName() {
         return buildJobName;
     }
 
-    public String getCredentialsId() {
-        return credentialsId;
+    public String getSQHostName() {
+        return this.SQHostName;
+    }
+
+    public String getSQAuthToken() {
+        return this.SQAuthToken;
+    }
+
+    public String getSQProjectKey() {
+        return this.SQProjectKey;
     }
 
     public String getBuildNumber() {
         return buildNumber;
-    }
-
-    public String getEnvName() {
-        return envName;
     }
 
     public boolean isDeploy() {
@@ -196,7 +220,9 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         }
 
         Map<String, String> headers = new HashMap<String, String>();
-        headers.put("Authorization", "Basic " + this.SQAuthToken);
+        // ':' needs to be added so the SQ api knows an auth token is being used
+        String SQAuthToken = DatatypeConverter.printBase64Binary((this.SQAuthToken + ":").getBytes());
+        headers.put("Authorization", "Basic " + SQAuthToken);
         try {
             JsonObject SQqualityGate = sendGETRequest(this.SQHostName + "/api/qualitygates/project_status?projectKey=" + this.SQProjectKey, headers);
             printStream.println("[IBM Cloud DevOps] Successfully queried SonarQube for quality gate information");
@@ -411,6 +437,102 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         private String environment;
         private boolean debug_mode;
 
+        public FormValidation doCheckOrgName(@QueryParameter String value)
+                throws IOException, ServletException {
+            return FormValidation.validateRequired(value);
+        }
+
+        public FormValidation doCheckToolchainName(@QueryParameter String value)
+                throws IOException, ServletException {
+            if (value == null || value.equals("empty")) {
+                return FormValidation.errorWithMarkup("Could not retrieve list of toolchains. Please check your username and password. If you have not created a toolchain, create one <a target='_blank' href='https://console.ng.bluemix.net/devops/create'>here</a>.");
+            }
+            return FormValidation.ok();
+        }
+
+        public FormValidation doCheckApplicationName(@QueryParameter String value)
+                throws IOException, ServletException {
+            return FormValidation.validateRequired(value);
+        }
+
+        public FormValidation doCheckSQHostName(@QueryParameter String value)
+                throws IOException, ServletException {
+            return FormValidation.validateRequired(value);
+        }
+
+        public FormValidation doCheckSQAuthToken(@QueryParameter String value)
+                throws IOException, ServletException {
+            return FormValidation.validateRequired(value);
+        }
+
+        public FormValidation doCheckSQProjectKey(@QueryParameter String value)
+                throws IOException, ServletException {
+            return FormValidation.validateRequired(value);
+        }
+
+        public FormValidation doTestConnection(@AncestorInPath ItemGroup context,
+                                               @QueryParameter("credentialsId") final String credentialsId) {
+            String targetAPI = chooseTargetAPI(environment);
+            if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
+                preCredentials = credentialsId;
+                try {
+                    String newToken = GetBluemixToken(context, credentialsId, targetAPI);
+                    if (Util.isNullOrEmpty(newToken)) {
+                        bluemixToken = newToken;
+                        return FormValidation.warning("<b>Got empty token</b>");
+                    } else {
+                        return FormValidation.okWithMarkup("<b>Connection successful</b>");
+                    }
+                } catch (Exception e) {
+                    return FormValidation.error("Failed to log in to Bluemix, please check your username/password");
+                }
+            } else {
+                return FormValidation.okWithMarkup("<b>Connection successful</b>");
+            }
+        }
+
+        /**
+         * This method is called to populate the credentials list on the Jenkins config page.
+         */
+        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath ItemGroup context,
+                                                     @QueryParameter("target") final String target) {
+            StandardListBoxModel result = new StandardListBoxModel();
+            result.includeEmptyValue();
+            result.withMatching(CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
+                    CredentialsProvider.lookupCredentials(
+                            StandardUsernameCredentials.class,
+                            context,
+                            ACL.SYSTEM,
+                            URIRequirementBuilder.fromUri(target).build()
+                    )
+            );
+            return result;
+        }
+
+        /**
+         * This method is called to populate the toolchain list on the Jenkins config page.
+         * @param context
+         * @param orgName
+         * @param credentialsId
+         * @return
+         */
+        public ListBoxModel doFillToolchainNameItems(@AncestorInPath ItemGroup context,
+                                                     @QueryParameter("credentialsId") final String credentialsId,
+                                                     @QueryParameter("orgName") final String orgName) {
+            String targetAPI = chooseTargetAPI(environment);
+            try {
+                bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
+            } catch (Exception e) {
+                return new ListBoxModel();
+            }
+            if(debug_mode){
+                LOGGER.info("#######UPLOAD BUILD INFO : calling getToolchainList#######");
+            }
+            ListBoxModel toolChainListBox = getToolchainList(bluemixToken, orgName, environment, debug_mode);
+            return toolChainListBox;
+
+        }
+
         /**
          * Required Method
          * This is used to determine if this build step is applicable for your chosen project type. (FreeStyle, MultiConfiguration, Maven)
@@ -430,7 +552,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
          * @return The text to be displayed when selecting your build in the project
          */
         public String getDisplayName() {
-            return "Publish test result to IBM Cloud DevOps";
+            return "Publish SonarQube test result to IBM Cloud DevOps";
         }
 
         @Override
