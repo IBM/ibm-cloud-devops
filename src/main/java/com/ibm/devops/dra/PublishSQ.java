@@ -61,7 +61,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
     private String orgName;
     private String toolchainName;
     private String environmentName;
-    private String buildJobName;
     private String credentialsId;
 
     private String SQProjectKey;
@@ -86,7 +85,8 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
                         String applicationName,
                         String SQHostName,
                         String SQAuthToken,
-                        String SQProjectKey) {
+                        String SQProjectKey,
+                        Boolean isFreestyle) {
         this.credentialsId = credentialsId;
         this.orgName = orgName;
         this.toolchainName = toolchainName;
