@@ -11,11 +11,30 @@
 
  </notice>
 -->
-
 <?jelly escape-by-default='true'?>
-<!--
-  This view is used to render the installed plugins page.
--->
-<div>
-  IBM® Cloud DevOps aggregates and provides visualizations of the indications of a continuous delivery project’s health. Use its built-in dashboards and data reporting services to learn where you most need to improve your build, test, and delivery processes. You can also define test coverage policies to prevent bad code from being promoted to critical environments.
-</div>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:c="/lib/credentials" xmlns:f="/lib/form">
+    <!--
+      This jelly script is used for per-project configuration.
+    -->
+
+    <f:entry title="Bluemix credentials" field="credentialsId">
+        <c:select/>
+    </f:entry>
+
+    <f:validateButton title="Test Connection" progress="Testing..." method="testConnection" with="credentialsId,orgName" />
+
+    <f:entry title="Org name" field="orgName">
+        <f:textbox />
+    </f:entry>
+
+    <f:entry title="Toolchain name" field="toolchainName">
+        <f:select/>
+    </f:entry>
+
+    <f:entry title="Application name" field="applicationName">
+        <f:textbox />
+    </f:entry>
+
+</j:jelly>
+
+

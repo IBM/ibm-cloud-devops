@@ -1,4 +1,4 @@
-<!--
+/*
  <notice>
 
  Copyright 2016, 2017 IBM Corporation
@@ -10,12 +10,22 @@
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
  </notice>
--->
+ */
 
-<?jelly escape-by-default='true'?>
-<!--
-  This view is used to render the installed plugins page.
--->
-<div>
-  IBM® Cloud DevOps aggregates and provides visualizations of the indications of a continuous delivery project’s health. Use its built-in dashboards and data reporting services to learn where you most need to improve your build, test, and delivery processes. You can also define test coverage policies to prevent bad code from being promoted to critical environments.
-</div>
+package com.ibm.devops.dra;
+
+public class DeploymentInfoModel {
+	private String app_url;
+	private String environment_name;
+	private String job_url;
+	private String status;
+	private String timestamp;
+
+	public DeploymentInfoModel(String app_url, String environment_name, String job_url, String status, String timestamp) {
+		this.app_url = app_url;
+		this.environment_name = environment_name;
+		this.job_url = job_url;
+		this.status = status;
+		this.timestamp = timestamp;
+	}
+}

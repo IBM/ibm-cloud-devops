@@ -12,10 +12,9 @@
  </notice>
 -->
 
-<?jelly escape-by-default='true'?>
-<!--
-  This view is used to render the installed plugins page.
--->
 <div>
-  IBM® Cloud DevOps aggregates and provides visualizations of the indications of a continuous delivery project’s health. Use its built-in dashboards and data reporting services to learn where you most need to improve your build, test, and delivery processes. You can also define test coverage policies to prevent bad code from being promoted to critical environments.
+    Enter the test result file location relative to the root directory. The result file must contain results in the format that you selected for the metric type. This field supports wildcards and environment variables.
+    If you leave this field empty, DevOps Insights generates a simple test report that is based on job status.
+    Mocha, KarmaMocha, Istanbul, and BlanketJS test results must be in the JSON format.
+    xUnit test results must be in the XML format.
 </div>

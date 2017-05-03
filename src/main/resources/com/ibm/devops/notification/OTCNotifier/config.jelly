@@ -1,7 +1,7 @@
 <!--
  <notice>
 
- Copyright 2016, 2017 IBM Corporation
+ Copyright 2017 IBM Corporation
 
  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -11,11 +11,25 @@
 
  </notice>
 -->
-
 <?jelly escape-by-default='true'?>
-<!--
-  This view is used to render the installed plugins page.
--->
-<div>
-  IBM® Cloud DevOps aggregates and provides visualizations of the indications of a continuous delivery project’s health. Use its built-in dashboards and data reporting services to learn where you most need to improve your build, test, and delivery processes. You can also define test coverage policies to prevent bad code from being promoted to critical environments.
-</div>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler"
+         xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson"  xmlns:f="/lib/form">
+    <!--
+     This jelly script is used for per-project configuration.
+   -->
+    <f:entry title="Job started" field="onStarted">
+        <f:checkbox></f:checkbox>
+    </f:entry>
+
+    <f:entry title="Job completed" field="onCompleted">
+        <f:checkbox></f:checkbox>
+    </f:entry>
+
+    <f:entry title="Job finalized" field="onFinalized">
+        <f:checkbox></f:checkbox>
+    </f:entry>
+
+    <f:entry title="Failures only" field="failureOnly">
+        <f:checkbox></f:checkbox>
+    </f:entry>
+</j:jelly>

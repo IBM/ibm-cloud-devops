@@ -1,7 +1,7 @@
-<!--
+/*
  <notice>
 
- Copyright 2016, 2017 IBM Corporation
+ Copyright 2017 IBM Corporation
 
  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -10,12 +10,28 @@
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
  </notice>
--->
+ */
 
-<?jelly escape-by-default='true'?>
-<!--
-  This view is used to render the installed plugins page.
--->
-<div>
-  IBM® Cloud DevOps aggregates and provides visualizations of the indications of a continuous delivery project’s health. Use its built-in dashboards and data reporting services to learn where you most need to improve your build, test, and delivery processes. You can also define test coverage policies to prevent bad code from being promoted to critical environments.
-</div>
+package com.ibm.devops.notification;
+
+import jenkins.model.Jenkins;
+import hudson.ProxyConfiguration;
+import org.apache.http.HttpHost;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.config.RequestConfig;
+import com.ibm.devops.dra.Util;
+
+public final class Proxy {
+    public static HttpPost addProxyInformation (HttpPost instance) {
+        /* Add proxy to request if proxy settings in Jenkins UI are set. */
+        ProxyConfiguration proxyConfig = Jenkins.getInstance().proxy;
+        if(proxyConfig != null){
+            if((!Util.isNullOrEmpty(proxyConfig.name)) && proxyConfig.port != 0) {
+                HttpHost proxy = new HttpHost(proxyConfig.name, proxyConfig.port, "http");
+                RequestConfig config = RequestConfig.custom().setProxy(proxy).build();
+                instance.setConfig(config);
+            }
+        }
+        return instance;
+    }
+}
