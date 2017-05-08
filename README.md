@@ -57,15 +57,15 @@ After the plugin is installed, you can integrate DevOps Insights into your Jenki
 
    **Example configurations**
 
-   ![Upload Build Information](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/master/screenshots/Upload-Build-Info.png "Publish Build Information to DRA")
+   ![Upload Build Information](https://github.com/IBM/ibm-cloud-devops/blob/master/screenshots/Upload-Build-Info.png "Publish Build Information to DRA")
 
-   ![Upload Test Result](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/master/screenshots/Upload-Test-Result.png "Publish Test Result to DRA")
+   ![Upload Test Result](https://github.com/IBM/ibm-cloud-devops/blob/master/screenshots/Upload-Test-Result.png "Publish Test Result to DRA")
 
-   ![Upload Deployment Information](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/master/screenshots/Upload-Deployment-Info.png "Publish Deployment Information to DRA")
+   ![Upload Deployment Information](https://github.com/IBM/ibm-cloud-devops/blob/master/screenshots/Upload-Deployment-Info.png "Publish Deployment Information to DRA")
 
 4. (Optional): If you want to use DevOps Insights policy gates to control a downstream deploy job, add a post build action, **IBM Cloud DevOps Gate**. Choose a policy and specify the scope of the test results. To allow the policy gates to prevent downstream deployments, select the **Fail the build based on the policy rules** check box. The following image shows an example configuration:
 
-    ![DevOps Insights Gate](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/master/screenshots/DRA-Gate.png "DevOps Insights Gate")
+    ![DevOps Insights Gate](https://github.com/IBM/ibm-cloud-devops/blob/master/screenshots/DRA-Gate.png "DevOps Insights Gate")
 
 5. Run your Jenkins Build job.
 
