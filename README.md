@@ -4,10 +4,6 @@ With this Jenkins plugin, You can publish test results to DevOps Insights, add a
 
 This plugin provides Post-Build Actions and CLIs to support this inteigration. DevOps Insights aggregates and analyzes the results from unit tests, functional tests, code-coverage tools, static security code scans and dynamic security code scans to determine whether your code meets predefined policies at gates in your deployment process. If your code does not meet or exceed a policy, the deployment is halted, preventing risky changes from being released. You can use DevOps Insights as a safety net for your continuous delivery environment, a way to implement and improve quality standards over time, and a data visualization tool to help you understand your project's health.
 
-## Prerequisites
-
-You must have access to a server that is running a Jenkins project.
-
 ## 1. Create a toolchain
 
 Before you can integrate DevOps Insights with a Jenkins project, you must create a toolchain. A *toolchain* is a set of tool integrations that support development, deployment, and operations tasks. The collective power of a toolchain is greater than the sum of its individual tool integrations. Toolchains are part of the IBM Bluemix&reg; Continuous Delivery service. To learn more about the Continuous Delivery service, see [its documentation](https://console.ng.bluemix.net/docs/services/ContinuousDelivery/cd_about.html).
