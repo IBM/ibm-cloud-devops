@@ -23,7 +23,7 @@ If you would like to make use Deployment Risk dashboard, follow these steps.
 After the plugin is installed, you can integrate DevOps Insights into your Jenkins project.
 
 
-###General workflow
+### General workflow
 
 1. Open the configuration of any jobs that you have, such as build, test, or deployment.
 
