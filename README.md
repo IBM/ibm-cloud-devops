@@ -16,17 +16,7 @@ Before you can integrate DevOps Insights with a Jenkins project, you must create
 
 2. After you create the toolchain, add DevOps Insights to it. For instructions, see the [DevOps Insights documentation](https://console.ng.bluemix.net/docs/services/DevOpsInsights/index.html).
 
-## 2. Install the plugin
-
-In your Jenkins project, install the plugin.
-
-  1. If you are an IBM employee, download the plugin from [GitHub](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/release/target/ibmclouddevops.hpi). Otherwise, contact jichen@us.ibm.com or aggarwav@us.ibm.com to get the plugin.
-  2. In Jenkins, click **Manage Jenkins &gt; Manage Plugins** and click the **Advanced** tab.
-  3. Click **Choose File** and select the IBM Bluemix DevOps plugin installation file.
-  4. Click **Upload**.
-  5. Restart Jenkins and verify that the plugin was installed.
-
-## 3. (optional) Configure Jenkins jobs for Deployment Risk dashboard
+## 2. (optional) Configure Jenkins jobs for Deployment Risk dashboard
 
 If you would like to make use Deployment Risk dashboard, follow these steps.
 
@@ -72,14 +62,14 @@ After the plugin is installed, you can integrate DevOps Insights into your Jenki
 6. Go to the [IBM Bluemix DevOps](https://console.ng.bluemix.net/devops), select your toolchain and click on DevOps Insights card to view Deployment Risk dashboard.
 
 
-## 4. (Optional) Configure Jenkins jobs to send notifications to tools in your toolchain (e.g., Slack, PagerDuty)
+## 3. (Optional) Configure Jenkins jobs to send notifications to tools in your toolchain (e.g., Slack, PagerDuty)
 
 Configure your Jenkins jobs to send notifications to your toolchain by following the instructions in the [Bluemix Docs](https://console.ng.bluemix.net/docs/services/ContinuousDelivery/toolchains_integrations.html#jenkins).
 
 
    **Example configurations**
-  * Configuring the IBM_CLOUD_DEVOPS_WEBHOOK_URL for job configurations: ![Set IBM_CLOUD_DEVOPS_WEBHOOK_URL Parameter](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/master/screenshots/Set-Parameterized-Webhook.png "Set Parameterized WebHook")
-  * Configuring post-build actions for job notifications: ![Post-build Actions for WebHook notification](https://github.ibm.com/oneibmcloud/Jenkins-IBM-Bluemix-Toolchains/blob/master/screenshots/PostBuild-WebHookNotification.png "Configure WebHook Notification in Post-build Actions")
+  * Configuring the IBM_CLOUD_DEVOPS_WEBHOOK_URL for job configurations: ![Set IBM_CLOUD_DEVOPS_WEBHOOK_URL Parameter](https://github.com/IBM/ibm-cloud-devops/blob/master/screenshots/Set-Parameterized-Webhook.png "Set Parameterized WebHook")
+  * Configuring post-build actions for job notifications: ![Post-build Actions for WebHook notification](https://github.com/IBM/ibm-cloud-devops/blob/master/screenshots/PostBuild-WebHookNotification.png "Configure WebHook Notification in Post-build Actions")
 
 
 ## License
