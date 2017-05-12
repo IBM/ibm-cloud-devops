@@ -76,11 +76,6 @@
       <name>Vijay Jegaselvan</name>
       <email>vjegase@us.ibm.com</email>
     </developer>
-    <developer>
-      <id>ccox_ibm</id>
-      <name>Charlie Cox</name>
-      <email>charlie.cox@ibm.com</email>
-    </developer>
   </developers>
 
   <scm>
