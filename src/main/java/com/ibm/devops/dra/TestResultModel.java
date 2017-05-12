@@ -47,6 +47,38 @@ public class TestResultModel{
             this.end = end;
             this.duration = duration;
         }
+
+        public Integer getSuites() {
+            return suites;
+        }
+
+        public Integer getTests() {
+            return tests;
+        }
+
+        public Integer getPasses() {
+            return passes;
+        }
+
+        public Integer getPending() {
+            return pending;
+        }
+
+        public Integer getFailures() {
+            return failures;
+        }
+
+        public String getStart() {
+            return start;
+        }
+
+        public String getEnd() {
+            return end;
+        }
+
+        public Long getDuration() {
+            return duration;
+        }
     }
 
     // sub-model for test
@@ -68,13 +100,33 @@ public class TestResultModel{
             this.currentRetry = currentRetry;
             this.err = err;
         }
+
+        public String getTitle() {
+            return title;
+        }
+
+        public String getFullTitle() {
+            return fullTitle;
+        }
+
+        public Long getDuration() {
+            return duration;
+        }
+
+        public Integer getCurrentRetry() {
+            return currentRetry;
+        }
+
+        public Object getErr() {
+            return err;
+        }
     }
 
     private Stats stats;
-    private Test tests[];
-    private String pending[];
-    private String failures[];
-    private String passes[];
+    private Test[] tests;
+    private String[] pending;
+    private String[] failures;
+    private String[] passes;
 
     public TestResultModel(Stats stats,
                            Test[] tests,
@@ -82,9 +134,29 @@ public class TestResultModel{
                            String[] failures,
                            String[] passes) {
         this.stats = stats;
-        this.tests = tests;
-        this.pending = pending;
-        this.failures = failures;
-        this.passes = passes;
+        this.tests = tests.clone();
+        this.pending = pending.clone();
+        this.failures = failures.clone();
+        this.passes = passes.clone();
+    }
+
+    public Stats getStats() {
+        return stats;
+    }
+
+    public Test[] getTests() {
+        return tests;
+    }
+
+    public String[] getPending() {
+        return pending;
+    }
+
+    public String[] getFailures() {
+        return failures;
+    }
+
+    public String[] getPasses() {
+        return passes;
     }
 }

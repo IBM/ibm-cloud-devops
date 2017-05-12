@@ -59,7 +59,7 @@ import java.util.HashSet;
 /**
  * Authenticate with Bluemix and then upload the result file to DRA
  */
-public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep, Serializable {
+public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep {
 
     private final static String API_PART = "/organizations/{org_name}/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/results_multipart";
     private final static String CONTENT_TYPE_JSON = "application/json";
@@ -89,8 +89,8 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
     private File root;
     private static String dlmsUrl;
     private static String draUrl;
-    public static String bluemixToken;
-    public static String preCredentials;
+    protected static String bluemixToken;
+    protected static String preCredentials;
 
     //fields to support jenkins pipeline
     private String username;
@@ -346,9 +346,9 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         // get the Bluemix token
         try {
             if (Util.isNullOrEmpty(this.credentialsId)) {
-                bluemixToken = GetBluemixToken(username, password, targetAPI);
+                bluemixToken = getBluemixToken(username, password, targetAPI);
             } else {
-                bluemixToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
+                bluemixToken = getBluemixToken(build.getParent(), this.credentialsId, targetAPI);
             }
 
             printStream.println("[IBM Cloud DevOps] Log in successfully, get the Bluemix token");
@@ -456,7 +456,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
      * @param buildUrl - the url to build job in Jenkins
      * @return false if there is any error when scan and upload the file
      */
-    public boolean scanAndUpload(Run build, FilePath workspace, String path, String lifecycleStage, String bluemixToken, String buildNumber, String buildUrl) throws InterruptedException, IOException {
+    public boolean scanAndUpload(Run build, FilePath workspace, String path, String lifecycleStage, String bluemixToken, String buildNumber, String buildUrl) throws Exception {
         boolean errorFlag = true;
         FilePath[] filePaths = null;
 
@@ -519,20 +519,25 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
      * @param workspace - current workspace, if it runs on slave, then it will be the path on slave
      * @return simple test result file
      */
-    private FilePath createDummyFile(Run build, FilePath workspace) throws InterruptedException {
+    private FilePath createDummyFile(Run build, FilePath workspace) throws Exception {
 
         // if user did not specify the result file location, upload the dummy json file
         Gson gson = new Gson();
 
         //set the passes and failures based on the test status
         int passes, failures;
-        if (!build.getResult().equals(Result.SUCCESS)) {
-            passes = 0;
-            failures = 1;
+        if (build.getResult() != null) {
+            if (!build.getResult().equals(Result.SUCCESS)) {
+                passes = 0;
+                failures = 1;
+            } else {
+                passes = 1;
+                failures = 0;
+            }
         } else {
-            passes = 1;
-            failures = 0;
+            throw new Exception("Failed to get build result");
         }
+
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         TimeZone utc = TimeZone.getTimeZone("UTC");
         dateFormat.setTimeZone(utc);
@@ -805,7 +810,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
                 preCredentials = credentialsId;
                 try {
-                    String bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
+                    String bluemixToken = getBluemixToken(context, credentialsId, targetAPI);
                     if (Util.isNullOrEmpty(bluemixToken)) {
                         PublishTest.bluemixToken = bluemixToken;
                         return FormValidation.warning("<b>Got empty token</b>");
@@ -880,7 +885,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             try {
                 // if user changes to a different credential, need to get a new token
                 if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
-                    bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
+                    bluemixToken = getBluemixToken(context, credentialsId, targetAPI);
                     preCredentials = credentialsId;
                 }
             } catch (Exception e) {
@@ -904,7 +909,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                                                      @QueryParameter("orgName") final String orgName) {
             String targetAPI = chooseTargetAPI(environment);
             try {
-                bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
+                bluemixToken = getBluemixToken(context, credentialsId, targetAPI);
             } catch (Exception e) {
                 return new ListBoxModel();
             }

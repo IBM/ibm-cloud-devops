@@ -77,8 +77,9 @@ public final class EventHandler {
             onFinalized = notifier.getOnFinalized();
             failureOnly = notifier.getFailureOnly();
 
-            if(onStarted && phase == "STARTED" || onCompleted && phase == "COMPLETED" || onFinalized && phase == "FINALIZED"){//check selections
-                if(failureOnly && result == Result.FAILURE || !failureOnly){//check failureOnly
+            if(onStarted && "STARTED".equals(phase) || onCompleted && "COMPLETED".equals(phase)
+                    || onFinalized && "FINALIZED".equals(phase)){//check selections
+                if(failureOnly && result != null && result.equals(Result.FAILURE) || !failureOnly){//check failureOnly
                     return true;
                 }
             }
