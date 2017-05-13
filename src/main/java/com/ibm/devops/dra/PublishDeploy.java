@@ -74,8 +74,8 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 	private String applicationUrl;
 	private String buildNumber;
 	private String buildUrl;
-	protected static String bluemixToken;
-	protected static String preCredentials;
+	private static String bluemixToken;
+	private static String preCredentials;
 
 	//fields to support jenkins pipeline
 	private String result;

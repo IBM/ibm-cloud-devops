@@ -84,8 +84,8 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
 
     private PrintStream printStream;
     private static String dlmsUrl;
-    protected static String bluemixToken;
-    protected static String preCredentials;
+    private static String bluemixToken;
+    private static String preCredentials;
 
     @DataBoundConstructor
     public PublishSQ(String credentialsId,

@@ -145,18 +145,18 @@ public class TestResultModel{
     }
 
     public Test[] getTests() {
-        return tests;
+        return tests.clone();
     }
 
     public String[] getPending() {
-        return pending;
+        return pending.clone();
     }
 
     public String[] getFailures() {
-        return failures;
+        return failures.clone();
     }
 
     public String[] getPasses() {
-        return passes;
+        return passes.clone();
     }
 }

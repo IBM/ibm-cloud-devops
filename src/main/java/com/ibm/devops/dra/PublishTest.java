@@ -89,8 +89,8 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
     private File root;
     private static String dlmsUrl;
     private static String draUrl;
-    protected static String bluemixToken;
-    protected static String preCredentials;
+    private static String bluemixToken;
+    private static String preCredentials;
 
     //fields to support jenkins pipeline
     private String username;

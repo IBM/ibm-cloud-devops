@@ -77,8 +77,8 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
 
     private String draUrl;
     private PrintStream printStream;
-    protected static String bluemixToken;
-    protected static String preCredentials;
+    private static String bluemixToken;
+    private static String preCredentials;
 
     //fields to support jenkins pipeline
     private String username;

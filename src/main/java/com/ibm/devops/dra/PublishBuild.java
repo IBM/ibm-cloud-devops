@@ -63,8 +63,8 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
     private String dlmsUrl;
     private PrintStream printStream;
     private File root;
-    protected static String bluemixToken;
-    protected static String preCredentials;
+    private static String bluemixToken;
+    private static String preCredentials;
 
     // fields to support jenkins pipeline
     private String result;
