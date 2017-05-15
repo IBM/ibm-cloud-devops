@@ -233,7 +233,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             buildNumber = getBuildNumber(buildJobName, triggeredBuild);
         }
 
-
+        String bluemixToken;
         // get the Bluemix token
         try {
             if (Util.isNullOrEmpty(this.credentialsId)) {
@@ -594,4 +594,3 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         }
     }
 }
-

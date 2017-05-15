@@ -83,7 +83,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
     private boolean isDeploy;
 
     private PrintStream printStream;
-    private static String dlmsUrl;
+    private String dlmsUrl;
     private static String bluemixToken;
     private static String preCredentials;
 
@@ -214,6 +214,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         url = url.replace("{build_id}", URLEncoder.encode(buildNumber, "UTF-8").replaceAll("\\+", "%20"));
         this.dlmsUrl = url;
 
+        String bluemixToken;
         // get the Bluemix token
         try {
             if (Util.isNullOrEmpty(this.credentialsId)) {
@@ -230,7 +231,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
 
         Map<String, String> headers = new HashMap<String, String>();
         // ':' needs to be added so the SQ api knows an auth token is being used
-        String SQAuthToken = DatatypeConverter.printBase64Binary((this.SQAuthToken + ":").getBytes());
+        String SQAuthToken = DatatypeConverter.printBase64Binary((this.SQAuthToken + ":").getBytes("UTF-8"));
         headers.put("Authorization", "Basic " + SQAuthToken);
         try {
             JsonObject SQqualityGate = sendGETRequest(this.SQHostName + "/api/qualitygates/project_status?projectKey=" + this.SQProjectKey, headers);
@@ -344,7 +345,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
 
             JsonObject body = new JsonObject();
 
-            body.addProperty("contents", DatatypeConverter.printBase64Binary(payload.toString().getBytes()));
+            body.addProperty("contents", DatatypeConverter.printBase64Binary(payload.toString().getBytes("UTF-8")));
             body.addProperty("contents_type", CONTENT_TYPE_JSON);
             body.addProperty("timestamp", timestamp);
             body.addProperty("tool_name", "sonarqube");

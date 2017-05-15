@@ -151,7 +151,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 	public String getOrgName() {
 		return orgName;
 	}
-	
+
 	public String getBuildJobName() {
 		return buildJobName;
 	}
@@ -240,6 +240,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		dlmsUrl = dlmsUrl.replace("{build_id}", buildNumber);
 		String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
 
+		String bluemixToken;
 		// get the Bluemix token
 		try {
 			if (Util.isNullOrEmpty(this.credentialsId)) {
@@ -272,7 +273,8 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 			postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);
 
 			String buildStatus;
-			if ((build.getResult() != null && build.getResult().equals(Result.SUCCESS))
+			Result result = build.getResult();
+			if ((result != null && result.equals(Result.SUCCESS))
 					|| (this.result != null && this.result.equals("SUCCESS"))) {
 				buildStatus = "pass";
 			} else {
@@ -436,7 +438,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 
 		/**
 		 * Autocompletion for build job name field
-		 * 
+		 *
 		 * @param value
 		 *            - user input for the build job name field
 		 * @return
@@ -514,7 +516,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 
 		/**
 		 * Required Method
-		 * 
+		 *
 		 * @return The text to be displayed when selecting your build in the
 		 *         project
 		 */

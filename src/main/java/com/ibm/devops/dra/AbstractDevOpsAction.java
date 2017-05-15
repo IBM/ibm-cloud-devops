@@ -273,6 +273,9 @@ public abstract class AbstractDevOpsAction extends Recorder {
             StandardUsernamePasswordCredentials credentials =
                     CredentialsMatchers.firstOrNull(standardCredentials, CredentialsMatchers.withId(credentialsId));
 
+            if (credentials == null || credentials.getUsername() == null || credentials.getPassword() == null) {
+                throw new Exception("Failed to get Credentials");
+            }
             CloudCredentials cloudCredentials = new CloudCredentials(credentials.getUsername(), Secret.toString(credentials.getPassword()));
             if (cloudCredentials == null) {
                 throw new Exception("Failed to get Cloud Credentials");
@@ -303,6 +306,9 @@ public abstract class AbstractDevOpsAction extends Recorder {
             StandardUsernamePasswordCredentials credentials =
                     CredentialsMatchers.firstOrNull(standardCredentials, CredentialsMatchers.withId(credentialsId));
 
+            if (credentials == null || credentials.getUsername() == null || credentials.getPassword() == null) {
+                throw new Exception("Failed to get Credentials");
+            }
             CloudCredentials cloudCredentials = new CloudCredentials(credentials.getUsername(), Secret.toString(credentials.getPassword()));
             if (cloudCredentials == null) {
                 throw new Exception("Failed to get Cloud Credentials");

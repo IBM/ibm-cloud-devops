@@ -87,8 +87,8 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
 
     private PrintStream printStream;
     private File root;
-    private static String dlmsUrl;
-    private static String draUrl;
+    private String dlmsUrl;
+    private String draUrl;
     private static String bluemixToken;
     private static String preCredentials;
 
@@ -342,7 +342,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
 
         String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
 
-
+        String bluemixToken;
         // get the Bluemix token
         try {
             if (Util.isNullOrEmpty(this.credentialsId)) {
@@ -526,8 +526,9 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
 
         //set the passes and failures based on the test status
         int passes, failures;
-        if (build.getResult() != null) {
-            if (!build.getResult().equals(Result.SUCCESS)) {
+        Result result = build.getResult();
+        if (result != null) {
+            if (!result.equals(Result.SUCCESS)) {
                 passes = 0;
                 failures = 1;
             } else {

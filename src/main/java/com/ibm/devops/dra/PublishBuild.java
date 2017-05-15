@@ -168,6 +168,7 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             return;
         }
 
+        String bluemixToken;
         // get the Bluemix token
         try {
             if (Util.isNullOrEmpty(this.credentialsId)) {
@@ -239,8 +240,8 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);
 
             String buildStatus;
-
-            if ((build.getResult() != null && build.getResult().equals(Result.SUCCESS))
+            Result result = build.getResult();
+            if ((result != null && result.equals(Result.SUCCESS))
                     || (this.result != null && this.result.equals("SUCCESS"))) {
                 buildStatus = "pass";
             } else {
