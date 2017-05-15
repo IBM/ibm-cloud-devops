@@ -28,6 +28,7 @@ import javax.inject.Inject;
 import java.io.PrintStream;
 
 public class PublishBuildStepExecution extends AbstractSynchronousNonBlockingStepExecution<Void> {
+    private static final long serialVersionUID = 1L;
     @Inject
     private transient PublishBuildStep step;
 

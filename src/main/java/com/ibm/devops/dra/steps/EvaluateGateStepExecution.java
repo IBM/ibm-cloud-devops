@@ -29,6 +29,7 @@ import javax.inject.Inject;
 import java.io.PrintStream;
 
 public class EvaluateGateStepExecution extends AbstractSynchronousNonBlockingStepExecution<Void> {
+    private static final long serialVersionUID = 1L;
     @Inject
     private transient EvaluateGateStep step;
 

@@ -29,6 +29,26 @@ public class BuildInfoModel {
         this.repository = repository;
     }
 
+    public String getBuild_id() {
+        return build_id;
+    }
+
+    public String getJob_url() {
+        return job_url;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public String getTimestamp() {
+        return timestamp;
+    }
+
+    public Repo getRepository() {
+        return repository;
+    }
+
     public static class Repo {
         private String repository_url;
         private String branch;
@@ -39,5 +59,19 @@ public class BuildInfoModel {
             this.branch = branch;
             this.commit_id = commit_id;
         }
+
+        public String getRepository_url() {
+            return repository_url;
+        }
+
+        public String getBranch() {
+            return branch;
+        }
+
+        public String getCommit_id() {
+            return commit_id;
+        }
     }
+
+
 }
