@@ -48,7 +48,7 @@ import java.text.SimpleDateFormat;
 import java.util.TimeZone;
 import java.net.URLEncoder;
 
-public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildStep, Serializable {
+public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildStep {
 
     private static String BUILD_API_URL = "/organizations/{org_name}/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds";
     private final static String CONTENT_TYPE_JSON = "application/json";
@@ -63,8 +63,8 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
     private String dlmsUrl;
     private PrintStream printStream;
     private File root;
-    public static String bluemixToken;
-    public static String preCredentials;
+    private static String bluemixToken;
+    private static String preCredentials;
 
     // fields to support jenkins pipeline
     private String result;
@@ -168,12 +168,13 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             return;
         }
 
+        String bluemixToken;
         // get the Bluemix token
         try {
             if (Util.isNullOrEmpty(this.credentialsId)) {
-                bluemixToken = GetBluemixToken(username, password, targetAPI);
+                bluemixToken = getBluemixToken(username, password, targetAPI);
             } else {
-                bluemixToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
+                bluemixToken = getBluemixToken(build.getParent(), this.credentialsId, targetAPI);
             }
 
             printStream.println("[IBM Cloud DevOps] Log in successfully, get the Bluemix token");
@@ -239,8 +240,8 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);
 
             String buildStatus;
-
-            if ((build.getResult() != null && build.getResult().equals(Result.SUCCESS))
+            Result result = build.getResult();
+            if ((result != null && result.equals(Result.SUCCESS))
                     || (this.result != null && this.result.equals("SUCCESS"))) {
                 buildStatus = "pass";
             } else {
@@ -383,7 +384,7 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
                 preCredentials = credentialsId;
                 try {
-                    String newToken = GetBluemixToken(context, credentialsId, targetAPI);
+                    String newToken = getBluemixToken(context, credentialsId, targetAPI);
                     if (Util.isNullOrEmpty(newToken)) {
                         bluemixToken = newToken;
                         return FormValidation.warning("<b>Got empty token</b>");
@@ -428,7 +429,7 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
                                                      @QueryParameter("orgName") final String orgName) {
             String targetAPI = chooseTargetAPI(environment);
             try {
-                bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
+                bluemixToken = getBluemixToken(context, credentialsId, targetAPI);
             } catch (Exception e) {
                 return new ListBoxModel();
             }

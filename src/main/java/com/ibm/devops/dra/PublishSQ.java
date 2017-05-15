@@ -59,7 +59,7 @@ import javax.xml.bind.DatatypeConverter;
 /**
  * Authenticate with Bluemix and then upload the result file to DRA
  */
-public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, Serializable {
+public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
 
     private final static String API_PART = "/organizations/{org_name}/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/results";
     private final static String CONTENT_TYPE_JSON = "application/json";
@@ -83,9 +83,9 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
     private boolean isDeploy;
 
     private PrintStream printStream;
-    private static String dlmsUrl;
-    public static String bluemixToken;
-    public static String preCredentials;
+    private String dlmsUrl;
+    private static String bluemixToken;
+    private static String preCredentials;
 
     @DataBoundConstructor
     public PublishSQ(String credentialsId,
@@ -203,7 +203,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
                     this.buildJobName = envVars.get("JOB_NAME");
                 }
                 buildNumber = getBuildNumber(buildJobName, triggeredBuild);
-                String rootUrl = Jenkins.getInstance().getRootUrl();
             }
         } else {
             buildNumber = envVars.expand(this.buildNumber);
@@ -215,12 +214,13 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         url = url.replace("{build_id}", URLEncoder.encode(buildNumber, "UTF-8").replaceAll("\\+", "%20"));
         this.dlmsUrl = url;
 
+        String bluemixToken;
         // get the Bluemix token
         try {
             if (Util.isNullOrEmpty(this.credentialsId)) {
-                bluemixToken = GetBluemixToken(IBMusername, IBMpassword, targetAPI);
+                bluemixToken = getBluemixToken(IBMusername, IBMpassword, targetAPI);
             } else {
-                bluemixToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
+                bluemixToken = getBluemixToken(build.getParent(), this.credentialsId, targetAPI);
             }
             printStream.println("[IBM Cloud DevOps] Log in successfully, got the Bluemix token");
         } catch (Exception e) {
@@ -231,7 +231,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
 
         Map<String, String> headers = new HashMap<String, String>();
         // ':' needs to be added so the SQ api knows an auth token is being used
-        String SQAuthToken = DatatypeConverter.printBase64Binary((this.SQAuthToken + ":").getBytes());
+        String SQAuthToken = DatatypeConverter.printBase64Binary((this.SQAuthToken + ":").getBytes("UTF-8"));
         headers.put("Authorization", "Basic " + SQAuthToken);
         try {
             JsonObject SQqualityGate = sendGETRequest(this.SQHostName + "/api/qualitygates/project_status?projectKey=" + this.SQProjectKey, headers);
@@ -305,8 +305,8 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
         getMethod = addProxyInformation(getMethod);
 
         //add request headers
-        for(String headerName: headers.keySet()) {
-            getMethod.setHeader(headerName, headers.get(headerName));
+        for(Map.Entry<String, String> entry: headers.entrySet()) {
+            getMethod.setHeader(entry.getKey(), entry.getValue());
         }
 
         CloseableHttpResponse response = httpClient.execute(getMethod);
@@ -345,7 +345,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
 
             JsonObject body = new JsonObject();
 
-            body.addProperty("contents", DatatypeConverter.printBase64Binary(payload.toString().getBytes()));
+            body.addProperty("contents", DatatypeConverter.printBase64Binary(payload.toString().getBytes("UTF-8")));
             body.addProperty("contents_type", CONTENT_TYPE_JSON);
             body.addProperty("timestamp", timestamp);
             body.addProperty("tool_name", "sonarqube");
@@ -486,7 +486,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
             if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
                 preCredentials = credentialsId;
                 try {
-                    String newToken = GetBluemixToken(context, credentialsId, targetAPI);
+                    String newToken = getBluemixToken(context, credentialsId, targetAPI);
                     if (Util.isNullOrEmpty(newToken)) {
                         bluemixToken = newToken;
                         return FormValidation.warning("<b>Got empty token</b>");
@@ -531,7 +531,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep, 
                                                      @QueryParameter("orgName") final String orgName) {
             String targetAPI = chooseTargetAPI(environment);
             try {
-                bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
+                bluemixToken = getBluemixToken(context, credentialsId, targetAPI);
             } catch (Exception e) {
                 return new ListBoxModel();
             }

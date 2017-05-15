@@ -76,10 +76,9 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
     private boolean isDeploy;
 
     private String draUrl;
-    private String buildNumber;
     private PrintStream printStream;
-    public static String bluemixToken;
-    public static String preCredentials;
+    private static String bluemixToken;
+    private static String preCredentials;
 
     //fields to support jenkins pipeline
     private String username;
@@ -220,30 +219,27 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         String reportUrl = chooseReportUrl(env);
 
         String buildNumber;
-        // if user does not specify the build number
-        if (Util.isNullOrEmpty(this.buildNumber)) {
-            // locate the build job that triggers current build
-            Run triggeredBuild = getTriggeredBuild(build, buildJobName, envVars, printStream);
-            if (triggeredBuild == null) {
-                //failed to find the build job
-                return;
-            } else {
-                if (Util.isNullOrEmpty(this.buildJobName)) {
-                    // handle the case which the build job name left empty, and the pipeline case
-                    this.buildJobName = envVars.get("JOB_NAME");
-                }
-                buildNumber = getBuildNumber(buildJobName, triggeredBuild);
-            }
+
+        // locate the build job that triggers current build
+        Run triggeredBuild = getTriggeredBuild(build, buildJobName, envVars, printStream);
+        if (triggeredBuild == null) {
+            //failed to find the build job
+            return;
         } else {
-            buildNumber = envVars.expand(this.buildNumber);
+            if (Util.isNullOrEmpty(this.buildJobName)) {
+                // handle the case which the build job name left empty, and the pipeline case
+                this.buildJobName = envVars.get("JOB_NAME");
+            }
+            buildNumber = getBuildNumber(buildJobName, triggeredBuild);
         }
 
+        String bluemixToken;
         // get the Bluemix token
         try {
             if (Util.isNullOrEmpty(this.credentialsId)) {
-                bluemixToken = GetBluemixToken(username, password, targetAPI);
+                bluemixToken = getBluemixToken(username, password, targetAPI);
             } else {
-                bluemixToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
+                bluemixToken = getBluemixToken(build.getParent(), this.credentialsId, targetAPI);
             }
 
             printStream.println("[IBM Cloud DevOps] Log in successfully, get the Bluemix token");
@@ -452,7 +448,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
                 preCredentials = credentialsId;
                 try {
-                    String bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
+                    String bluemixToken = getBluemixToken(context, credentialsId, targetAPI);
                     if (Util.isNullOrEmpty(bluemixToken)) {
                         EvaluateGate.bluemixToken = bluemixToken;
                         return FormValidation.warning("<b>Got empty token</b>");
@@ -522,7 +518,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             try {
                 // if user changes to a different credential, need to get a new token
                 if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
-                    bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
+                    bluemixToken = getBluemixToken(context, credentialsId, targetAPI);
                     preCredentials = credentialsId;
                 }
             } catch (Exception e) {
@@ -547,7 +543,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
                                                   @QueryParameter final String credentialsId) {
             String targetAPI = chooseTargetAPI(environment);
             try {
-                bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
+                bluemixToken = getBluemixToken(context, credentialsId, targetAPI);
             } catch (Exception e) {
                 return new ListBoxModel();
             }
@@ -598,4 +594,3 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         }
     }
 }
-

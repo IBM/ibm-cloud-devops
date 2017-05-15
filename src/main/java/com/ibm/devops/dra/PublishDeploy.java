@@ -51,14 +51,13 @@ import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.TimeZone;
 
-public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildStep, Serializable {
+public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildStep {
 
 	private static String DEPLOYMENT_API_URL = "/organizations/{org_name}/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/deployments";
 	private final static String CONTENT_TYPE_JSON = "application/json";
@@ -75,8 +74,8 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 	private String applicationUrl;
 	private String buildNumber;
 	private String buildUrl;
-	public static String bluemixToken;
-	public static String preCredentials;
+	private static String bluemixToken;
+	private static String preCredentials;
 
 	//fields to support jenkins pipeline
 	private String result;
@@ -152,7 +151,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 	public String getOrgName() {
 		return orgName;
 	}
-	
+
 	public String getBuildJobName() {
 		return buildJobName;
 	}
@@ -241,12 +240,13 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		dlmsUrl = dlmsUrl.replace("{build_id}", buildNumber);
 		String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
 
+		String bluemixToken;
 		// get the Bluemix token
 		try {
 			if (Util.isNullOrEmpty(this.credentialsId)) {
-				bluemixToken = GetBluemixToken(username, password, targetAPI);
+				bluemixToken = getBluemixToken(username, password, targetAPI);
 			} else {
-				bluemixToken = GetBluemixToken(build.getParent(), this.credentialsId, targetAPI);
+				bluemixToken = getBluemixToken(build.getParent(), this.credentialsId, targetAPI);
 			}
 
 			printStream.println("[IBM Cloud DevOps] Log in successfully, get the Bluemix token");
@@ -273,7 +273,8 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 			postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);
 
 			String buildStatus;
-			if ((build.getResult() != null && build.getResult().equals(Result.SUCCESS))
+			Result result = build.getResult();
+			if ((result != null && result.equals(Result.SUCCESS))
 					|| (this.result != null && this.result.equals("SUCCESS"))) {
 				buildStatus = "pass";
 			} else {
@@ -420,7 +421,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 			if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
 				preCredentials = credentialsId;
 				try {
-					String newToken = GetBluemixToken(context, credentialsId, targetAPI);
+					String newToken = getBluemixToken(context, credentialsId, targetAPI);
 					if (Util.isNullOrEmpty(newToken)) {
 						bluemixToken = newToken;
 						return FormValidation.warning("<b>Got empty token</b>");
@@ -437,7 +438,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 
 		/**
 		 * Autocompletion for build job name field
-		 * 
+		 *
 		 * @param value
 		 *            - user input for the build job name field
 		 * @return
@@ -484,7 +485,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 													 @QueryParameter("orgName") final String orgName) {
 			String targetAPI = chooseTargetAPI(environment);
 			try {
-				bluemixToken = GetBluemixToken(context, credentialsId, targetAPI);
+				bluemixToken = getBluemixToken(context, credentialsId, targetAPI);
 			} catch (Exception e) {
 				return new ListBoxModel();
 			}
@@ -515,7 +516,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 
 		/**
 		 * Required Method
-		 * 
+		 *
 		 * @return The text to be displayed when selecting your build in the
 		 *         project
 		 */

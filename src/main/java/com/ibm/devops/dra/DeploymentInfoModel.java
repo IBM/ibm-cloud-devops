@@ -28,4 +28,24 @@ public class DeploymentInfoModel {
 		this.status = status;
 		this.timestamp = timestamp;
 	}
+
+	public String getApp_url() {
+		return app_url;
+	}
+
+	public String getEnvironment_name() {
+		return environment_name;
+	}
+
+	public String getJob_url() {
+		return job_url;
+	}
+
+	public String getStatus() {
+		return status;
+	}
+
+	public String getTimestamp() {
+		return timestamp;
+	}
 }

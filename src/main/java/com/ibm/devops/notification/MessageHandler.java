@@ -103,7 +103,7 @@ public final class MessageHandler {
             build.put("status", result);
         }
 
-        if(phase != "STARTED") {
+        if(!"STARTED".equals(phase)) {
             build.put("duration", r.getDuration());
         }
 

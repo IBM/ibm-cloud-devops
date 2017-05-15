@@ -124,18 +124,12 @@ public abstract class AbstractDevOpsAction extends Recorder {
         final Properties properties = new Properties();
         try {
             properties.load(loader.getResourceAsStream("plugin.properties"));
-            if (properties != null) {
-                printStream.println("[IBM Cloud DevOps] version: " + properties.getProperty("version"));
-            } else {
-                printStream.println("[IBM Cloud DevOps] failed to get version");
-            }
+            printStream.println("[IBM Cloud DevOps] version: " + properties.getProperty("version"));
         } catch (IOException e) {
             e.printStackTrace();
         }
 
     }
-
-
 
     public static String chooseTargetAPI(String environment) {
         if (!Util.isNullOrEmpty(environment)) {
@@ -267,7 +261,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
      * @param targetAPI - the target api that used for logging in to the Bluemix
      * @return the bearer token
      */
-    public static String GetBluemixToken(Job context, String credentialsId, String targetAPI) throws MalformedURLException, CloudFoundryException {
+    public static String getBluemixToken(Job context, String credentialsId, String targetAPI) throws Exception {
 
         try {
             List<StandardUsernamePasswordCredentials> standardCredentials = CredentialsProvider.lookupCredentials(
@@ -279,9 +273,13 @@ public abstract class AbstractDevOpsAction extends Recorder {
             StandardUsernamePasswordCredentials credentials =
                     CredentialsMatchers.firstOrNull(standardCredentials, CredentialsMatchers.withId(credentialsId));
 
-
+            if (credentials == null || credentials.getUsername() == null || credentials.getPassword() == null) {
+                throw new Exception("Failed to get Credentials");
+            }
             CloudCredentials cloudCredentials = new CloudCredentials(credentials.getUsername(), Secret.toString(credentials.getPassword()));
-
+            if (cloudCredentials == null) {
+                throw new Exception("Failed to get Cloud Credentials");
+            }
 
             URL url = new URL(targetAPI);
             HttpProxyConfiguration configuration = buildProxyConfiguration(url);
@@ -296,7 +294,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
         }
     }
 
-    public static String GetBluemixToken(ItemGroup context, String credentialsId, String targetAPI) throws MalformedURLException, CloudFoundryException {
+    public static String getBluemixToken(ItemGroup context, String credentialsId, String targetAPI) throws Exception {
 
         try {
             List<StandardUsernamePasswordCredentials> standardCredentials = CredentialsProvider.lookupCredentials(
@@ -308,8 +306,13 @@ public abstract class AbstractDevOpsAction extends Recorder {
             StandardUsernamePasswordCredentials credentials =
                     CredentialsMatchers.firstOrNull(standardCredentials, CredentialsMatchers.withId(credentialsId));
 
+            if (credentials == null || credentials.getUsername() == null || credentials.getPassword() == null) {
+                throw new Exception("Failed to get Credentials");
+            }
             CloudCredentials cloudCredentials = new CloudCredentials(credentials.getUsername(), Secret.toString(credentials.getPassword()));
-
+            if (cloudCredentials == null) {
+                throw new Exception("Failed to get Cloud Credentials");
+            }
 
             URL url = new URL(targetAPI);
             HttpProxyConfiguration configuration = buildProxyConfiguration(url);
@@ -324,7 +327,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
         }
     }
 
-    public static String GetBluemixToken(String username, String password, String targetAPI) throws MalformedURLException, CloudFoundryException {
+    public static String getBluemixToken(String username, String password, String targetAPI) throws MalformedURLException, CloudFoundryException {
         try {
 
             CloudCredentials cloudCredentials = new CloudCredentials(username, password);
@@ -483,7 +486,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
      */
     public String getBuildNumber(String jobName, Run build) {
 
-        String jName = new String();
+        String jName = "";
         Scanner s = new Scanner(jobName).useDelimiter("/");
         while(s.hasNext()){ // this will loop through the string until the last string(job name) is reached.
             jName = s.next();
