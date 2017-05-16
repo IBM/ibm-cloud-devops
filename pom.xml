@@ -21,6 +21,13 @@
   <description>IBM® Cloud DevOps aggregates and provides visualizations of the indications of a continuous delivery project’s health. Use its built-in dashboards and data reporting services to learn where you most need to improve your build, test, and delivery processes. You can also define test coverage policies to prevent bad code from being promoted to critical environments. </description>
   <url>https://wiki.jenkins-ci.org/display/JENKINS/IBM+Cloud+DevOps+Plugin</url>
 
+  <distributionManagement>
+    <repository>
+      <id>repo.jenkins-ci.org</id>
+      <url>http://repo.jenkins-ci.org/public/</url>
+    </repository>
+  </distributionManagement>
+
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
