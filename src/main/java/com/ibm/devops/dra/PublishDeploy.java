@@ -234,10 +234,10 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 			buildUrl = envVars.expand(this.buildUrl);
 		}
 
-		dlmsUrl = dlmsUrl.replace("{org_name}", orgName);
+		dlmsUrl = dlmsUrl.replace("{org_name}", URLEncoder.encode(this.orgName, "UTF-8").replaceAll("\\+", "%20"));
 		dlmsUrl = dlmsUrl.replace("{toolchain_id}", URLEncoder.encode(toolchainName, "UTF-8").replaceAll("\\+", "%20"));
 		dlmsUrl = dlmsUrl.replace("{build_artifact}", URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20"));
-		dlmsUrl = dlmsUrl.replace("{build_id}", buildNumber);
+		dlmsUrl = dlmsUrl.replace("{build_id}", URLEncoder.encode(buildNumber, "UTF-8").replaceAll("\\+", "%20"));
 		String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
 
 		String bluemixToken;

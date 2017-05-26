@@ -334,10 +334,10 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             buildUrl = envVars.expand(this.buildUrl);
         }
 
-        url = url.replace("{org_name}", this.orgName);
-        url = url.replace("{toolchain_id}", this.toolchainName);
+        url = url.replace("{org_name}", URLEncoder.encode(this.orgName, "UTF-8").replaceAll("\\+", "%20"));
+        url = url.replace("{toolchain_id}", URLEncoder.encode(this.toolchainName, "UTF-8").replaceAll("\\+", "%20"));
         url = url.replace("{build_artifact}", URLEncoder.encode(this.applicationName, "UTF-8").replaceAll("\\+", "%20"));
-        url = url.replace("{build_id}", buildNumber);
+        url = url.replace("{build_id}", URLEncoder.encode(buildNumber, "UTF-8").replaceAll("\\+", "%20"));
         this.dlmsUrl = url;
 
         String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;

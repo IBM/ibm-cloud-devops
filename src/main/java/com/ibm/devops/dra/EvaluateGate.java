@@ -325,10 +325,10 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         // create http client and post method
         CloseableHttpClient httpClient = HttpClients.createDefault();
         String url = this.draUrl;
-        url = url + "/organizations/" + orgName +
-                "/toolchainids/" + toolchainName +
+        url = url + "/organizations/" + URLEncoder.encode(orgName, "UTF-8").replaceAll("\\+", "%20") +
+                "/toolchainids/" + URLEncoder.encode(toolchainName, "UTF-8").replaceAll("\\+", "%20") +
                 "/buildartifacts/" + URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20") +
-                "/builds/" + buildId +
+                "/builds/" + URLEncoder.encode(buildId, "UTF-8").replaceAll("\\+", "%20") +
                 "/policies/" + URLEncoder.encode(policyName, "UTF-8").replaceAll("\\+", "%20") +
                 "/decisions";
         if (!Util.isNullOrEmpty(this.environmentName)) {

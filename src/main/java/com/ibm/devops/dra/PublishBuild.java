@@ -227,8 +227,8 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         try {
             CloseableHttpClient httpClient = HttpClients.createDefault();
             String url = this.dlmsUrl;
-            url = url.replace("{org_name}", this.orgName);
-            url = url.replace("{toolchain_id}", this.toolchainName);
+            url = url.replace("{org_name}", URLEncoder.encode(this.orgName, "UTF-8").replaceAll("\\+", "%20"));
+            url = url.replace("{toolchain_id}", URLEncoder.encode(this.toolchainName, "UTF-8").replaceAll("\\+", "%20"));
             url = url.replace("{build_artifact}", URLEncoder.encode(this.applicationName, "UTF-8").replaceAll("\\+", "%20"));
 
             String buildNumber = getBuildNumber(envVars.get("JOB_NAME"),build);
