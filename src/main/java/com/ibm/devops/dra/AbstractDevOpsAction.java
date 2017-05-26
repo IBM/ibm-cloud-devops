@@ -48,6 +48,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -514,7 +515,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
             LOGGER.info("ENVIRONMENT:" + environment);
         }
 
-        String orgId = getOrgId(token,orgName, environment, debug_mode);
+        String orgId = getOrgId(token, orgName, environment, debug_mode);
         ListBoxModel emptybox = new ListBoxModel();
         emptybox.add("","empty");
 
@@ -585,14 +586,15 @@ public abstract class AbstractDevOpsAction extends Recorder {
         if(debug_mode){
             LOGGER.info("GET ORG_GUID URL:" + organizations_url + orgName);
         }
-        HttpGet httpGet = new HttpGet(organizations_url + orgName);
-
-        httpGet = addProxyInformation(httpGet);
-
-        httpGet.setHeader("Authorization", token);
-        CloseableHttpResponse response = null;
 
         try {
+            HttpGet httpGet = new HttpGet(organizations_url + URLEncoder.encode(orgName, "UTF-8").replaceAll("\\+", "%20"));
+
+            httpGet = addProxyInformation(httpGet);
+
+            httpGet.setHeader("Authorization", token);
+            CloseableHttpResponse response = null;
+
             response = httpClient.execute(httpGet);
             String resStr = EntityUtils.toString(response.getEntity());
 
