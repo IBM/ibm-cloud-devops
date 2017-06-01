@@ -651,21 +651,22 @@ public abstract class AbstractDevOpsAction extends Recorder {
         emptybox.add("","empty");
 
         String url = choosePoliciesUrl(environment);
-        url = url.replace("{org_name}", orgName);
-        url = url.replace("{toolchain_name}", toolchainName);
 
-        if(debug_mode){
-            LOGGER.info("GET POLICIES URL:" + url);
-        }
-
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        HttpGet httpGet = new HttpGet(url);
-
-        httpGet = addProxyInformation(httpGet);
-
-        httpGet.setHeader("Authorization", token);
-        CloseableHttpResponse response = null;
         try {
+            url = url.replace("{org_name}", URLEncoder.encode(orgName, "UTF-8").replaceAll("\\+", "%20"));
+            url = url.replace("{toolchain_name}", URLEncoder.encode(toolchainName, "UTF-8").replaceAll("\\+", "%20"));
+
+            if(debug_mode){
+                LOGGER.info("GET POLICIES URL:" + url);
+            }
+
+            CloseableHttpClient httpClient = HttpClients.createDefault();
+            HttpGet httpGet = new HttpGet(url);
+
+            httpGet = addProxyInformation(httpGet);
+
+            httpGet.setHeader("Authorization", token);
+            CloseableHttpResponse response = null;
             response = httpClient.execute(httpGet);
             String resStr = EntityUtils.toString(response.getEntity());
 
@@ -680,7 +681,6 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
                 ListBoxModel model = new ListBoxModel();
 
-                //model.add("select", "select"); why is this here? Need to ask.
                 for (int i = 0; i < jsonArray.size(); i++) {
                     JsonObject obj = jsonArray.get(i).getAsJsonObject();
                     String name = String.valueOf(obj.get("name")).replaceAll("\"", "");
