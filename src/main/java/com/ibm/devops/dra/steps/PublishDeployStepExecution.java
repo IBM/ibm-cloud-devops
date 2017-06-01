@@ -84,7 +84,7 @@ public class PublishDeployStepExecution extends AbstractSynchronousNonBlockingSt
                     password);
             publishDeploy.perform(build, ws, launcher, listener);
         } else {
-            printStream.println("[IBM Cloud DevOps] the \"result\" in the publishDeployRecord should be either \"PASS\" or \"FAIL\"");
+            printStream.println("[IBM Cloud DevOps] the \"result\" in the publishDeployRecord should be either \"SUCCESS\" or \"FAIL\"");
         }
         return null;
     }
