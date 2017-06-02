@@ -40,6 +40,7 @@ import org.cloudfoundry.client.lib.HttpProxyConfiguration;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -111,18 +112,18 @@ public abstract class OTCAPIHelper extends Recorder {
      * Returns all orgs from OTC API for the given Bluemix token
      */    
     public static JSONObject getOrgs(EnvVars envVars, String bluemixToken, PrintStream printStream) {
-    	String orgName = envVars.get("CF_ORG");
-    	String orgsUrl = getTargetAPI(envVars) + ORGS_URL + orgName;
-
-    	CloseableHttpClient httpClient = HttpClients.createDefault();
-    	HttpGet httpGet = new HttpGet(orgsUrl);
-
-    	httpGet = addProxyInformation(httpGet);
-
-    	httpGet.setHeader("Authorization", bluemixToken);
-    	CloseableHttpResponse response = null;
-
     	try {
+        	String orgName = envVars.get("CF_ORG");
+        	String orgsUrl = getTargetAPI(envVars) + ORGS_URL + URLEncoder.encode(orgName, "UTF-8").replaceAll("\\+", "%20");
+
+        	CloseableHttpClient httpClient = HttpClients.createDefault();
+        	HttpGet httpGet = new HttpGet(orgsUrl);
+
+        	httpGet = addProxyInformation(httpGet);
+
+        	httpGet.setHeader("Authorization", bluemixToken);
+        	CloseableHttpResponse response = null;
+        	
     		response = httpClient.execute(httpGet);
     		String resStr = EntityUtils.toString(response.getEntity());
     		if (response.getStatusLine().toString().contains("200")) {
@@ -131,7 +132,7 @@ public abstract class OTCAPIHelper extends Recorder {
     		}
 
     	} catch (Exception e) {
-        	printStream.println("[IBM Cloud DevOps] Unexpected Exception:");
+        	printStream.println("[IBM Cloud DevOps] Unexpected Exception while fetching Orgs from OTC API:");
             e.printStackTrace(printStream);
         }
     	return new JSONObject();
@@ -141,18 +142,18 @@ public abstract class OTCAPIHelper extends Recorder {
      * Returns all spaces from OTC API for the given Bluemix token
      */  
     public static JSONObject getSpaces(EnvVars envVars, String bluemixToken, PrintStream printStream) {
-    	String spaceName = envVars.get("CF_SPACE");
-    	String spacesUrl = getTargetAPI(envVars) + SPACES_URL + spaceName;
-
-    	CloseableHttpClient httpClient = HttpClients.createDefault();
-    	HttpGet httpGet = new HttpGet(spacesUrl);
-
-    	httpGet = addProxyInformation(httpGet);
-
-    	httpGet.setHeader("Authorization", bluemixToken);
-    	CloseableHttpResponse response = null;
-
     	try {
+        	String spaceName = envVars.get("CF_SPACE");
+        	String spacesUrl = getTargetAPI(envVars) + SPACES_URL + URLEncoder.encode(spaceName, "UTF-8").replaceAll("\\+", "%20");
+
+        	CloseableHttpClient httpClient = HttpClients.createDefault();
+        	HttpGet httpGet = new HttpGet(spacesUrl);
+
+        	httpGet = addProxyInformation(httpGet);
+
+        	httpGet.setHeader("Authorization", bluemixToken);
+        	CloseableHttpResponse response = null;
+        	
     		response = httpClient.execute(httpGet);
     		String resStr = EntityUtils.toString(response.getEntity());
     		if (response.getStatusLine().toString().contains("200")) {
@@ -161,7 +162,7 @@ public abstract class OTCAPIHelper extends Recorder {
     		}
 
     	} catch (Exception e) {
-        	printStream.println("[IBM Cloud DevOps] Unexpected Exception:");
+        	printStream.println("[IBM Cloud DevOps] Unexpected Exception while fetching Spaces from OTC API:");
             e.printStackTrace(printStream);
         }
     	return new JSONObject();
@@ -171,20 +172,19 @@ public abstract class OTCAPIHelper extends Recorder {
      * Returns all matching apps from OTC API for the given Bluemix token, org and space
      */  
     public static JSONObject getApps(EnvVars envVars, String bluemixToken, PrintStream printStream) {
-    	String orgName = envVars.get("CF_ORG");
-    	String spaceName = envVars.get("CF_SPACE");
-    	String appName = envVars.get("CF_APP");
-    	String appsUrl = getTargetAPI(envVars) + APPS_URL + appName + ORG + orgName + SPACE + spaceName;
-    	
-    	CloseableHttpClient httpClient = HttpClients.createDefault();
-    	HttpGet httpGet = new HttpGet(appsUrl);
-
-    	httpGet = addProxyInformation(httpGet);
-
-    	httpGet.setHeader("Authorization", bluemixToken);
-    	CloseableHttpResponse response = null;
-
     	try {
+        	String orgName = envVars.get("CF_ORG");
+        	String spaceName = envVars.get("CF_SPACE");
+        	String appName = envVars.get("CF_APP");
+        	String appsUrl = getTargetAPI(envVars) + APPS_URL + URLEncoder.encode(appName, "UTF-8").replaceAll("\\+", "%20") + ORG + URLEncoder.encode(orgName, "UTF-8").replaceAll("\\+", "%20") + SPACE + URLEncoder.encode(spaceName, "UTF-8").replaceAll("\\+", "%20");
+        	
+        	CloseableHttpClient httpClient = HttpClients.createDefault();
+        	HttpGet httpGet = new HttpGet(appsUrl);
+
+        	httpGet = addProxyInformation(httpGet);
+
+        	httpGet.setHeader("Authorization", bluemixToken);
+        	CloseableHttpResponse response = null;
     		response = httpClient.execute(httpGet);
     		String resStr = EntityUtils.toString(response.getEntity());
     		if (response.getStatusLine().toString().contains("200")) {
@@ -193,7 +193,7 @@ public abstract class OTCAPIHelper extends Recorder {
     		}
 
     	} catch (Exception e) {
-        	printStream.println("[IBM Cloud DevOps] Unexpected Exception:");
+        	printStream.println("[IBM Cloud DevOps] Unexpected Exception while fetching Apps from OTC API:");
             e.printStackTrace(printStream);
         }
     	return new JSONObject();
