@@ -31,6 +31,7 @@ import hudson.tasks.Recorder;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -46,6 +47,7 @@ import org.cloudfoundry.client.lib.HttpProxyConfiguration;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -652,10 +654,10 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
         String url = choosePoliciesUrl(environment);
 
+
         try {
             url = url.replace("{org_name}", URLEncoder.encode(orgName, "UTF-8").replaceAll("\\+", "%20"));
             url = url.replace("{toolchain_name}", URLEncoder.encode(toolchainName, "UTF-8").replaceAll("\\+", "%20"));
-
             if(debug_mode){
                 LOGGER.info("GET POLICIES URL:" + url);
             }
@@ -697,8 +699,11 @@ public abstract class AbstractDevOpsAction extends Recorder {
                 }
                 return emptybox;
             }
-
-        } catch (Exception e) {
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        } catch (ClientProtocolException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
             e.printStackTrace();
         }
 
