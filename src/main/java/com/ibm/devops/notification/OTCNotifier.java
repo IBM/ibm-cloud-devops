@@ -31,6 +31,7 @@ public class OTCNotifier extends Notifier {
     private boolean onCompleted;
     private boolean onFinalized;
     private boolean failureOnly;
+    private boolean enableTraceability;
 
     /*
     The paramater names in @DataBoundConstructor need to match the fields in config.jelly exactly
@@ -39,12 +40,14 @@ public class OTCNotifier extends Notifier {
     public OTCNotifier(boolean onStarted,
                        boolean onCompleted,
                        boolean onFinalized,
-                       boolean failureOnly
+                       boolean failureOnly,
+                       boolean enableTraceability
                        ){
         this.onStarted = onStarted;
         this.onCompleted = onCompleted;
         this.onFinalized = onFinalized;
         this.failureOnly = failureOnly;
+        this.enableTraceability = enableTraceability;
     }
 
     /*
@@ -65,7 +68,11 @@ public class OTCNotifier extends Notifier {
     public Boolean getFailureOnly(){
         return this.failureOnly;
     }
-
+    
+    public Boolean getEnableTraceability(){        
+        return this.enableTraceability;
+    }
+    
     public BuildStepMonitor getRequiredMonitorService() {
         return BuildStepMonitor.NONE;
     }

@@ -87,6 +87,22 @@ public final class EventHandler {
 
         return false;
     }
+    
+    /*
+    Returns whether deployable mapping message should be sent.
+     */
+    public static boolean shouldPostDeployableMappingMessage(OTCNotifier notifier, String phase, Result result){
+    	// publish deployable mapping message only is traceability is enabled, build is completed and successful
+    	if(notifier != null){
+    		boolean onCompleted = notifier.getOnCompleted();
+    		boolean traceabilityEnabled = notifier.getEnableTraceability();
+    		
+    		if(onCompleted && "COMPLETED".equals(phase) && result.equals(Result.SUCCESS) && traceabilityEnabled){
+    			return true;
+    		}
+    	}
+    	return false;
+    }
 
     /*
         get the webhook from the build env

@@ -65,7 +65,7 @@ public class OTCNotificationExecution extends AbstractSynchronousNonBlockingStep
         }
 
         JSONObject message = MessageHandler.buildMessage(build, envVars, stageName, status);
-        MessageHandler.postToWebhook(webhookUrl, message, printStream);
+        MessageHandler.postToWebhook(webhookUrl, false, message, printStream);
 
         return null;
     }

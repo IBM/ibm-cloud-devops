@@ -32,4 +32,8 @@
     <f:entry title="Failures only" field="failureOnly">
         <f:checkbox></f:checkbox>
     </f:entry>
+    
+    <f:entry title="Track deployment of code changes" field="enableTraceability">
+        <f:checkbox></f:checkbox>
+    </f:entry>
 </j:jelly>

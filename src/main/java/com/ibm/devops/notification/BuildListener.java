@@ -14,6 +14,7 @@
 
 package com.ibm.devops.notification;
 
+import com.ibm.devops.dra.Util;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.model.*;
@@ -49,17 +50,80 @@ public class BuildListener extends RunListener<AbstractBuild> {
         EnvVars envVars = EventHandler.getEnv(r, listener, printStream);
         String webhook = EventHandler.getWebhookFromEnv(envVars);
         Result result = r.getResult();
-        Boolean isRelevant = EventHandler.isRelevant(notifier, phase, result);
 
-        if(isRelevant) {
+        // OTC Notifier
+        if(EventHandler.isRelevant(notifier, phase, result)) {
             String resultString = null;
-
             if(result != null){
                 resultString = result.toString();
             }
 
             JSONObject message = MessageHandler.buildMessage(r, envVars, phase, resultString);
-            MessageHandler.postToWebhook(webhook, message, printStream);
+            MessageHandler.postToWebhook(webhook, false, message, printStream);
         }
+        
+        // deployable mapping
+        if(EventHandler.shouldPostDeployableMappingMessage(notifier, phase, result)) {
+            String resultString = null;
+            if(result != null){
+                resultString = result.toString();
+            }
+            
+            if (validateEnvVariables(envVars, printStream)) {
+            	printStream.println("[IBM Cloud DevOps] Building Deployable Message.");
+                JSONObject message = MessageHandler.buildDeployableMappingMessage(envVars, printStream);
+                
+                MessageHandler.postToWebhook(webhook, true, message, printStream);	
+            } else {
+            	printStream.println("[IBM Cloud DevOps] Not sending Deployable Message due to missing required property.");
+            }
+        }
+    }
+    
+    public static boolean validateEnvVariables(EnvVars envVars, PrintStream printStream) {
+    	Boolean valid = true;
+    	if(envVars != null) {
+    		// required params
+    		String cf_api = envVars.get("CF_API");
+    		String cf_org = envVars.get("CF_ORG");
+    		String cf_space = envVars.get("CF_SPACE");
+    		String cf_app = envVars.get("CF_APP");
+    		String cf_user = envVars.get("CF_CREDS_USR");
+    		String cf_pwd = envVars.get("CF_CREDS_PSW");
+    		String webhook = envVars.get("IBM_CLOUD_DEVOPS_WEBHOOK_URL");
+    		//backward compatibility
+    		if (Util.isNullOrEmpty(webhook)) {
+    			webhook = envVars.get("ICD_WEBHOOK_URL");
+    		}
+    		if (Util.isNullOrEmpty(cf_api)) {
+    			printStream.println("[IBM Cloud DevOps] Missing required property CF_API");
+    			valid = false;
+    		}
+    		if (Util.isNullOrEmpty(cf_org)) {
+    			printStream.println("[IBM Cloud DevOps] Missing required property CF_ORG");
+    			valid = false;
+    		}
+    		if (Util.isNullOrEmpty(cf_space)) {
+    			printStream.println("[IBM Cloud DevOps] Missing required property CF_SPACE");
+    			valid = false;
+    		}
+    		if (Util.isNullOrEmpty(cf_app)) {
+    			printStream.println("[IBM Cloud DevOps] Missing required property CF_APP");
+    			valid = false;
+    		}
+    		if (Util.isNullOrEmpty(cf_user)) {
+    			printStream.println("[IBM Cloud DevOps] Missing required property CF_CREDS_USR");
+    			valid = false;
+    		}
+    		if (Util.isNullOrEmpty(cf_pwd)) {
+    			printStream.println("[IBM Cloud DevOps] Missing required property CF_CREDS_PSW");
+    			valid = false;
+    		}
+    		if (Util.isNullOrEmpty(webhook)) {
+    			printStream.println("[IBM Cloud DevOps] Missing required property IBM_CLOUD_DEVOPS_WEBHOOK_URL");
+    			valid = false;
+    		}
+    	}
+    	return valid;
     }
 }

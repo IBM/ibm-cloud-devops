@@ -14,10 +14,12 @@
 
 package com.ibm.devops.notification;
 
+import com.ibm.devops.dra.Util;
 import hudson.EnvVars;
 import hudson.model.Run;
 import hudson.model.Job;
 import jenkins.model.Jenkins;
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -26,7 +28,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import java.io.IOException;
 import java.io.PrintStream;
-import com.ibm.devops.dra.Util;
 
 //build message that will be posted to the webhook
 public final class MessageHandler {
@@ -117,13 +118,14 @@ public final class MessageHandler {
         return message;
     }
 
-    //post message to webhook
-    public static void postToWebhook(String webhook, JSONObject message, PrintStream printStream){
+  //post message to webhook
+    public static void postToWebhook(String webhook, boolean deployableMessage, JSONObject message, PrintStream printStream){
         //check webhook
         if(Util.isNullOrEmpty(webhook)){
             printStream.println("[IBM Cloud DevOps] IBM_CLOUD_DEVOPS_WEBHOOK_URL not set.");
             printStream.println("[IBM Cloud DevOps] Error: Failed to notify OTC.");
         } else {
+        	
             CloseableHttpClient httpClient = HttpClients.createDefault();
             HttpPost postMethod = new HttpPost(webhook);
             try {
@@ -131,6 +133,13 @@ public final class MessageHandler {
                 postMethod.setEntity(data);
                 postMethod = Proxy.addProxyInformation(postMethod);
                 postMethod.addHeader("Content-Type", "application/json");
+                
+                if (deployableMessage) {
+                	postMethod.addHeader("x-create-connection", "true");
+                	printStream.println("[IBM Cloud DevOps] Sending Deployable Mapping message to webhook:");
+                	printStream.println(message);
+                }
+                
                 CloseableHttpResponse response = httpClient.execute(postMethod);
 
                 if (response.getStatusLine().toString().matches(".*2([0-9]{2}).*")) {
@@ -143,5 +152,42 @@ public final class MessageHandler {
                 e.printStackTrace(printStream);
             }
         }
+    }
+    
+    public static JSONObject buildDeployableMappingMessage(EnvVars envVars, PrintStream printStream){
+    	try {
+    		JSONObject deployableMappingMessage = new JSONObject();
+    		// get bluemix token first
+    		String bluemixToken = OTCAPIHelper.getBluemixToken(envVars, printStream);
+            
+            // get org details
+        	JSONObject orgs= OTCAPIHelper.getOrgs(envVars, bluemixToken, printStream);
+        	JSONObject org = MessageUtil.getOrgDetails(envVars, orgs, printStream);
+        	
+        	// get space details
+        	JSONObject spaces= OTCAPIHelper.getSpaces(envVars, bluemixToken, printStream);
+        	JSONObject space = MessageUtil.getSpaceDetails(envVars, spaces, printStream);
+        	
+        	// get app details
+        	JSONObject apps= OTCAPIHelper.getApps(envVars, bluemixToken, printStream);
+        	JSONObject app = MessageUtil.getAppDetails(envVars, apps, printStream);
+        	
+        	// API
+        	String apiUrl= OTCAPIHelper.getTargetAPI(envVars);
+        	
+        	// Git
+        	JSONArray gitData= MessageUtil.buildGitData(envVars, printStream);
+        	
+        	// format deployable message
+        	deployableMappingMessage = MessageUtil.formatDeployableMappingMessage(org, space, app, apiUrl, gitData, printStream);
+        	
+        	return deployableMappingMessage;
+        	
+        } catch (Exception e) {
+        	printStream.println("[IBM Cloud DevOps] Unexpected Exception encountered while building deployable message:");
+            e.printStackTrace(printStream);
+        }
+    	
+        return new JSONObject();
     }
 }
