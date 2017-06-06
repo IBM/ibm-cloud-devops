@@ -14,6 +14,7 @@
 
 package com.ibm.devops.notification;
 
+import com.ibm.devops.dra.AbstractDevOpsAction;
 import com.ibm.devops.dra.Util;
 import hudson.EnvVars;
 import hudson.model.Run;
@@ -155,25 +156,40 @@ public final class MessageHandler {
     }
     
     public static JSONObject buildDeployableMappingMessage(EnvVars envVars, PrintStream printStream){
+    	String environment = null;
+    	// for debugging purpose only, uncomment the line below
+    	// environment = "dev"; // to target YS1
     	try {
-    		JSONObject deployableMappingMessage = new JSONObject();
-    		// get bluemix token first
-    		String bluemixToken = OTCAPIHelper.getBluemixToken(envVars, printStream);
-            
-            // get org details
-        	JSONObject orgs= OTCAPIHelper.getOrgs(envVars, bluemixToken, printStream);
-        	JSONObject org = MessageUtil.getOrgDetails(envVars, orgs, printStream);
-        	
-        	// get space details
-        	JSONObject spaces= OTCAPIHelper.getSpaces(envVars, bluemixToken, printStream);
-        	JSONObject space = MessageUtil.getSpaceDetails(envVars, spaces, printStream);
-        	
-        	// get app details
-        	JSONObject apps= OTCAPIHelper.getApps(envVars, bluemixToken, printStream);
-        	JSONObject app = MessageUtil.getAppDetails(envVars, apps, printStream);
-        	
+    		JSONObject deployableMappingMessage = new JSONObject();        	
         	// API
-        	String apiUrl= OTCAPIHelper.getTargetAPI(envVars);
+        	String apiUrl= AbstractDevOpsAction.chooseTargetAPI(environment);
+        	
+    		// get bluemix token first
+        	String userId= Util.getUser(envVars);
+        	String pwd= Util.getPassword(envVars);
+        	
+    		String bluemixToken = AbstractDevOpsAction.getBluemixToken(userId, pwd, apiUrl);
+            
+            // org details
+    		JSONObject org = new JSONObject();
+    		String orgName = Util.getOrg(envVars);
+    		org.put("Name" , orgName);
+        	String orgId= AbstractDevOpsAction.getOrgId(bluemixToken, orgName, environment, false);        	
+        	org.put("Guid" , orgId);
+        	
+        	// space details
+        	JSONObject space = new JSONObject();
+        	String spaceName = Util.getSpace(envVars);
+        	space.put("Name" , spaceName);
+        	String spaceId= AbstractDevOpsAction.getSpaceId(bluemixToken, spaceName, environment, false);        	
+        	space.put("Guid" , spaceId);
+        	
+        	// app details
+        	JSONObject app = new JSONObject();
+        	String appName = Util.getAppName(envVars);
+        	app.put("Name" , appName);
+        	String appId= AbstractDevOpsAction.getAppId(bluemixToken, appName, orgName, spaceName, environment, false);        	
+        	app.put("Guid" , appId);
         	
         	// Git
         	JSONArray gitData= MessageUtil.buildGitData(envVars, printStream);

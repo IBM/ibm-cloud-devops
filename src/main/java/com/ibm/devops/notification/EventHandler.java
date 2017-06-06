@@ -103,22 +103,4 @@ public final class EventHandler {
     	}
     	return false;
     }
-
-    /*
-        get the webhook from the build env
-     */
-    public static String getWebhookFromEnv(EnvVars envVars){
-        String webhook = null;
-
-        if(envVars != null) {
-            webhook = envVars.get("IBM_CLOUD_DEVOPS_WEBHOOK_URL");
-
-            //backward compatibility
-            if (Util.isNullOrEmpty(webhook)) {
-                webhook = envVars.get("ICD_WEBHOOK_URL");
-            }
-        }
-
-        return webhook;
-    }
 }
