@@ -96,7 +96,7 @@
   <scm>
     <connection>scm:git:git://git@github.com/jenkinsci/ibm-cloud-devops-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/ibm-cloud-devops-plugin.git</developerConnection>
-    <tag>ibm-cloud-devops-1.0.3</tag>
+    <tag>ibm-cloud-devops-1.1.0</tag>
   </scm>
 
   <repositories>

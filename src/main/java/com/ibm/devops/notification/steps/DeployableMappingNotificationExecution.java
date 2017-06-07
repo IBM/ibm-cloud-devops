@@ -57,7 +57,7 @@ public class DeployableMappingNotificationExecution extends AbstractSynchronousN
             return null;
         }
         
-        if (status == "SUCCESS") { // send deployable mapping message on for successful builds
+        if ("SUCCESS".equals(status)) { // send deployable mapping message on for successful builds
         	JSONObject message = MessageHandler.buildDeployableMappingMessage(envVars, printStream);
         	MessageHandler.postToWebhook(webhookUrl, true, message, printStream);
         }

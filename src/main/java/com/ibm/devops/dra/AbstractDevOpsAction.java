@@ -785,7 +785,11 @@ public abstract class AbstractDevOpsAction extends Recorder {
                 return null;
             }
 
-        } catch (Exception e) {
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        } catch (ClientProtocolException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
             e.printStackTrace();
         }
 

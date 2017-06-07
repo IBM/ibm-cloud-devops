@@ -160,7 +160,7 @@ public final class MessageHandler {
     	// for debugging purpose only, uncomment the line below
     	// environment = "dev"; // to target YS1
     	try {
-    		JSONObject deployableMappingMessage = new JSONObject();        	
+    		JSONObject deployableMappingMessage;
         	// API
         	String apiUrl= AbstractDevOpsAction.chooseTargetAPI(environment);
         	
