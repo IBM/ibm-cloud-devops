@@ -130,23 +130,75 @@ public class MessageHandlerTest {
         assertTrue(Util.isNullOrEmpty(""));
         assertTrue(Util.isNullOrEmpty(null));
 
-        MessageHandler.postToWebhook("", message, printStream);
+        MessageHandler.postToWebhook("", false, message, printStream);
         content = new String(baos.toByteArray(), StandardCharsets.UTF_8);
         System.out.println("content: " + content);
         assertTrue(content.contains("[IBM Cloud DevOps] IBM_CLOUD_DEVOPS_WEBHOOK_URL not set."));
 
-        MessageHandler.postToWebhook("http://fakewebhook", message, printStream);
+        MessageHandler.postToWebhook("http://fakewebhook", false, message, printStream);
         content = new String(baos.toByteArray(), StandardCharsets.UTF_8);
         assertTrue(content.contains("[IBM Cloud DevOps] Message successfully posted to webhook."));
 
         when(statusLine.toString()).thenReturn("400");
-        MessageHandler.postToWebhook("http://fakewebhook", message, printStream);
+        MessageHandler.postToWebhook("http://fakewebhook", false, message, printStream);
         content = new String(baos.toByteArray(), StandardCharsets.UTF_8);
         assertTrue(content.contains("[IBM Cloud DevOps] Message failed, response status:"));
 
         when(httpClient.execute(any(HttpPost.class))).thenThrow(new IOException("..."));
-        MessageHandler.postToWebhook("http://fakewebhook", message, printStream);
+        MessageHandler.postToWebhook("http://fakewebhook", false, message, printStream);
         content = new String(baos.toByteArray(), StandardCharsets.UTF_8);
         assertTrue(content.contains("[IBM Cloud DevOps] IOException, could not post to webhook:"));
+    }
+     
+    @Test
+    public void testPostDeployableMessageToWebhook() throws IOException {
+    	CloseableHttpClient httpClient = PowerMockito.mock(CloseableHttpClient.class);
+    	CloseableHttpResponse response = PowerMockito.mock(CloseableHttpResponse.class);
+    	PowerMockito.mockStatic(HttpClients.class);
+    	StatusLine statusLine = mock(StatusLine.class);
+    	ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    	PrintStream printStream = new PrintStream(baos);
+    	String content;
+    	JSONObject message = new JSONObject();
+
+    	when(HttpClients.createDefault()).thenReturn(httpClient);
+    	when(httpClient.execute(any(HttpPost.class))).thenReturn(response);
+    	when(response.getStatusLine()).thenReturn(statusLine);
+    	when(statusLine.toString()).thenReturn("200");
+
+    	assertTrue(Util.isNullOrEmpty(""));
+    	assertTrue(Util.isNullOrEmpty(null));
+
+    	MessageHandler.postToWebhook("", true, message, printStream);
+    	content = new String(baos.toByteArray(), StandardCharsets.UTF_8);
+    	System.out.println("content: " + content);
+    	assertTrue(content.contains("[IBM Cloud DevOps] IBM_CLOUD_DEVOPS_WEBHOOK_URL not set."));
+
+    	MessageHandler.postToWebhook("http://fakewebhook", true, message, printStream);
+    	content = new String(baos.toByteArray(), StandardCharsets.UTF_8);
+    	assertTrue(content.contains("[IBM Cloud DevOps] Message successfully posted to webhook."));
+
+    	when(statusLine.toString()).thenReturn("400");
+    	MessageHandler.postToWebhook("http://fakewebhook", true, message, printStream);
+    	content = new String(baos.toByteArray(), StandardCharsets.UTF_8);
+    	assertTrue(content.contains("[IBM Cloud DevOps] Message failed, response status:"));
+
+    	when(httpClient.execute(any(HttpPost.class))).thenThrow(new IOException("..."));
+    	MessageHandler.postToWebhook("http://fakewebhook", true, message, printStream);
+    	content = new String(baos.toByteArray(), StandardCharsets.UTF_8);
+    	assertTrue(content.contains("[IBM Cloud DevOps] IOException, could not post to webhook:"));
+    	
+    	message = new JSONObject();
+    	message.put("Org" , "{\"Name\": \"darth_vador@ibm.com\", \"Guid\": \"1b45b640-ff52-4f94-8009-9af44aa9f9c8\"}");
+    	message.put("Space" , "{\"Name\": \"dev\", \"Guid\": \"838b41a6-58e0-4c05-aaf4-817925d42332\"}");
+    	message.put("App" , "{\"Name\": \"node-hello-world\", \"Guid\": \"a7820d14-9d5d-40c7-a58c-43caeaf8cb75\"}");
+    	message.put("ApiEndpoint" , "https://api.stage1.ng.bluemix.net");
+    	message.put("Method" , "POST");
+    	message.put("GitData" , "[{\"GitURL\": \"https://github.com/dvador/simple-node-app.git\", \"GitBranch\": \"origin/master\", \"GitCommitID\": \"590c229c64ef246e5742744449963dc74493cb8a\"}]");
+    	
+    	when(httpClient.execute(any(HttpPost.class))).thenReturn(response);
+    	MessageHandler.postToWebhook("http://fakewebhook", true, message, printStream);
+    	content = new String(baos.toByteArray(), StandardCharsets.UTF_8);
+    	assertTrue(content.contains("[IBM Cloud DevOps] Message successfully posted to webhook."));
     }
 }

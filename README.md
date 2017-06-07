@@ -58,14 +58,20 @@ After the plugin is installed, you can integrate DevOps Insights into your Jenki
 6. Go to the [IBM Bluemix DevOps](https://console.ng.bluemix.net/devops), select your toolchain and click on DevOps Insights card to view Deployment Risk dashboard.
 
 
-## 3. (Optional) Configure Jenkins jobs to send notifications to tools in your toolchain (e.g., Slack, PagerDuty)
+## 3. (Optional) Configure Jenkins jobs to send notifications to tools in your toolchain (e.g., Slack, PagerDuty), and enable traceability
 
-Configure your Jenkins jobs to send notifications to your toolchain by following the instructions in the [Bluemix Docs](https://console.ng.bluemix.net/docs/services/ContinuousDelivery/toolchains_integrations.html#jenkins).
+Configure your Jenkins jobs to send notifications to tools integrated to your toolchain (e.g., Slack, PagerDuty),
+and use traceability to track code deployments through tags, labels, and comments in your Git repository (repo).
+
+Both Freestyle projects and Pipeline are supported.
+
+Detailed instructions are available in the [Bluemix Docs](https://console.ng.bluemix.net/docs/services/ContinuousDelivery/toolchains_integrations.html#jenkins).
 
 
    **Example configurations**
   * Configuring the IBM_CLOUD_DEVOPS_WEBHOOK_URL for job configurations: ![Set IBM_CLOUD_DEVOPS_WEBHOOK_URL Parameter](https://github.com/IBM/ibm-cloud-devops/blob/master/screenshots/Set-Parameterized-Webhook.png "Set Parameterized WebHook")
   * Configuring post-build actions for job notifications: ![Post-build Actions for WebHook notification](https://github.com/IBM/ibm-cloud-devops/blob/master/screenshots/PostBuild-WebHookNotification.png "Configure WebHook Notification in Post-build Actions")
+  * Configuring post-build actions to track deployment of code changes: ![Post-build Actions to track deployment of code changes](https://github.com/IBM/ibm-cloud-devops/blob/master/screenshots/track-deployment-of-code-changes.png "Configure WebHook Notification in Post-build Actions")
 
 
 ## License

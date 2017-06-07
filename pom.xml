@@ -86,6 +86,11 @@
       <name>Vijay Jegaselvan</name>
       <email>vjegase@us.ibm.com</email>
     </developer>
+    <developer>
+      <id>ejodet</id>
+      <name>Eric Jodet</name>
+      <email>eric_jodet@fr.ibm.com</email>
+    </developer>
   </developers>
 
   <scm>

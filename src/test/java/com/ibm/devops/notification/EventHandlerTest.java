@@ -14,6 +14,7 @@
 
 package com.ibm.devops.notification;
 
+import com.ibm.devops.dra.Util;
 import hudson.EnvVars;
 import hudson.model.*;
 import hudson.tasks.Publisher;
@@ -102,14 +103,14 @@ public class EventHandlerTest {
         Map<String, String> m = new HashMap<>();
         EnvVars envVars = new EnvVars(m);
 
-        assertNull(EventHandler.getWebhookFromEnv(envVars));
+        assertNull(Util.getWebhookUrl(envVars));
 
         m.put("ICD_WEBHOOK_URL", "compatibility_test");
         envVars = new EnvVars(m);
-        assertEquals("compatibility_test", EventHandler.getWebhookFromEnv(envVars));
+        assertEquals("compatibility_test", Util.getWebhookUrl(envVars));
 
         m.put("IBM_CLOUD_DEVOPS_WEBHOOK_URL", "test");
         envVars = new EnvVars(m);
-        assertEquals("test", EventHandler.getWebhookFromEnv(envVars));
+        assertEquals("test", Util.getWebhookUrl(envVars));
     }
 }

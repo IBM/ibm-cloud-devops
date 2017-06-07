@@ -27,10 +27,10 @@ import net.sf.json.JSONObject;
 
 import java.io.PrintStream;
 
-public class OTCNotificationExecution extends AbstractSynchronousNonBlockingStepExecution<Void> {
+public class DeployableMappingNotificationExecution extends AbstractSynchronousNonBlockingStepExecution<Void> {
     private static final long serialVersionUID = 1L;
     @Inject
-    private transient OTCNotificationStep step;
+    private transient DeployableMappingNotificationStep step;
     @StepContextParameter
     private transient TaskListener listener;
     @StepContextParameter
@@ -40,8 +40,6 @@ public class OTCNotificationExecution extends AbstractSynchronousNonBlockingStep
 
     @Override
     protected Void run() throws Exception {
-        String stageName = step.getStageName().trim();
-        String status = step.getStatus().trim();
         PrintStream printStream = listener.getLogger();
         String webhookUrl;
 
@@ -51,16 +49,18 @@ public class OTCNotificationExecution extends AbstractSynchronousNonBlockingStep
             webhookUrl = step.getWebhookUrl();
         }
 
+        String status = step.getStatus().trim();
         //check all the required env vars
-        if (!Util.allNotNullOrEmpty(stageName, status)) {
+        if (!Util.allNotNullOrEmpty(status)) {
             printStream.println("[IBM Cloud DevOps] Required parameter null or empty.");
             printStream.println("[IBM Cloud DevOps] Error: Failed to notify OTC.");
             return null;
         }
-
-        JSONObject message = MessageHandler.buildMessage(build, envVars, stageName, status);
-        MessageHandler.postToWebhook(webhookUrl, false, message, printStream);
-
+        
+        if (status == "SUCCESS") { // send deployable mapping message on for successful builds
+        	JSONObject message = MessageHandler.buildDeployableMappingMessage(envVars, printStream);
+        	MessageHandler.postToWebhook(webhookUrl, true, message, printStream);
+        }
         return null;
     }
 }

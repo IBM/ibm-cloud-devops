@@ -14,10 +14,13 @@
 
 package com.ibm.devops.notification;
 
+import com.ibm.devops.dra.AbstractDevOpsAction;
+import com.ibm.devops.dra.Util;
 import hudson.EnvVars;
 import hudson.model.Run;
 import hudson.model.Job;
 import jenkins.model.Jenkins;
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -26,7 +29,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import java.io.IOException;
 import java.io.PrintStream;
-import com.ibm.devops.dra.Util;
 
 //build message that will be posted to the webhook
 public final class MessageHandler {
@@ -117,13 +119,14 @@ public final class MessageHandler {
         return message;
     }
 
-    //post message to webhook
-    public static void postToWebhook(String webhook, JSONObject message, PrintStream printStream){
+  //post message to webhook
+    public static void postToWebhook(String webhook, boolean deployableMessage, JSONObject message, PrintStream printStream){
         //check webhook
         if(Util.isNullOrEmpty(webhook)){
             printStream.println("[IBM Cloud DevOps] IBM_CLOUD_DEVOPS_WEBHOOK_URL not set.");
             printStream.println("[IBM Cloud DevOps] Error: Failed to notify OTC.");
         } else {
+        	
             CloseableHttpClient httpClient = HttpClients.createDefault();
             HttpPost postMethod = new HttpPost(webhook);
             try {
@@ -131,6 +134,13 @@ public final class MessageHandler {
                 postMethod.setEntity(data);
                 postMethod = Proxy.addProxyInformation(postMethod);
                 postMethod.addHeader("Content-Type", "application/json");
+                
+                if (deployableMessage) {
+                	postMethod.addHeader("x-create-connection", "true");
+                	printStream.println("[IBM Cloud DevOps] Sending Deployable Mapping message to webhook:");
+                	printStream.println(message);
+                }
+                
                 CloseableHttpResponse response = httpClient.execute(postMethod);
 
                 if (response.getStatusLine().toString().matches(".*2([0-9]{2}).*")) {
@@ -143,5 +153,57 @@ public final class MessageHandler {
                 e.printStackTrace(printStream);
             }
         }
+    }
+    
+    public static JSONObject buildDeployableMappingMessage(EnvVars envVars, PrintStream printStream){
+    	String environment = null;
+    	// for debugging purpose only, uncomment the line below
+    	// environment = "dev"; // to target YS1
+    	try {
+    		JSONObject deployableMappingMessage = new JSONObject();        	
+        	// API
+        	String apiUrl= AbstractDevOpsAction.chooseTargetAPI(environment);
+        	
+    		// get bluemix token first
+        	String userId= Util.getUser(envVars);
+        	String pwd= Util.getPassword(envVars);
+        	
+    		String bluemixToken = AbstractDevOpsAction.getBluemixToken(userId, pwd, apiUrl);
+            
+            // org details
+    		JSONObject org = new JSONObject();
+    		String orgName = Util.getOrg(envVars);
+    		org.put("Name" , orgName);
+        	String orgId= AbstractDevOpsAction.getOrgId(bluemixToken, orgName, environment, false);        	
+        	org.put("Guid" , orgId);
+        	
+        	// space details
+        	JSONObject space = new JSONObject();
+        	String spaceName = Util.getSpace(envVars);
+        	space.put("Name" , spaceName);
+        	String spaceId= AbstractDevOpsAction.getSpaceId(bluemixToken, spaceName, environment, false);        	
+        	space.put("Guid" , spaceId);
+        	
+        	// app details
+        	JSONObject app = new JSONObject();
+        	String appName = Util.getAppName(envVars);
+        	app.put("Name" , appName);
+        	String appId= AbstractDevOpsAction.getAppId(bluemixToken, appName, orgName, spaceName, environment, false);        	
+        	app.put("Guid" , appId);
+        	
+        	// Git
+        	JSONArray gitData= MessageUtil.buildGitData(envVars, printStream);
+        	
+        	// format deployable message
+        	deployableMappingMessage = MessageUtil.formatDeployableMappingMessage(org, space, app, apiUrl, gitData, printStream);
+        	
+        	return deployableMappingMessage;
+        	
+        } catch (Exception e) {
+        	printStream.println("[IBM Cloud DevOps] Unexpected Exception encountered while building deployable message:");
+            e.printStackTrace(printStream);
+        }
+    	
+        return new JSONObject();
     }
 }

@@ -39,9 +39,8 @@ node {
                 }
                 stage('Deploy to Staging') {
                     try {
-
-                        // Push the Weather App to Bluemix, staging space
-                        sh '''
+                    	// Push the Weather App to Bluemix, staging space
+                        	sh '''
                                 echo "CF Login..."
                                 cf api https://api.ng.bluemix.net
                                 cf login -u $IBM_CLOUD_DEVOPS_CREDS_USR -p $IBM_CLOUD_DEVOPS_CREDS_PSW -o $IBM_CLOUD_DEVOPS_ORG -s staging
@@ -56,11 +55,11 @@ node {
                                 
                                 export APP_URL=http://$(cf app $CF_APP_NAME | grep urls: | awk '{print $2}')
                             '''
-
                         // use "publishDeployRecord" method to publish deploy record
                         publishDeployRecord environment: "STAGING", appUrl: "http://staging-${IBM_CLOUD_DEVOPS_APP_NAME}.mybluemix.net", result:"SUCCESS"
                         // use "notifyOTC" method to notify otc of stage status
                         notifyOTC stageName: "Deploy to Staging", status: "SUCCESS"
+                        sendDeployableMessage status: "SUCCESS"
                     }
                     catch (Exception e) {
                         publishDeployRecord environment: "STAGING", appUrl: "http://staging-${IBM_CLOUD_DEVOPS_APP_NAME}.mybluemix.net", result:"FAIL"
@@ -82,7 +81,7 @@ node {
                 }
                 stage('Deploy to Prod') {
                     try {
-                        // Push the Weather App to Bluemix, production space
+                    	// Push the Weather App to Bluemix, production space
                         sh '''
                                 echo "CF Login..."
                                 cf api https://api.ng.bluemix.net
@@ -98,10 +97,12 @@ node {
 
                                 export APP_URL=http://$(cf app $CF_APP_NAME | grep urls: | awk '{print $2}')
                             '''
-                        // use "publishDeployRecord" method to publish deploy record
+                        
+                    	// use "publishDeployRecord" method to publish deploy record
                         publishDeployRecord environment: "PRODUCTION", appUrl: "http://prod-${IBM_CLOUD_DEVOPS_APP_NAME}.mybluemix.net", result:"SUCCESS"
                         // use "notifyOTC" method to notify otc of stage status
                         notifyOTC stageName: "Deploy to Prod", status: "SUCCESS"
+                        sendDeployableMessage status: "SUCCESS"
                     }
                     catch(Exception e) {
                         publishDeployRecord environment: "PRODUCTION", appUrl: "http://prod-${IBM_CLOUD_DEVOPS_APP_NAME}.mybluemix.net", result:"FAIL"

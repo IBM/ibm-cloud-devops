@@ -177,25 +177,43 @@ stage('Deploy') {
 ```
 
 #### Optional
-In both cases you can override the IBM_CLOUD_WEBHOOK_URL:
+In both cases you can override the IBM_CLOUD_DEVOPS_WEBHOOK_URL:
 ```
 notifyOTC stageName: "Deploy", status: "FAILURE", webhookUrl: "https://different-webhook-url@devops-api.ng.bluemix.net/v1/toolint/messaging/webhook/publish"
 ```
 
 ### 7. Traceability
-Configure your Jenkins environment to create a deployable mapping and send traceability information to your Bluemix Toolchain by following the instructions in steps 8.a and 8.b of the [Bluemix Docs](https://console.ng.bluemix.net/docs/services/ContinuousDelivery/toolchains_integrations.html#jenkins).
+Configure your Jenkins environment to create a deployable mapping message in order to send traceability information to your bluemix toolchain and track code deployments through tags, labels, and comments in your Git repository (repo) by following the instructions below.
 
-Simply add `cf icd --create-connection $IBM_CLOUD_DEVOPS_WEBHOOK_URL $CF_APP_NAME` just after your deploy step. Please note that you must have both the CF CLI and CF ICD plugin installed and you must also be logged into CF before you can run this command. Here is an example:
+#### Add the space environment variable
+Traceability requires an additional space environment variable defined as follow:
 
-<pre>
-sh '''
-    echo "CF Login..."
-    cf api https://api.ng.bluemix.ginet
-    cf login -u $IBM_CLOUD_DEVOPS_CREDS_USR -p $IBM_CLOUD_DEVOPS_CREDS_PSW -o $IBM_CLOUD_DEVOPS_ORG -s staging
-    echo "Deploying...."
-    export CF_APP_NAME="staging-$IBM_CLOUD_DEVOPS_APP_NAME"
-    cf delete $CF_APP_NAME -f
-    cf push $CF_APP_NAME -n $CF_APP_NAME -m 64M -i 1
-    <b>cf icd --create-connection $IBM_CLOUD_DEVOPS_WEBHOOK_URL $CF_APP_NAME</b>
-'''
-</pre>
+`IBM_CLOUD_DEVOPS_SPACE` - the bluemix space where your application is deployed.
+
+#### Send deployable mapping message
+Simply add the following line to you deploy stage:
+	sendDeployableMessage status: "SUCCESS"
+
+#### Optional
+You can override the `IBM_CLOUD_DEVOPS_WEBHOOK_URL`:
+
+```
+sendDeployableMessage status: "SUCCESS", webhookUrl: "https://different-webhook-url@devops-api.ng.bluemix.net/v1/toolint/messaging/webhook/publish"
+
+#### Important
+Add this line only when stage status is "SUCCESS". Any other status will be discarded.
+
+#### Scripted Pipeline Example:
+```
+stage('Deploy') {
+  try {
+      ... (deploy steps)
+
+      notifyOTC stageName: "Deploy", status: "SUCCESS"
+      sendDeployableMessage status: "SUCCESS"
+  }
+  catch (Exception e) {
+      notifyOTC stageName: "Deploy", status: "FAILURE"
+  }
+}
+```
