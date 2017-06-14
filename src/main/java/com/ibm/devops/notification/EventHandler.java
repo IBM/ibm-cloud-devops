@@ -92,12 +92,9 @@ public final class EventHandler {
     Returns whether deployable mapping message should be sent.
      */
     public static boolean shouldPostDeployableMappingMessage(OTCNotifier notifier, String phase, Result result){
-    	// publish deployable mapping message only is traceability is enabled, build is completed and successful
-    	if(notifier != null){
-    		boolean onCompleted = notifier.getOnCompleted();
-    		boolean traceabilityEnabled = notifier.getEnableTraceability();
-    		
-    		if(onCompleted && "COMPLETED".equals(phase) && result.equals(Result.SUCCESS) && traceabilityEnabled){
+    	// publish deployable mapping message only is traceability is enabled, phase is completed and build is successful
+    	if(notifier != null && notifier.getEnableTraceability()){   		
+    		if(phase == "COMPLETED" && result.equals(Result.SUCCESS)){
     			return true;
     		}
     	}
