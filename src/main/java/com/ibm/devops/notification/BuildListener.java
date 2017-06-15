@@ -64,18 +64,21 @@ public class BuildListener extends RunListener<AbstractBuild> {
         
         // deployable mapping
         if(EventHandler.shouldPostDeployableMappingMessage(notifier, phase, result)) {
+        	printStream.println("[IBM Cloud DevOps] Building Deployable Message.");
             String resultString = null;
             if(result != null){
                 resultString = result.toString();
             }
             
             if (Util.validateEnvVariables(envVars, printStream)) {
-            	printStream.println("[IBM Cloud DevOps] Building Deployable Message.");
-                JSONObject message = MessageHandler.buildDeployableMappingMessage(envVars, printStream);                
+                JSONObject message = MessageHandler.buildDeployableMappingMessage(envVars, printStream); 
+                printStream.println("[IBM Cloud DevOps] Sending Deployable Message.");
                 MessageHandler.postToWebhook(webhook, true, message, printStream);	
             } else {
             	printStream.println("[IBM Cloud DevOps] Not sending Deployable Message due to missing required property.");
             }
+        } else {
+        	printStream.println("[IBM Cloud DevOps] Not building Deployable Message.");
         }
     }
 }

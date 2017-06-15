@@ -26,6 +26,7 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.impl.client.HttpClients;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -126,8 +127,15 @@ public final class MessageHandler {
             printStream.println("[IBM Cloud DevOps] IBM_CLOUD_DEVOPS_WEBHOOK_URL not set.");
             printStream.println("[IBM Cloud DevOps] Error: Failed to notify OTC.");
         } else {
-        	
-            CloseableHttpClient httpClient = HttpClients.createDefault();
+        	// set a 5 seconds timeout
+        	RequestConfig defaultRequestConfig = RequestConfig.custom()
+        		    .setSocketTimeout(5000)
+        		    .setConnectTimeout(5000)
+        		    .setConnectionRequestTimeout(5000)
+        		    .build();
+        	CloseableHttpClient httpClient = HttpClients.custom()
+        		    .setDefaultRequestConfig(defaultRequestConfig)
+        		    .build();
             HttpPost postMethod = new HttpPost(webhook);
             try {
                 StringEntity data = new StringEntity(message.toString());

@@ -21,9 +21,11 @@ import hudson.model.Run;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.apache.http.StatusLine;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.junit.Before;
 import org.junit.Test;
@@ -113,6 +115,7 @@ public class MessageHandlerTest {
 
     @Test
     public void testPostToWebhook() throws IOException {
+    	HttpClientBuilder httpClientBuilder = PowerMockito.mock(HttpClientBuilder.class);
         CloseableHttpClient httpClient = PowerMockito.mock(CloseableHttpClient.class);
         CloseableHttpResponse response = PowerMockito.mock(CloseableHttpResponse.class);
         PowerMockito.mockStatic(HttpClients.class);
@@ -121,8 +124,14 @@ public class MessageHandlerTest {
         PrintStream printStream = new PrintStream(baos);
         String content;
         JSONObject message = new JSONObject();
-
-        when(HttpClients.createDefault()).thenReturn(httpClient);
+        
+        RequestConfig defaultRequestConfig = RequestConfig.custom()
+    		    .setSocketTimeout(5000)
+    		    .setConnectTimeout(5000)
+    		    .setConnectionRequestTimeout(5000)
+    		    .build();
+        when(HttpClients.custom()).thenReturn(httpClientBuilder);
+        when(httpClientBuilder.setDefaultRequestConfig(defaultRequestConfig).build()).thenReturn(httpClient);
         when(httpClient.execute(any(HttpPost.class))).thenReturn(response);
         when(response.getStatusLine()).thenReturn(statusLine);
         when(statusLine.toString()).thenReturn("200");
@@ -152,6 +161,7 @@ public class MessageHandlerTest {
      
     @Test
     public void testPostDeployableMessageToWebhook() throws IOException {
+    	HttpClientBuilder httpClientBuilder = PowerMockito.mock(HttpClientBuilder.class);
     	CloseableHttpClient httpClient = PowerMockito.mock(CloseableHttpClient.class);
     	CloseableHttpResponse response = PowerMockito.mock(CloseableHttpResponse.class);
     	PowerMockito.mockStatic(HttpClients.class);
@@ -161,7 +171,13 @@ public class MessageHandlerTest {
     	String content;
     	JSONObject message = new JSONObject();
 
-    	when(HttpClients.createDefault()).thenReturn(httpClient);
+    	RequestConfig defaultRequestConfig = RequestConfig.custom()
+    		    .setSocketTimeout(5000)
+    		    .setConnectTimeout(5000)
+    		    .setConnectionRequestTimeout(5000)
+    		    .build();
+        when(HttpClients.custom()).thenReturn(httpClientBuilder);
+        when(httpClientBuilder.setDefaultRequestConfig(defaultRequestConfig).build()).thenReturn(httpClient);
     	when(httpClient.execute(any(HttpPost.class))).thenReturn(response);
     	when(response.getStatusLine()).thenReturn(statusLine);
     	when(statusLine.toString()).thenReturn("200");
