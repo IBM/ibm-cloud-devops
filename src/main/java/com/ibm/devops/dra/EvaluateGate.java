@@ -96,7 +96,8 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
                         String buildJobName,
                         String credentialsId,
                         boolean willDisrupt,
-                        EnvironmentScope scope) {
+                        EnvironmentScope scope,
+                        OptionalBuildInfo additionalBuildInfo) {
         this.policyName = policyName;
         this.orgName = orgName;
         this.applicationName = applicationName;
@@ -108,6 +109,11 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         this.scope = scope;
         this.envName = scope.getEnvName();
         this.isDeploy = scope.isDeploy();
+        if (additionalBuildInfo == null) {
+            this.buildNumber = null;
+        } else {
+            this.buildNumber = additionalBuildInfo.buildNumber;
+        }
     }
 
     public EvaluateGate(String policyName,
@@ -183,6 +189,15 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
 
     public boolean isDeploy() {
         return isDeploy;
+    }
+
+    public static class OptionalBuildInfo {
+        private String buildNumber;
+
+        @DataBoundConstructor
+        public OptionalBuildInfo(String buildNumber, String buildUrl) {
+            this.buildNumber = buildNumber;
+        }
     }
 
     /**
@@ -317,10 +332,6 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             }
         }
     }
-
-//    public boolean perform(Run build, Launcher launcher, TaskListener listener) throws InterruptedException, IOException {
-//
-//    }
 
     @Override
     public BuildStepMonitor getRequiredMonitorService() {

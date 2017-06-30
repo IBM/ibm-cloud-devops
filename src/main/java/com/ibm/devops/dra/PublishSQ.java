@@ -65,13 +65,13 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
     private final static String CONTENT_TYPE_JSON = "application/json";
 
     // form fields from UI
-    private String buildNumber;
     private String applicationName;
     private String buildJobName;
     private String orgName;
     private String toolchainName;
     private String environmentName;
     private String credentialsId;
+    private String buildNumber;
 
     private String SQProjectKey;
     private String SQHostName;
@@ -89,14 +89,14 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
 
     @DataBoundConstructor
     public PublishSQ(String credentialsId,
-                        String orgName,
-                        String toolchainName,
-                        String buildJobName,
-                        String applicationName,
-                        String SQHostName,
-                        String SQAuthToken,
-                        String SQProjectKey,
-                        Boolean isFreestyle) {
+                     String orgName,
+                     String toolchainName,
+                     String buildJobName,
+                     String applicationName,
+                     String SQHostName,
+                     String SQAuthToken,
+                     String SQProjectKey,
+                     OptionalBuildInfo additionalBuildInfo) {
         this.credentialsId = credentialsId;
         this.orgName = orgName;
         this.toolchainName = toolchainName;
@@ -105,6 +105,12 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         this.SQHostName = SQHostName;
         this.SQAuthToken = SQAuthToken;
         this.SQProjectKey = SQProjectKey;
+
+        if (additionalBuildInfo == null) {
+            this.buildNumber = null;
+        } else {
+            this.buildNumber = additionalBuildInfo.buildNumber;
+        }
     }
 
     public PublishSQ(String orgName,
@@ -171,6 +177,16 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
     public boolean isDeploy() {
         return isDeploy;
     }
+
+    public static class OptionalBuildInfo {
+        private String buildNumber;
+
+        @DataBoundConstructor
+        public OptionalBuildInfo(String buildNumber) {
+            this.buildNumber = buildNumber;
+        }
+    }
+
 
     @Override
     public void perform(@Nonnull Run build, @Nonnull FilePath workspace, @Nonnull Launcher launcher, @Nonnull TaskListener listener) throws InterruptedException, IOException {

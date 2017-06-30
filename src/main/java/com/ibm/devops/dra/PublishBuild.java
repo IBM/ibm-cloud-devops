@@ -78,11 +78,16 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
 
 
     @DataBoundConstructor
-    public PublishBuild(String applicationName, String orgName, String credentialsId, String toolchainName) {
+    public PublishBuild(String applicationName, String orgName, String credentialsId, String toolchainName, OptionalBuildInfo additionalBuildInfo) {
         this.credentialsId = credentialsId;
         this.applicationName = applicationName;
         this.orgName = orgName;
         this.toolchainName = toolchainName;
+        if (additionalBuildInfo == null) {
+            this.buildNumber = null;
+        } else {
+            this.buildNumber = additionalBuildInfo.buildNumber;
+        }
     }
 
     public PublishBuild(String result, String gitRepo, String gitBranch, String gitCommit, String orgName, String applicationName, String toolchainName, String username, String password) {
@@ -142,6 +147,15 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
 
     public String getBuildNumber() {
         return buildNumber;
+    }
+
+    public static class OptionalBuildInfo {
+        private String buildNumber;
+
+        @DataBoundConstructor
+        public OptionalBuildInfo(String buildNumber, String buildUrl) {
+            this.buildNumber = buildNumber;
+        }
     }
 
     @Override
