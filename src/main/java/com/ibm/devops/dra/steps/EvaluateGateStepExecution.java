@@ -55,6 +55,9 @@ public class EvaluateGateStepExecution extends AbstractSynchronousNonBlockingSte
         String username = envVars.get("IBM_CLOUD_DEVOPS_CREDS_USR");
         String password = envVars.get("IBM_CLOUD_DEVOPS_CREDS_PSW");
 
+        // optional build number, if user wants to set their own build number
+        String buildNumber = envVars.get("IBM_CLOUD_DEVOPS_BUILD_NUMBER");
+
         //check all the required env vars
         if (!Util.allNotNullOrEmpty(orgName, applicationName,toolchainName, username, password)) {
             printStream.println("[IBM Cloud DevOps] Missing environment variables configurations, please specify all required environment variables in the pipeline");
@@ -85,6 +88,9 @@ public class EvaluateGateStepExecution extends AbstractSynchronousNonBlockingSte
                 password,
                 willDisrupt);
         try {
+            if (!Util.isNullOrEmpty(buildNumber)) {
+                evaluateGate.setBuildNumber(buildNumber);
+            }
             evaluateGate.perform(build, ws, launcher, listener);
         } catch (AbortException e) {
             throw new AbortException("Decision is fail");

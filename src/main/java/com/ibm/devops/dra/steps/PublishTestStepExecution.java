@@ -54,6 +54,10 @@ public class PublishTestStepExecution extends AbstractSynchronousNonBlockingStep
         String username = envVars.get("IBM_CLOUD_DEVOPS_CREDS_USR");
         String password = envVars.get("IBM_CLOUD_DEVOPS_CREDS_PSW");
 
+        // optional build number, if user wants to set their own build number
+        String buildNumber = envVars.get("IBM_CLOUD_DEVOPS_BUILD_NUMBER");
+
+
         //check all the required env vars
         if (!Util.allNotNullOrEmpty(orgName, applicationName,toolchainName, username, password)) {
             printStream.println("[IBM Cloud DevOps] Missing environment variables configurations, please specify all required environment variables in the pipeline");
@@ -81,6 +85,9 @@ public class PublishTestStepExecution extends AbstractSynchronousNonBlockingStep
                     toolchainName,
                     username,
                     password);
+            if (!Util.isNullOrEmpty(buildNumber)) {
+                publishTest.setBuildNumber(buildNumber);
+            }
             publishTest.perform(build, ws, launcher, listener);
         } else {
             printStream.println("[IBM Cloud DevOps] the \"type\" in the publishTestResult should be either \"unittest\", \"code\" or \"fvt\"");
