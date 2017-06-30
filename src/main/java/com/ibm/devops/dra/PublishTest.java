@@ -162,6 +162,10 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         this.password = password;
     }
 
+    public void setBuildNumber(String buildNumber) {
+        this.buildNumber = buildNumber;
+    }
+
     /**
      * We'll use this from the <tt>config.jelly</tt>.
      */
@@ -331,7 +335,15 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             }
         } else {
             buildNumber = envVars.expand(this.buildNumber);
-            buildUrl = envVars.expand(this.buildUrl);
+
+            if (Util.isNullOrEmpty(this.buildUrl)) {
+                // the case for jenkins pipeline, build url is the current url
+                String rootUrl = Jenkins.getInstance().getRootUrl();
+                buildUrl = rootUrl + build.getUrl();
+            } else {
+                // for the freestyle job, which the build is built outside of the Jenkins
+                buildUrl = envVars.expand(this.buildUrl);
+            }
         }
 
         url = url.replace("{org_name}", URLEncoder.encode(this.orgName, "UTF-8").replaceAll("\\+", "%20"));

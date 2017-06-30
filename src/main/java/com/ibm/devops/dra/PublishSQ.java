@@ -125,6 +125,10 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         this.IBMpassword = IBMpassword;
     }
 
+    public void setBuildNumber(String buildNumber) {
+        this.buildNumber = buildNumber;
+    }
+
     /**
      * We'll use this from the <tt>config.jelly</tt>.
      */

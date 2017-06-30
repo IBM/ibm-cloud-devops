@@ -42,10 +42,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.*;
 
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
@@ -135,6 +132,10 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		this.orgName = orgName;
 		this.username = username;
 		this.password = password;
+	}
+
+	public void setBuildNumber(String buildNumber) {
+		this.buildNumber = buildNumber;
 	}
 
 	/**
@@ -231,7 +232,15 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 			}
 		} else {
 			buildNumber = envVars.expand(this.buildNumber);
-			buildUrl = envVars.expand(this.buildUrl);
+
+			if (Util.isNullOrEmpty(this.buildUrl)) {
+				// the case for jenkins pipeline, build url is the current url
+				String rootUrl = Jenkins.getInstance().getRootUrl();
+				buildUrl = rootUrl + build.getUrl();
+			} else {
+				// for the freestyle job, which the build is built outside of the Jenkins
+				buildUrl = envVars.expand(this.buildUrl);
+			}
 		}
 
 		dlmsUrl = dlmsUrl.replace("{org_name}", URLEncoder.encode(this.orgName, "UTF-8").replaceAll("\\+", "%20"));

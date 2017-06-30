@@ -83,7 +83,8 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
     //fields to support jenkins pipeline
     private String username;
     private String password;
-
+    // optional customized build number
+    private String buildNumber;
 
     // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
     @DataBoundConstructor
@@ -128,6 +129,10 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         this.willDisrupt = willDisrupt;
     }
 
+    public void setBuildNumber(String buildNumber) {
+        this.buildNumber = buildNumber;
+    }
+
     /**
      * We'll use this from the <tt>config.jelly</tt>.
      */
@@ -168,6 +173,9 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         return scope;
     }
 
+    public String getBuildNumber() {
+        return buildNumber;
+    }
 
     public String getEnvName() {
         return envName;
@@ -219,18 +227,21 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         String reportUrl = chooseReportUrl(env);
 
         String buildNumber;
-
-        // locate the build job that triggers current build
-        Run triggeredBuild = getTriggeredBuild(build, buildJobName, envVars, printStream);
-        if (triggeredBuild == null) {
-            //failed to find the build job
-            return;
-        } else {
-            if (Util.isNullOrEmpty(this.buildJobName)) {
-                // handle the case which the build job name left empty, and the pipeline case
-                this.buildJobName = envVars.get("JOB_NAME");
+        if (Util.isNullOrEmpty(this.buildNumber)) {
+            // locate the build job that triggers current build
+            Run triggeredBuild = getTriggeredBuild(build, buildJobName, envVars, printStream);
+            if (triggeredBuild == null) {
+                //failed to find the build job
+                return;
+            } else {
+                if (Util.isNullOrEmpty(this.buildJobName)) {
+                    // handle the case which the build job name left empty, and the pipeline case
+                    this.buildJobName = envVars.get("JOB_NAME");
+                }
+                buildNumber = getBuildNumber(buildJobName, triggeredBuild);
             }
-            buildNumber = getBuildNumber(buildJobName, triggeredBuild);
+        } else {
+            buildNumber = envVars.expand(this.buildNumber);
         }
 
         String bluemixToken;

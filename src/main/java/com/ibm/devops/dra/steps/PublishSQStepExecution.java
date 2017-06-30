@@ -59,6 +59,9 @@ public class PublishSQStepExecution extends AbstractSynchronousNonBlockingStepEx
         String SQHostURL = step.getSQHostURL();
         String SQAuthToken = step.getSQAuthToken();
 
+        // optional build number, if user wants to set their own build number
+        String buildNumber = envVars.get("IBM_CLOUD_DEVOPS_BUILD_NUMBER");
+
         //check all the required env vars
         if (!Util.allNotNullOrEmpty(orgName, applicationName, toolchainName, IBMusername, IBMpassword, SQAuthToken, SQProjectKey, SQHostURL)) {
             printStream.println("[IBM Cloud DevOps] Missing environment variables configurations, please specify all required environment variables in the pipeline");
@@ -75,6 +78,10 @@ public class PublishSQStepExecution extends AbstractSynchronousNonBlockingStepEx
                 SQAuthToken,
                 IBMusername,
                 IBMpassword);
+
+        if (!Util.isNullOrEmpty(buildNumber)) {
+            publisher.setBuildNumber(buildNumber);
+        }
         publisher.perform(build, ws, launcher, listener);
 
         return null;

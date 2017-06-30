@@ -73,6 +73,8 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
     private String gitCommit;
     private String username;
     private String password;
+    // optional customized build number
+    private String buildNumber;
 
 
     @DataBoundConstructor
@@ -115,6 +117,10 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         this.toolchainName = toolchainName;
     }
 
+    public void setBuildNumber(String buildNumber) {
+        this.buildNumber = buildNumber;
+    }
+
     /**
      * We'll use this from the <tt>config.jelly</tt>.
      */
@@ -134,6 +140,9 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         return toolchainName;
     }
 
+    public String getBuildNumber() {
+        return buildNumber;
+    }
 
     @Override
     public void perform(@Nonnull Run build, @Nonnull FilePath workspace, @Nonnull Launcher launcher, @Nonnull TaskListener listener) throws InterruptedException, IOException {
@@ -231,7 +240,13 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             url = url.replace("{toolchain_id}", URLEncoder.encode(this.toolchainName, "UTF-8").replaceAll("\\+", "%20"));
             url = url.replace("{build_artifact}", URLEncoder.encode(this.applicationName, "UTF-8").replaceAll("\\+", "%20"));
 
-            String buildNumber = getBuildNumber(envVars.get("JOB_NAME"),build);
+            String buildNumber;
+            if (Util.isNullOrEmpty(this.buildNumber)) {
+                buildNumber = getBuildNumber(envVars.get("JOB_NAME"), build);
+            } else {
+                buildNumber = envVars.expand(this.buildNumber);
+            }
+
             String buildUrl = Jenkins.getInstance().getRootUrl() + build.getUrl();
 
             HttpPost postMethod = new HttpPost(url);
