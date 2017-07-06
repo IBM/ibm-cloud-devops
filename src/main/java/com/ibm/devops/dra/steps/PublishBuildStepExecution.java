@@ -54,9 +54,6 @@ public class PublishBuildStepExecution extends AbstractSynchronousNonBlockingSte
         String username = envVars.get("IBM_CLOUD_DEVOPS_CREDS_USR");
         String password = envVars.get("IBM_CLOUD_DEVOPS_CREDS_PSW");
 
-        // optional build number, if user wants to set their own build number
-        String buildNumber = envVars.get("IBM_CLOUD_DEVOPS_BUILD_NUMBER");
-
         //check all the required env vars
         if (!Util.allNotNullOrEmpty(orgName, applicationName,toolchainName, username, password)) {
             printStream.println("[IBM Cloud DevOps] Missing environment variables configurations, please specify all required environment variables in the pipeline");
@@ -69,6 +66,9 @@ public class PublishBuildStepExecution extends AbstractSynchronousNonBlockingSte
         String gitRepo = step.getGitRepo();
         String gitBranch = step.getGitBranch();
         String gitCommit = step.getGitCommit();
+        // optional build number, if user wants to set their own build number
+        String buildNumber = step.getBuildNumber();
+
         if (!Util.allNotNullOrEmpty(result, gitRepo, gitBranch, gitCommit)) {
             printStream.println("[IBM Cloud DevOps] publishBuildRecord is missing required parameters, " +
                     "please make sure you specify \"result\", \"gitRepo\", \"gitBranch\", \"gitCommit\"");

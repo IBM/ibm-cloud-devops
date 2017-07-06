@@ -141,7 +141,7 @@ public class MessageHandlerTest {
 
         MessageHandler.postToWebhook("", false, message, printStream);
         content = new String(baos.toByteArray(), StandardCharsets.UTF_8);
-        System.out.println("content: " + content);
+
         assertTrue(content.contains("[IBM Cloud DevOps] IBM_CLOUD_DEVOPS_WEBHOOK_URL not set."));
 
         MessageHandler.postToWebhook("http://fakewebhook", false, message, printStream);

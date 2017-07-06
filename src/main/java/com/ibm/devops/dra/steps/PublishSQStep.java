@@ -35,6 +35,9 @@ public class PublishSQStep extends AbstractStepImpl {
     private String SQAuthToken;
     private String SQProjectKey;
 
+    // custom build number, optional
+    private String buildNumber;
+
     @DataBoundConstructor
     public PublishSQStep(String SQHostURL, String SQAuthToken, String SQProjectKey) {
 
@@ -78,10 +81,18 @@ public class PublishSQStep extends AbstractStepImpl {
         this.SQAuthToken = SQAuthToken;
     }
 
-
     @DataBoundSetter
     public void setSQProjectKey(String SQProjectKey) {
         this.SQProjectKey = SQProjectKey;
+    }
+
+    @DataBoundSetter
+    public void setBuildNumber(String buildNumber) {
+        this.buildNumber = buildNumber;
+    }
+
+    public String getBuildNumber() {
+        return buildNumber;
     }
 
     public String getApplicationName() {
