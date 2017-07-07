@@ -273,12 +273,12 @@ public abstract class AbstractDevOpsAction extends Recorder {
      */
     public static String chooseReportUrl(String envStr) {
         if (!Util.isNullOrEmpty(envStr)) {
-            String ccUrl = DRA_REPORT_ENV_MAP.get(envStr);
+            String ccUrl = CONTROL_CENTER_ENV_MAP.get(envStr);
             if (!Util.isNullOrEmpty(ccUrl)) {
                 return ccUrl;
             }
         }
-        return DRA_REPORT_ENV_MAP.get("production");
+        return CONTROL_CENTER_ENV_MAP.get("production");
     }
 
     /**

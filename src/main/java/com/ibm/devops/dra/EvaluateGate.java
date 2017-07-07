@@ -239,7 +239,6 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         String env = getDescriptor().getEnvironment();
         this.draUrl = chooseDRAUrl(env);
         String targetAPI = chooseTargetAPI(env);
-        String reportUrl = chooseReportUrl(env);
 
         String buildNumber;
         if (Util.isNullOrEmpty(this.buildNumber)) {
@@ -297,15 +296,17 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             }
 
             String cclink = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
+            String reportUrl = chooseReportUrl(env) + "decisionreport?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId="
+                    + URLEncoder.encode(toolchainName, "UTF-8") + "&reportId=" + decisionId;
 
-            GatePublisherAction action = new GatePublisherAction(reportUrl + decisionId, cclink, decision, this.policyName, build);
+            GatePublisherAction action = new GatePublisherAction(reportUrl, cclink, decision, this.policyName, build);
             build.addAction(action);
 
+            printStream.println("************************************");
+            printStream.println("Check IBM Cloud DevOps Gate Evaluation report here -" + reportUrl);
+            printStream.println("Check IBM Cloud DevOps Deployment Risk Dashboard here -" + cclink);
             // console output for a "fail" decision
             if (decision.equals("Failed")) {
-                printStream.println("************************************");
-                printStream.println("Check IBM Cloud DevOps Gate Evaluation report here -" + reportUrl + decisionId);
-                printStream.println("Check IBM Cloud DevOps Deployment Risk Dashboard here -" + cclink);
                 printStream.println("IBM Cloud DevOps decision to proceed is:  false");
                 printStream.println("************************************");
                 if (willDisrupt) {
@@ -317,9 +318,6 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             }
 
             // console output for a "proceed" decision
-            printStream.println("************************************");
-            printStream.println("Check IBM Cloud DevOps Gate Evaluation report here -" + reportUrl + decisionId);
-            printStream.println("Check IBM Cloud DevOps Deployment Risk Dashboard here -" + cclink);
             printStream.println("IBM Cloud DevOps decision to proceed is:  true");
             printStream.println("************************************");
             return;
