@@ -15,7 +15,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.ibm.devops</groupId>
   <artifactId>ibm-cloud-devops</artifactId>
-  <version>1.1.2-SNAPSHOT</version>
+  <version>1.1.1</version>
   <packaging>hpi</packaging>
   <name>IBM Cloud DevOps</name>
   <description>This plugin can be used to integrate your Jenkins pipelines and jobs with IBM DevOps Insights offering.  The IBM DevOps Insights offering tracks your deployment risk based on the data that you publish to it.  It provides Gates so that you can stop builds from getting deployed if the Gate policy is not met.  The offering also provides analysis of your Git repo.  For example, it can provide trends for large commits, error prone files, and team dynamics.  Very soon, the offering will provide more trends, e.g., Deploy Frequency, Build Frequency, Unit Tests and Code Coverage and Function Verification Tests for builds that have deployed to production or other environments.</description>
@@ -96,7 +96,7 @@
   <scm>
     <connection>scm:git:git://git@github.com/jenkinsci/ibm-cloud-devops-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/ibm-cloud-devops-plugin.git</developerConnection>
-    <tag>ibm-cloud-devops-1.1.0</tag>
+    <tag>ibm-cloud-devops-1.1.1</tag>
   </scm>
 
   <repositories>
