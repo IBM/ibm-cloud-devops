@@ -35,6 +35,9 @@ public class PublishBuildStep extends AbstractStepImpl {
     private String gitBranch;
     private String gitCommit;
 
+    // custom build number, optional
+    private String buildNumber;
+
     @DataBoundConstructor
     public PublishBuildStep(String result, String gitRepo, String gitBranch, String gitCommit) {
         this.gitRepo = gitRepo;
@@ -61,6 +64,11 @@ public class PublishBuildStep extends AbstractStepImpl {
     @DataBoundSetter
     public void setToolchainId(String toolchainId) {
         this.toolchainId = toolchainId;
+    }
+
+    @DataBoundSetter
+    public void setBuildNumber(String buildNumber) {
+        this.buildNumber = buildNumber;
     }
 
     public String getApplicationName() {
@@ -93,6 +101,10 @@ public class PublishBuildStep extends AbstractStepImpl {
 
     public String getResult() {
         return result;
+    }
+
+    public String getBuildNumber() {
+        return buildNumber;
     }
 
     @Extension

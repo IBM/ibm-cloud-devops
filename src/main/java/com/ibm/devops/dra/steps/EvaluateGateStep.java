@@ -35,6 +35,7 @@ public class EvaluateGateStep extends AbstractStepImpl {
     // optional gate parameters
     private String forceDecision;
     private String environment;
+    private String buildNumber;
 
     @DataBoundConstructor
     public EvaluateGateStep(String policy) {
@@ -69,6 +70,15 @@ public class EvaluateGateStep extends AbstractStepImpl {
     @DataBoundSetter
     public void setForceDecision(String forceDecision) {
         this.forceDecision = forceDecision;
+    }
+
+    @DataBoundSetter
+    public void setBuildNumber(String buildNumber) {
+        this.buildNumber = buildNumber;
+    }
+
+    public String getBuildNumber() {
+        return buildNumber;
     }
 
     public String getApplicationName() {

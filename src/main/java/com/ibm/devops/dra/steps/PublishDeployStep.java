@@ -34,6 +34,9 @@ public class PublishDeployStep extends AbstractStepImpl {
     private String environment;
     private String appUrl;
 
+    // custom build number, optional
+    private String buildNumber;
+
     @DataBoundConstructor
     public PublishDeployStep(String result, String environment, String appUrl) {
         this.environment = environment;
@@ -59,6 +62,15 @@ public class PublishDeployStep extends AbstractStepImpl {
     @DataBoundSetter
     public void setToolchainId(String toolchainId) {
         this.toolchainId = toolchainId;
+    }
+
+    @DataBoundSetter
+    public void setBuildNumber(String buildNumber) {
+        this.buildNumber = buildNumber;
+    }
+
+    public String getBuildNumber() {
+        return buildNumber;
     }
 
     public String getApplicationName() {

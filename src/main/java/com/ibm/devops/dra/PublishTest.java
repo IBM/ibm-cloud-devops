@@ -378,7 +378,6 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         }
 
         this.draUrl = chooseDRAUrl(env);
-        String reportUrl = chooseReportUrl(env);
 
         // get decision response from DRA
         try {
@@ -403,14 +402,16 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
 
             String cclink = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
 
-            GatePublisherAction action = new GatePublisherAction(reportUrl + decisionId, cclink, decision, this.policyName, build);
+            String reportUrl = chooseReportUrl(env) + "decisionreport?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId="
+                    + URLEncoder.encode(toolchainName, "UTF-8") + "&reportId=" + decisionId;
+            GatePublisherAction action = new GatePublisherAction(reportUrl, cclink, decision, this.policyName, build);
             build.addAction(action);
 
+            printStream.println("************************************");
+            printStream.println("Check IBM Cloud DevOps Gate Evaluation report here -" + reportUrl);
+            printStream.println("Check IBM Cloud DevOps Deployment Risk Dashboard here -" + cclink);
             // console output for a "fail" decision
             if (decision.equals("Failed")) {
-                printStream.println("************************************");
-                printStream.println("Check IBM Cloud DevOps Gate Evaluation report here -" + reportUrl + decisionId);
-                printStream.println("Check IBM Cloud DevOps Deployment Risk Dashboard here -" + cclink);
                 printStream.println("IBM Cloud DevOps decision to proceed is:  false");
                 printStream.println("************************************");
                 if (willDisrupt) {
@@ -421,9 +422,6 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             }
 
             // console output for a "proceed" decision
-            printStream.println("************************************");
-            printStream.println("Check IBM Cloud DevOps Gate Evaluation report here -" + reportUrl + decisionId);
-            printStream.println("Check IBM Cloud DevOps Deployment Risk Dashboard here -" + cclink);
             printStream.println("IBM Cloud DevOps decision to proceed is:  true");
             printStream.println("************************************");
             return;

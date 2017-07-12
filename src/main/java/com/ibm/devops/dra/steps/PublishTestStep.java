@@ -33,6 +33,8 @@ public class PublishTestStep extends AbstractStepImpl {
     // required parameters
     private String type;
     private String fileLocation;
+    // custom build number, optional
+    private String buildNumber;
 
     @DataBoundConstructor
     public PublishTestStep(String type, String fileLocation) {
@@ -63,6 +65,15 @@ public class PublishTestStep extends AbstractStepImpl {
     @DataBoundSetter
     public void setEnvironment(String environment) {
         this.environment = environment;
+    }
+
+    @DataBoundSetter
+    public void setBuildNumber(String buildNumber) {
+        this.buildNumber = buildNumber;
+    }
+
+    public String getBuildNumber() {
+        return buildNumber;
     }
 
     public String getApplicationName() {
