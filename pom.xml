@@ -46,7 +46,7 @@
   </build>
 
   <properties>
-    <jenkins.version>2.46.2</jenkins.version>
+    <jenkins.version>2.7.1</jenkins.version>
     <java.level>8</java.level>
     <jackson.version>2.4.4</jackson.version>
     <powermock.version>1.7.0RC2</powermock.version>
