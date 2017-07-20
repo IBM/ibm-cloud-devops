@@ -87,22 +87,17 @@ public final class EventHandler {
 
         return false;
     }
-
+    
     /*
-        get the webhook from the build env
+    Returns whether deployable mapping message should be sent.
      */
-    public static String getWebhookFromEnv(EnvVars envVars){
-        String webhook = null;
-
-        if(envVars != null) {
-            webhook = envVars.get("IBM_CLOUD_DEVOPS_WEBHOOK_URL");
-
-            //backward compatibility
-            if (Util.isNullOrEmpty(webhook)) {
-                webhook = envVars.get("ICD_WEBHOOK_URL");
-            }
-        }
-
-        return webhook;
+    public static boolean shouldPostDeployableMappingMessage(OTCNotifier notifier, String phase, Result result){
+    	// publish deployable mapping message only is traceability is enabled, phase is completed and build is successful
+    	if(notifier != null && notifier.getEnableTraceability()){   		
+    		if ("COMPLETED".equals(phase) && result.equals(Result.SUCCESS)){
+    			return true;
+    		}
+    	}
+    	return false;
     }
 }

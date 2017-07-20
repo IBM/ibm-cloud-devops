@@ -73,14 +73,21 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
     private String gitCommit;
     private String username;
     private String password;
+    // optional customized build number
+    private String buildNumber;
 
 
     @DataBoundConstructor
-    public PublishBuild(String applicationName, String orgName, String credentialsId, String toolchainName) {
+    public PublishBuild(String applicationName, String orgName, String credentialsId, String toolchainName, OptionalBuildInfo additionalBuildInfo) {
         this.credentialsId = credentialsId;
         this.applicationName = applicationName;
         this.orgName = orgName;
         this.toolchainName = toolchainName;
+        if (additionalBuildInfo == null) {
+            this.buildNumber = null;
+        } else {
+            this.buildNumber = additionalBuildInfo.buildNumber;
+        }
     }
 
     public PublishBuild(String result, String gitRepo, String gitBranch, String gitCommit, String orgName, String applicationName, String toolchainName, String username, String password) {
@@ -115,6 +122,10 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         this.toolchainName = toolchainName;
     }
 
+    public void setBuildNumber(String buildNumber) {
+        this.buildNumber = buildNumber;
+    }
+
     /**
      * We'll use this from the <tt>config.jelly</tt>.
      */
@@ -134,6 +145,18 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         return toolchainName;
     }
 
+    public String getBuildNumber() {
+        return buildNumber;
+    }
+
+    public static class OptionalBuildInfo {
+        private String buildNumber;
+
+        @DataBoundConstructor
+        public OptionalBuildInfo(String buildNumber, String buildUrl) {
+            this.buildNumber = buildNumber;
+        }
+    }
 
     @Override
     public void perform(@Nonnull Run build, @Nonnull FilePath workspace, @Nonnull Launcher launcher, @Nonnull TaskListener listener) throws InterruptedException, IOException {
@@ -227,11 +250,17 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         try {
             CloseableHttpClient httpClient = HttpClients.createDefault();
             String url = this.dlmsUrl;
-            url = url.replace("{org_name}", this.orgName);
-            url = url.replace("{toolchain_id}", this.toolchainName);
+            url = url.replace("{org_name}", URLEncoder.encode(this.orgName, "UTF-8").replaceAll("\\+", "%20"));
+            url = url.replace("{toolchain_id}", URLEncoder.encode(this.toolchainName, "UTF-8").replaceAll("\\+", "%20"));
             url = url.replace("{build_artifact}", URLEncoder.encode(this.applicationName, "UTF-8").replaceAll("\\+", "%20"));
 
-            String buildNumber = getBuildNumber(envVars.get("JOB_NAME"),build);
+            String buildNumber;
+            if (Util.isNullOrEmpty(this.buildNumber)) {
+                buildNumber = getBuildNumber(envVars.get("JOB_NAME"), build);
+            } else {
+                buildNumber = envVars.expand(this.buildNumber);
+            }
+
             String buildUrl = Jenkins.getInstance().getRootUrl() + build.getUrl();
 
             HttpPost postMethod = new HttpPost(url);

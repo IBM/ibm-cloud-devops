@@ -1,5 +1,9 @@
 # IBM Cloud DevOps
 
+**Please go to https://wiki.jenkins-ci.org/display/JENKINS/IBM+Cloud+DevOps+Plugin for the latest instructions of this plugin**
+
+---
+
 With this Jenkins plugin, You can publish test results to DevOps Insights, add automated quality gates, and track your deployment risk.  You can also send your Jenkins job notifications to other tools in your toolchain, such as Slack and PagerDuty. To help you figure out when code was deployed, the system can add deployment messages to your Git commits and your related Git or JIRA issues. You can also view your deployments on the Toolchain Connections page.
 
 This plugin provides Post-Build Actions and CLIs to support this inteigration. DevOps Insights aggregates and analyzes the results from unit tests, functional tests, code-coverage tools, static security code scans and dynamic security code scans to determine whether your code meets predefined policies at gates in your deployment process. If your code does not meet or exceed a policy, the deployment is halted, preventing risky changes from being released. You can use DevOps Insights as a safety net for your continuous delivery environment, a way to implement and improve quality standards over time, and a data visualization tool to help you understand your project's health.
@@ -58,14 +62,20 @@ After the plugin is installed, you can integrate DevOps Insights into your Jenki
 6. Go to the [IBM Bluemix DevOps](https://console.ng.bluemix.net/devops), select your toolchain and click on DevOps Insights card to view Deployment Risk dashboard.
 
 
-## 3. (Optional) Configure Jenkins jobs to send notifications to tools in your toolchain (e.g., Slack, PagerDuty)
+## 3. (Optional) Configure Jenkins jobs to send notifications to tools in your toolchain (e.g., Slack, PagerDuty), and enable traceability
 
-Configure your Jenkins jobs to send notifications to your toolchain by following the instructions in the [Bluemix Docs](https://console.ng.bluemix.net/docs/services/ContinuousDelivery/toolchains_integrations.html#jenkins).
+Configure your Jenkins jobs to send notifications to tools integrated to your toolchain (e.g., Slack, PagerDuty),
+and use traceability to track code deployments through tags, labels, and comments in your Git repository (repo).
+
+Both Freestyle projects and Pipeline are supported.
+
+Detailed instructions are available in the [Bluemix Docs](https://console.ng.bluemix.net/docs/services/ContinuousDelivery/toolchains_integrations.html#jenkins).
 
 
    **Example configurations**
   * Configuring the IBM_CLOUD_DEVOPS_WEBHOOK_URL for job configurations: ![Set IBM_CLOUD_DEVOPS_WEBHOOK_URL Parameter](https://github.com/IBM/ibm-cloud-devops/blob/master/screenshots/Set-Parameterized-Webhook.png "Set Parameterized WebHook")
   * Configuring post-build actions for job notifications: ![Post-build Actions for WebHook notification](https://github.com/IBM/ibm-cloud-devops/blob/master/screenshots/PostBuild-WebHookNotification.png "Configure WebHook Notification in Post-build Actions")
+  * Configuring post-build actions to track deployment of code changes: ![Post-build Actions to track deployment of code changes](https://github.com/IBM/ibm-cloud-devops/blob/master/screenshots/track-deployment-of-code-changes.png "Configure WebHook Notification in Post-build Actions")
 
 
 ## License

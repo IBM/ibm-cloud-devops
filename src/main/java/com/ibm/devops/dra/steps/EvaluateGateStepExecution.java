@@ -75,6 +75,8 @@ public class EvaluateGateStepExecution extends AbstractSynchronousNonBlockingSte
             willDisrupt = true;
         }
 
+        // optional build number, if user wants to set their own build number
+        String buildNumber = step.getBuildNumber();
         EvaluateGate evaluateGate = new EvaluateGate(
                 policy,
                 orgName,
@@ -85,6 +87,9 @@ public class EvaluateGateStepExecution extends AbstractSynchronousNonBlockingSte
                 password,
                 willDisrupt);
         try {
+            if (!Util.isNullOrEmpty(buildNumber)) {
+                evaluateGate.setBuildNumber(buildNumber);
+            }
             evaluateGate.perform(build, ws, launcher, listener);
         } catch (AbortException e) {
             throw new AbortException("Decision is fail");

@@ -14,6 +14,7 @@
 
 package com.ibm.devops.notification;
 
+import com.ibm.devops.dra.Util;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.model.*;
@@ -47,19 +48,37 @@ public class BuildListener extends RunListener<AbstractBuild> {
         OTCNotifier notifier = EventHandler.findPublisher(r);
         PrintStream printStream = listener.getLogger();
         EnvVars envVars = EventHandler.getEnv(r, listener, printStream);
-        String webhook = EventHandler.getWebhookFromEnv(envVars);
+        String webhook = Util.getWebhookUrl(envVars);
         Result result = r.getResult();
-        Boolean isRelevant = EventHandler.isRelevant(notifier, phase, result);
 
-        if(isRelevant) {
+        // OTC Notifier
+        if(EventHandler.isRelevant(notifier, phase, result)) {
             String resultString = null;
-
             if(result != null){
                 resultString = result.toString();
             }
 
             JSONObject message = MessageHandler.buildMessage(r, envVars, phase, resultString);
-            MessageHandler.postToWebhook(webhook, message, printStream);
+            MessageHandler.postToWebhook(webhook, false, message, printStream);
+        }
+        
+        // deployable mapping
+        if(EventHandler.shouldPostDeployableMappingMessage(notifier, phase, result)) {
+        	printStream.println("[IBM Cloud DevOps] Building Deployable Message.");
+            String resultString = null;
+            if(result != null){
+                resultString = result.toString();
+            }
+            
+            if (Util.validateEnvVariables(envVars, printStream)) {
+                JSONObject message = MessageHandler.buildDeployableMappingMessage(envVars, printStream); 
+                printStream.println("[IBM Cloud DevOps] Sending Deployable Message.");
+                MessageHandler.postToWebhook(webhook, true, message, printStream);	
+            } else {
+            	printStream.println("[IBM Cloud DevOps] Not sending Deployable Message due to missing required property.");
+            }
+        } else {
+        	printStream.println("[IBM Cloud DevOps] Not building Deployable Message.");
         }
     }
 }

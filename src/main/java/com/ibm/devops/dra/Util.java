@@ -14,6 +14,10 @@
 
 package com.ibm.devops.dra;
 
+
+import hudson.EnvVars;
+import java.io.PrintStream;
+
 /**
  * Utilities functions
  */
@@ -38,5 +42,114 @@ public class Util {
             }
         }
         return true;
+    }
+    
+    public static boolean validateEnvVariables(EnvVars envVars, PrintStream printStream) {
+    	Boolean valid = true;
+    	if(envVars != null) {
+    		String org = getOrg(envVars);
+    		String space = getSpace(envVars);
+    		String appName = getAppName(envVars);
+    		String user = getUser(envVars);
+    		String pwd = getPassword(envVars);
+    		String webhook = getWebhookUrl(envVars);
+    		
+    		// perform validation and warn for each missing required property		
+    		if (isNullOrEmpty(org)) {
+    			printStream.println("[IBM Cloud DevOps] Missing required property IBM_CLOUD_DEVOPS_ORG");
+    			valid = false;
+    		}
+    		if (isNullOrEmpty(space)) {
+    			printStream.println("[IBM Cloud DevOps] Missing required property IBM_CLOUD_DEVOPS_SPACE");
+    			valid = false;
+    		}
+    		if (isNullOrEmpty(appName)) {
+    			printStream.println("[IBM Cloud DevOps] Missing required property IBM_CLOUD_DEVOPS_APP_NAME");
+    			valid = false;
+    		}
+    		if (isNullOrEmpty(user)) {
+    			printStream.println("[IBM Cloud DevOps] Missing required property IBM_CLOUD_DEVOPS_CREDS_USR");
+    			valid = false;
+    		}
+    		if (isNullOrEmpty(pwd)) {
+    			printStream.println("[IBM Cloud DevOps] Missing required property IBM_CLOUD_DEVOPS_CREDS_PSW");
+    			valid = false;
+    		}
+    		if (isNullOrEmpty(webhook)) {
+    			printStream.println("[IBM Cloud DevOps] Missing required property IBM_CLOUD_DEVOPS_WEBHOOK_URL");
+    			valid = false;
+    		}
+    	}
+    	return valid;
+    }
+    
+    public static String getWebhookUrl(EnvVars envVars) {
+    	String webhook = envVars.get("IBM_CLOUD_DEVOPS_WEBHOOK_URL");
+    	//backward compatibility
+		if (isNullOrEmpty(webhook)) {
+			webhook = envVars.get("ICD_WEBHOOK_URL");
+		}
+		return webhook;
+    }
+    
+    public static String getOrg(EnvVars envVars) {
+    	String org = envVars.get("IBM_CLOUD_DEVOPS_ORG");
+    	//backward compatibility
+		if (isNullOrEmpty(org)) {
+			org = envVars.get("CF_ORG");
+		}
+		return org;
+    }
+    
+    public static String getSpace(EnvVars envVars) {
+    	String space = envVars.get("IBM_CLOUD_DEVOPS_SPACE");
+    	//backward compatibility
+		if (isNullOrEmpty(space)) {
+			space = envVars.get("CF_SPACE");
+		}
+		return space;
+    }
+    
+    public static String getAppName(EnvVars envVars) {
+    	String appName = envVars.get("IBM_CLOUD_DEVOPS_APP_NAME");
+    	//backward compatibility
+		if (isNullOrEmpty(appName)) {
+			appName = envVars.get("CF_APP");
+		}
+		return appName;
+    }
+    
+    public static String getUser(EnvVars envVars) {
+    	String user = envVars.get("IBM_CLOUD_DEVOPS_CREDS_USR");
+    	//backward compatibility
+		if (isNullOrEmpty(user)) {
+			user = envVars.get("CF_CREDS_USR");
+		}
+		return user;
+    }
+    
+    public static String getPassword(EnvVars envVars) {
+    	String pwd = envVars.get("IBM_CLOUD_DEVOPS_CREDS_PSW");
+    	//backward compatibility
+		if (isNullOrEmpty(pwd)) {
+			pwd = envVars.get("CF_CREDS_PSW");
+		}
+		return pwd;
+    }
+    
+    public static String getGitRepoUrl(EnvVars envVars) {
+    	String gitUrl = envVars.get("GIT_URL");
+		if (isNullOrEmpty(gitUrl)) {
+			gitUrl = envVars.get("GIT_REPO"); // used in pipeline scripts
+		}
+		return gitUrl;
+    }
+    
+    public static String getGitBranch(EnvVars envVars) {
+    	return envVars.get("GIT_BRANCH");
+    }
+    
+    public static String getGitCommit(EnvVars envVars) {
+    	return envVars.get("GIT_COMMIT");
     }
 }

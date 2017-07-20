@@ -64,6 +64,9 @@ public class PublishTestStepExecution extends AbstractSynchronousNonBlockingStep
         //check all the required parameters
         String type = step.getType();
         String fileLocation = step.getFileLocation();
+        // optional build number, if user wants to set their own build number
+        String buildNumber = step.getBuildNumber();
+
         if (!Util.allNotNullOrEmpty(type, fileLocation)) {
             printStream.println("[IBM Cloud DevOps] publishTestResult is missing required parameters, " +
                     "please make sure you specify \"type\", \"fileLocation\"");
@@ -81,9 +84,12 @@ public class PublishTestStepExecution extends AbstractSynchronousNonBlockingStep
                     toolchainName,
                     username,
                     password);
+            if (!Util.isNullOrEmpty(buildNumber)) {
+                publishTest.setBuildNumber(buildNumber);
+            }
             publishTest.perform(build, ws, launcher, listener);
         } else {
-            printStream.println("[IBM Cloud DevOps] the \"result\" in the publishBuildRecord should be either \"PASS\" or \"FAIL\"");
+            printStream.println("[IBM Cloud DevOps] the \"type\" in the publishTestResult should be either \"unittest\", \"code\" or \"fvt\"");
         }
 
         return null;

@@ -83,7 +83,8 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
     //fields to support jenkins pipeline
     private String username;
     private String password;
-
+    // optional customized build number
+    private String buildNumber;
 
     // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
     @DataBoundConstructor
@@ -95,7 +96,8 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
                         String buildJobName,
                         String credentialsId,
                         boolean willDisrupt,
-                        EnvironmentScope scope) {
+                        EnvironmentScope scope,
+                        OptionalBuildInfo additionalBuildInfo) {
         this.policyName = policyName;
         this.orgName = orgName;
         this.applicationName = applicationName;
@@ -107,6 +109,11 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         this.scope = scope;
         this.envName = scope.getEnvName();
         this.isDeploy = scope.isDeploy();
+        if (additionalBuildInfo == null) {
+            this.buildNumber = null;
+        } else {
+            this.buildNumber = additionalBuildInfo.buildNumber;
+        }
     }
 
     public EvaluateGate(String policyName,
@@ -126,6 +133,10 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         this.username = username;
         this.password = password;
         this.willDisrupt = willDisrupt;
+    }
+
+    public void setBuildNumber(String buildNumber) {
+        this.buildNumber = buildNumber;
     }
 
     /**
@@ -168,6 +179,9 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         return scope;
     }
 
+    public String getBuildNumber() {
+        return buildNumber;
+    }
 
     public String getEnvName() {
         return envName;
@@ -175,6 +189,15 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
 
     public boolean isDeploy() {
         return isDeploy;
+    }
+
+    public static class OptionalBuildInfo {
+        private String buildNumber;
+
+        @DataBoundConstructor
+        public OptionalBuildInfo(String buildNumber, String buildUrl) {
+            this.buildNumber = buildNumber;
+        }
     }
 
     /**
@@ -216,21 +239,23 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         String env = getDescriptor().getEnvironment();
         this.draUrl = chooseDRAUrl(env);
         String targetAPI = chooseTargetAPI(env);
-        String reportUrl = chooseReportUrl(env);
 
         String buildNumber;
-
-        // locate the build job that triggers current build
-        Run triggeredBuild = getTriggeredBuild(build, buildJobName, envVars, printStream);
-        if (triggeredBuild == null) {
-            //failed to find the build job
-            return;
-        } else {
-            if (Util.isNullOrEmpty(this.buildJobName)) {
-                // handle the case which the build job name left empty, and the pipeline case
-                this.buildJobName = envVars.get("JOB_NAME");
+        if (Util.isNullOrEmpty(this.buildNumber)) {
+            // locate the build job that triggers current build
+            Run triggeredBuild = getTriggeredBuild(build, buildJobName, envVars, printStream);
+            if (triggeredBuild == null) {
+                //failed to find the build job
+                return;
+            } else {
+                if (Util.isNullOrEmpty(this.buildJobName)) {
+                    // handle the case which the build job name left empty, and the pipeline case
+                    this.buildJobName = envVars.get("JOB_NAME");
+                }
+                buildNumber = getBuildNumber(buildJobName, triggeredBuild);
             }
-            buildNumber = getBuildNumber(buildJobName, triggeredBuild);
+        } else {
+            buildNumber = envVars.expand(this.buildNumber);
         }
 
         String bluemixToken;
@@ -271,15 +296,16 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             }
 
             String cclink = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
+            String reportUrl = chooseReportUrl(env) + "decisionreport?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId="
+                    + URLEncoder.encode(toolchainName, "UTF-8") + "&reportId=" + decisionId;
 
-            GatePublisherAction action = new GatePublisherAction(reportUrl + decisionId, cclink, decision, this.policyName, build);
+            GatePublisherAction action = new GatePublisherAction(reportUrl, cclink, decision, this.policyName, build);
             build.addAction(action);
 
+            printStream.println("************************************");
+            printStream.println("Check IBM Cloud DevOps Gate Evaluation report here -" + reportUrl);
             // console output for a "fail" decision
             if (decision.equals("Failed")) {
-                printStream.println("************************************");
-                printStream.println("Check IBM Cloud DevOps Gate Evaluation report here -" + reportUrl + decisionId);
-                printStream.println("Check IBM Cloud DevOps Deployment Risk Dashboard here -" + cclink);
                 printStream.println("IBM Cloud DevOps decision to proceed is:  false");
                 printStream.println("************************************");
                 if (willDisrupt) {
@@ -291,9 +317,6 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             }
 
             // console output for a "proceed" decision
-            printStream.println("************************************");
-            printStream.println("Check IBM Cloud DevOps Gate Evaluation report here -" + reportUrl + decisionId);
-            printStream.println("Check IBM Cloud DevOps Deployment Risk Dashboard here -" + cclink);
             printStream.println("IBM Cloud DevOps decision to proceed is:  true");
             printStream.println("************************************");
             return;
@@ -306,10 +329,6 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             }
         }
     }
-
-//    public boolean perform(Run build, Launcher launcher, TaskListener listener) throws InterruptedException, IOException {
-//
-//    }
 
     @Override
     public BuildStepMonitor getRequiredMonitorService() {
@@ -325,10 +344,10 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         // create http client and post method
         CloseableHttpClient httpClient = HttpClients.createDefault();
         String url = this.draUrl;
-        url = url + "/organizations/" + orgName +
-                "/toolchainids/" + toolchainName +
+        url = url + "/organizations/" + URLEncoder.encode(orgName, "UTF-8").replaceAll("\\+", "%20") +
+                "/toolchainids/" + URLEncoder.encode(toolchainName, "UTF-8").replaceAll("\\+", "%20") +
                 "/buildartifacts/" + URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20") +
-                "/builds/" + buildId +
+                "/builds/" + URLEncoder.encode(buildId, "UTF-8").replaceAll("\\+", "%20") +
                 "/policies/" + URLEncoder.encode(policyName, "UTF-8").replaceAll("\\+", "%20") +
                 "/decisions";
         if (!Util.isNullOrEmpty(this.environmentName)) {

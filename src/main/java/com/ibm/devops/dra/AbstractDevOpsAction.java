@@ -31,6 +31,7 @@ import hudson.tasks.Recorder;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -46,8 +47,10 @@ import org.cloudfoundry.client.lib.HttpProxyConfiguration;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +66,10 @@ import java.util.logging.Level;
 public abstract class AbstractDevOpsAction extends Recorder {
 
     public final static Logger LOGGER = Logger.getLogger(AbstractDevOpsAction.class.getName());
-
+    
+    private final static String ORG= "&&organization_guid:";
+    private final static String SPACE= "&&space_guid:";
+    
     private static Map<String, String> TARGET_API_MAP = ImmutableMap.of(
             "production", "https://api.ng.bluemix.net",
             "dev", "https://api.stage1.ng.bluemix.net",
@@ -76,6 +82,20 @@ public abstract class AbstractDevOpsAction extends Recorder {
             "dev", "https://api.stage1.ng.bluemix.net/v2/organizations?q=name:",
             "new", "https://api.stage1.ng.bluemix.net/v2/organizations?q=name:",
             "stage1", "https://api.stage1.ng.bluemix.net/v2/organizations?q=name:"
+    );
+    
+    private static Map<String, String> SPACES_URL_MAP = ImmutableMap.of(
+            "production", "https://api.ng.bluemix.net/v2/spaces?q=name:",
+            "dev", "https://api.stage1.ng.bluemix.net/v2/spaces?q=name:",
+            "new", "https://api.stage1.ng.bluemix.net/v2/spaces?q=name:",
+            "stage1", "https://api.stage1.ng.bluemix.net/v2/spaces?q=name:"
+    );
+    
+    private static Map<String, String> APPS_URL_MAP = ImmutableMap.of(
+            "production", "https://api.ng.bluemix.net/v2/apps?q=name:",
+            "dev", "https://api.stage1.ng.bluemix.net/v2/apps?q=name:",
+            "new", "https://api.stage1.ng.bluemix.net/v2/apps?q=name:",
+            "stage1", "https://api.stage1.ng.bluemix.net/v2/apps?q=name:"
     );
 
     private static Map<String, String> TOOLCHAINS_URL_MAP = ImmutableMap.of(
@@ -163,6 +183,28 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
         return ORGANIZATIONS_URL_MAP.get("production");
     }
+    
+    public static String chooseSpacesUrl(String environment) {
+        if (!Util.isNullOrEmpty(environment)) {
+            String spaces_url = SPACES_URL_MAP.get(environment);
+            if (!Util.isNullOrEmpty(spaces_url)) {
+                return spaces_url;
+            }
+        }
+
+        return SPACES_URL_MAP.get("production");
+    }
+    
+    public static String chooseAppsUrl(String environment) {
+        if (!Util.isNullOrEmpty(environment)) {
+            String apps_url = APPS_URL_MAP.get(environment);
+            if (!Util.isNullOrEmpty(apps_url)) {
+                return apps_url;
+            }
+        }
+
+        return APPS_URL_MAP.get("production");
+    }
 
     public static String choosePoliciesUrl(String environment) {
         if (!Util.isNullOrEmpty(environment)) {
@@ -231,12 +273,12 @@ public abstract class AbstractDevOpsAction extends Recorder {
      */
     public static String chooseReportUrl(String envStr) {
         if (!Util.isNullOrEmpty(envStr)) {
-            String ccUrl = DRA_REPORT_ENV_MAP.get(envStr);
+            String ccUrl = CONTROL_CENTER_ENV_MAP.get(envStr);
             if (!Util.isNullOrEmpty(ccUrl)) {
                 return ccUrl;
             }
         }
-        return DRA_REPORT_ENV_MAP.get("production");
+        return CONTROL_CENTER_ENV_MAP.get("production");
     }
 
     /**
@@ -514,7 +556,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
             LOGGER.info("ENVIRONMENT:" + environment);
         }
 
-        String orgId = getOrgId(token,orgName, environment, debug_mode);
+        String orgId = getOrgId(token, orgName, environment, debug_mode);
         ListBoxModel emptybox = new ListBoxModel();
         emptybox.add("","empty");
 
@@ -585,14 +627,15 @@ public abstract class AbstractDevOpsAction extends Recorder {
         if(debug_mode){
             LOGGER.info("GET ORG_GUID URL:" + organizations_url + orgName);
         }
-        HttpGet httpGet = new HttpGet(organizations_url + orgName);
-
-        httpGet = addProxyInformation(httpGet);
-
-        httpGet.setHeader("Authorization", token);
-        CloseableHttpResponse response = null;
 
         try {
+            HttpGet httpGet = new HttpGet(organizations_url + URLEncoder.encode(orgName, "UTF-8").replaceAll("\\+", "%20"));
+
+            httpGet = addProxyInformation(httpGet);
+
+            httpGet.setHeader("Authorization", token);
+            CloseableHttpResponse response = null;
+
             response = httpClient.execute(httpGet);
             String resStr = EntityUtils.toString(response.getEntity());
 
@@ -634,6 +677,124 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
         return null;
     }
+    
+    public static String getSpaceId(String token, String spaceName, String environment, Boolean debug_mode) {
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+        String spaces_url = chooseSpacesUrl(environment);
+        if(debug_mode){
+            LOGGER.info("GET SPACE_GUID URL:" + spaces_url + spaceName);
+        }
+
+        try {
+            HttpGet httpGet = new HttpGet(spaces_url + URLEncoder.encode(spaceName, "UTF-8").replaceAll("\\+", "%20"));
+
+            httpGet = addProxyInformation(httpGet);
+
+            httpGet.setHeader("Authorization", token);
+            CloseableHttpResponse response = null;
+
+            response = httpClient.execute(httpGet);
+            String resStr = EntityUtils.toString(response.getEntity());
+
+            if(debug_mode){
+                LOGGER.info("RESPONSE FROM SPACES API:" + response.getStatusLine().toString());
+            }
+            if (response.getStatusLine().toString().contains("200")) {
+                // get 200 response
+                JsonParser parser = new JsonParser();
+                JsonElement element = parser.parse(resStr);
+                JsonObject obj = element.getAsJsonObject();
+                JsonArray resources = obj.getAsJsonArray("resources");
+
+                if(resources.size() > 0) {
+                    JsonObject resource = resources.get(0).getAsJsonObject();
+                    JsonObject metadata = resource.getAsJsonObject("metadata");
+                    if(debug_mode){
+                        LOGGER.info("SPACE_ID:" + String.valueOf(metadata.get("guid")).replaceAll("\"", ""));
+                    }
+                    return String.valueOf(metadata.get("guid")).replaceAll("\"", "");
+                }
+                else {
+                    if(debug_mode){
+                        LOGGER.info("RETURNED NO SPACES.");
+                    }
+                    return null;
+                }
+
+            } else {
+                if(debug_mode){
+                    LOGGER.info("RETURNED STATUS CODE OTHER THAN 200. RESPONSE: " + response.getStatusLine().toString());
+                }
+                return null;
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+    
+    public static String getAppId(String token, String appName, String orgName, String spaceName, String environment, Boolean debug_mode) {
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+        String apps_url = chooseAppsUrl(environment);
+        if(debug_mode){
+            LOGGER.info("GET APPS_GUID URL:" + apps_url + appName + ORG + orgName + SPACE + spaceName);
+        }
+
+        try {
+            HttpGet httpGet = new HttpGet(apps_url + URLEncoder.encode(appName, "UTF-8").replaceAll("\\+", "%20") + ORG + URLEncoder.encode(orgName, "UTF-8").replaceAll("\\+", "%20") + SPACE + URLEncoder.encode(spaceName, "UTF-8").replaceAll("\\+", "%20"));
+
+            httpGet = addProxyInformation(httpGet);
+
+            httpGet.setHeader("Authorization", token);
+            CloseableHttpResponse response = null;
+
+            response = httpClient.execute(httpGet);
+            String resStr = EntityUtils.toString(response.getEntity());
+
+            if(debug_mode){
+                LOGGER.info("RESPONSE FROM APPS API:" + response.getStatusLine().toString());
+            }
+            if (response.getStatusLine().toString().contains("200")) {
+                // get 200 response
+                JsonParser parser = new JsonParser();
+                JsonElement element = parser.parse(resStr);
+                JsonObject obj = element.getAsJsonObject();
+                JsonArray resources = obj.getAsJsonArray("resources");
+
+                if(resources.size() > 0) {
+                    JsonObject resource = resources.get(0).getAsJsonObject();
+                    JsonObject metadata = resource.getAsJsonObject("metadata");
+                    if(debug_mode){
+                        LOGGER.info("APP_ID:" + String.valueOf(metadata.get("guid")).replaceAll("\"", ""));
+                    }
+                    return String.valueOf(metadata.get("guid")).replaceAll("\"", "");
+                }
+                else {
+                    if(debug_mode){
+                        LOGGER.info("RETURNED NO APPS.");
+                    }
+                    return null;
+                }
+
+            } else {
+                if(debug_mode){
+                    LOGGER.info("RETURNED STATUS CODE OTHER THAN 200. RESPONSE: " + response.getStatusLine().toString());
+                }
+                return null;
+            }
+
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        } catch (ClientProtocolException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
 
     /**
      * Get a list of policies that belong to an org
@@ -649,21 +810,22 @@ public abstract class AbstractDevOpsAction extends Recorder {
         emptybox.add("","empty");
 
         String url = choosePoliciesUrl(environment);
-        url = url.replace("{org_name}", orgName);
-        url = url.replace("{toolchain_name}", toolchainName);
 
-        if(debug_mode){
-            LOGGER.info("GET POLICIES URL:" + url);
-        }
 
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        HttpGet httpGet = new HttpGet(url);
-
-        httpGet = addProxyInformation(httpGet);
-
-        httpGet.setHeader("Authorization", token);
-        CloseableHttpResponse response = null;
         try {
+            url = url.replace("{org_name}", URLEncoder.encode(orgName, "UTF-8").replaceAll("\\+", "%20"));
+            url = url.replace("{toolchain_name}", URLEncoder.encode(toolchainName, "UTF-8").replaceAll("\\+", "%20"));
+            if(debug_mode){
+                LOGGER.info("GET POLICIES URL:" + url);
+            }
+
+            CloseableHttpClient httpClient = HttpClients.createDefault();
+            HttpGet httpGet = new HttpGet(url);
+
+            httpGet = addProxyInformation(httpGet);
+
+            httpGet.setHeader("Authorization", token);
+            CloseableHttpResponse response = null;
             response = httpClient.execute(httpGet);
             String resStr = EntityUtils.toString(response.getEntity());
 
@@ -678,7 +840,6 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
                 ListBoxModel model = new ListBoxModel();
 
-                //model.add("select", "select"); why is this here? Need to ask.
                 for (int i = 0; i < jsonArray.size(); i++) {
                     JsonObject obj = jsonArray.get(i).getAsJsonObject();
                     String name = String.valueOf(obj.get("name")).replaceAll("\"", "");
@@ -695,8 +856,11 @@ public abstract class AbstractDevOpsAction extends Recorder {
                 }
                 return emptybox;
             }
-
-        } catch (Exception e) {
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        } catch (ClientProtocolException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
             e.printStackTrace();
         }
 

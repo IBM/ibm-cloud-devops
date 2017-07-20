@@ -66,6 +66,9 @@ public class PublishBuildStepExecution extends AbstractSynchronousNonBlockingSte
         String gitRepo = step.getGitRepo();
         String gitBranch = step.getGitBranch();
         String gitCommit = step.getGitCommit();
+        // optional build number, if user wants to set their own build number
+        String buildNumber = step.getBuildNumber();
+
         if (!Util.allNotNullOrEmpty(result, gitRepo, gitBranch, gitCommit)) {
             printStream.println("[IBM Cloud DevOps] publishBuildRecord is missing required parameters, " +
                     "please make sure you specify \"result\", \"gitRepo\", \"gitBranch\", \"gitCommit\"");
@@ -84,9 +87,13 @@ public class PublishBuildStepExecution extends AbstractSynchronousNonBlockingSte
                     toolchainName,
                     username,
                     password);
+
+            if (!Util.isNullOrEmpty(buildNumber)) {
+                publishBuild.setBuildNumber(buildNumber);
+            }
             publishBuild.perform(build, ws, launcher, listener);
         } else {
-            printStream.println("[IBM Cloud DevOps] the \"result\" in the publishBuildRecord should be either \"PASS\" or \"FAIL\"");
+            printStream.println("[IBM Cloud DevOps] the \"result\" in the publishBuildRecord should be either \"SUCCESS\" or \"FAIL\"");
         }
 
         return null;

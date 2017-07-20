@@ -65,6 +65,8 @@ public class PublishDeployStepExecution extends AbstractSynchronousNonBlockingSt
         //check all the required parameters
         String environment = step.getEnvironment();
         String result = step.getResult();
+        // optional build number, if user wants to set their own build number
+        String buildNumber = step.getBuildNumber();
         if (!Util.allNotNullOrEmpty(result, environment)) {
             printStream.println("[IBM Cloud DevOps] publishDeployRecord is missing required parameters, " +
                     "please make sure you specify \"result\" and \"environment\"");
@@ -82,9 +84,12 @@ public class PublishDeployStepExecution extends AbstractSynchronousNonBlockingSt
                     orgName,
                     username,
                     password);
+            if (!Util.isNullOrEmpty(buildNumber)) {
+                publishDeploy.setBuildNumber(buildNumber);
+            }
             publishDeploy.perform(build, ws, launcher, listener);
         } else {
-            printStream.println("[IBM Cloud DevOps] the \"result\" in the publishDeployRecord should be either \"PASS\" or \"FAIL\"");
+            printStream.println("[IBM Cloud DevOps] the \"result\" in the publishDeployRecord should be either \"SUCCESS\" or \"FAIL\"");
         }
         return null;
     }

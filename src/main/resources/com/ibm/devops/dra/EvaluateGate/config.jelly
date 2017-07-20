@@ -55,4 +55,10 @@
         <f:checkbox></f:checkbox>
     </f:entry>
 
+    <f:optionalBlock field="additionalBuildInfo" name="additionalBuildInfo" title="Select this check box if you want to set your own build number." checked="${instance.buildNumber != null}">
+        <f:entry title="Build number" field="buildNumber">
+            <f:textbox />
+        </f:entry>
+    </f:optionalBlock>
+
 </j:jelly>

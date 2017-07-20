@@ -42,10 +42,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.*;
 
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
@@ -73,7 +70,6 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 	private String credentialsId;
 	private String applicationUrl;
 	private String buildNumber;
-	private String buildUrl;
 	private static String bluemixToken;
 	private static String preCredentials;
 
@@ -101,21 +97,8 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 
 		if (additionalBuildInfo == null) {
 			this.buildNumber = null;
-			this.buildUrl = null;
 		} else {
 			this.buildNumber = additionalBuildInfo.buildNumber;
-			this.buildUrl = additionalBuildInfo.buildUrl;
-		}
-	}
-
-	public static class OptionalBuildInfo {
-		private String buildNumber;
-		private String buildUrl;
-
-		@DataBoundConstructor
-		public OptionalBuildInfo(String buildNumber, String buildUrl) {
-			this.buildNumber = buildNumber;
-			this.buildUrl = buildUrl;
 		}
 	}
 
@@ -135,6 +118,10 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		this.orgName = orgName;
 		this.username = username;
 		this.password = password;
+	}
+
+	public void setBuildNumber(String buildNumber) {
+		this.buildNumber = buildNumber;
 	}
 
 	/**
@@ -172,12 +159,17 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		return buildNumber;
 	}
 
-	public String getBuildUrl() {
-		return buildUrl;
-	}
-
 	public String getResult() {
 		return result;
+	}
+
+	public static class OptionalBuildInfo {
+		private String buildNumber;
+
+		@DataBoundConstructor
+		public OptionalBuildInfo(String buildNumber) {
+			this.buildNumber = buildNumber;
+		}
 	}
 
 	@Override
@@ -212,7 +204,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 			return;
 		}
 
-		String buildNumber, buildUrl;
+		String buildNumber;
 		// if user does not specify the build number
 		if (Util.isNullOrEmpty(this.buildNumber)) {
 			// locate the build job that triggers current build
@@ -226,19 +218,18 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 					this.buildJobName = envVars.get("JOB_NAME");
 				}
 				buildNumber = getBuildNumber(buildJobName, triggeredBuild);
-				String rootUrl = Jenkins.getInstance().getRootUrl();
-				buildUrl = rootUrl + triggeredBuild.getUrl();
 			}
 		} else {
 			buildNumber = envVars.expand(this.buildNumber);
-			buildUrl = envVars.expand(this.buildUrl);
 		}
 
-		dlmsUrl = dlmsUrl.replace("{org_name}", orgName);
+		dlmsUrl = dlmsUrl.replace("{org_name}", URLEncoder.encode(this.orgName, "UTF-8").replaceAll("\\+", "%20"));
 		dlmsUrl = dlmsUrl.replace("{toolchain_id}", URLEncoder.encode(toolchainName, "UTF-8").replaceAll("\\+", "%20"));
 		dlmsUrl = dlmsUrl.replace("{build_artifact}", URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20"));
-		dlmsUrl = dlmsUrl.replace("{build_id}", buildNumber);
+		dlmsUrl = dlmsUrl.replace("{build_id}", URLEncoder.encode(buildNumber, "UTF-8").replaceAll("\\+", "%20"));
 		String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
+		String rootUrl = Jenkins.getInstance().getRootUrl();
+		String jobUrl = rootUrl + build.getUrl();
 
 		String bluemixToken;
 		// get the Bluemix token
@@ -256,12 +247,12 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 			return;
 		}
 
-		if (uploadDeploymentInfo(bluemixToken, dlmsUrl, build, buildUrl)) {
+		if (uploadDeploymentInfo(bluemixToken, dlmsUrl, build, jobUrl)) {
 			printStream.println("[IBM Cloud DevOps] Go to Control Center (" + link + ") to check your deployment status");
 		}
 	}
 
-	private boolean uploadDeploymentInfo(String token, String dlmsUrl, Run build, String buildUrl) {
+	private boolean uploadDeploymentInfo(String token, String dlmsUrl, Run build, String jobUrl) {
 
 		String resStr = "";
 
@@ -288,7 +279,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 
 			// build up the json body
 			Gson gson = new Gson();
-			DeploymentInfoModel deploymentInfo = new DeploymentInfoModel(applicationUrl, environmentName, buildUrl, buildStatus,
+			DeploymentInfoModel deploymentInfo = new DeploymentInfoModel(applicationUrl, environmentName, jobUrl, buildStatus,
 					timestamp);
 
 			String json = gson.toJson(deploymentInfo);

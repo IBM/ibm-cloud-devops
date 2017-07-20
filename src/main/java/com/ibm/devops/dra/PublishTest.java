@@ -71,7 +71,6 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
     private String additionalLifecycleStage;
     private String additionalContents;
     private String buildNumber;
-    private String buildUrl;
     private String applicationName;
     private String buildJobName;
     private String orgName;
@@ -129,10 +128,8 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
 
         if (additionalBuildInfo == null) {
             this.buildNumber = null;
-            this.buildUrl = null;
         } else {
             this.buildNumber = additionalBuildInfo.buildNumber;
-            this.buildUrl = additionalBuildInfo.buildUrl;
         }
 
         if (additionalGate == null) {
@@ -160,6 +157,10 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         this.toolchainName = toolchainName;
         this.username = username;
         this.password = password;
+    }
+
+    public void setBuildNumber(String buildNumber) {
+        this.buildNumber = buildNumber;
     }
 
     /**
@@ -209,10 +210,6 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         return buildNumber;
     }
 
-    public String getBuildUrl() {
-        return buildUrl;
-    }
-
     public String getPolicyName() {
         return policyName;
     }
@@ -249,12 +246,10 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
 
     public static class OptionalBuildInfo {
         private String buildNumber;
-        private String buildUrl;
 
         @DataBoundConstructor
-        public OptionalBuildInfo(String buildNumber, String buildUrl) {
+        public OptionalBuildInfo(String buildNumber) {
             this.buildNumber = buildNumber;
-            this.buildUrl = buildUrl;
         }
     }
 
@@ -326,18 +321,15 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                     this.buildJobName = envVars.get("JOB_NAME");
                 }
                 buildNumber = getBuildNumber(buildJobName, triggeredBuild);
-                String rootUrl = Jenkins.getInstance().getRootUrl();
-                buildUrl = rootUrl + triggeredBuild.getUrl();
             }
         } else {
             buildNumber = envVars.expand(this.buildNumber);
-            buildUrl = envVars.expand(this.buildUrl);
         }
 
-        url = url.replace("{org_name}", this.orgName);
-        url = url.replace("{toolchain_id}", this.toolchainName);
+        url = url.replace("{org_name}", URLEncoder.encode(this.orgName, "UTF-8").replaceAll("\\+", "%20"));
+        url = url.replace("{toolchain_id}", URLEncoder.encode(this.toolchainName, "UTF-8").replaceAll("\\+", "%20"));
         url = url.replace("{build_artifact}", URLEncoder.encode(this.applicationName, "UTF-8").replaceAll("\\+", "%20"));
-        url = url.replace("{build_id}", buildNumber);
+        url = url.replace("{build_id}", URLEncoder.encode(buildNumber, "UTF-8").replaceAll("\\+", "%20"));
         this.dlmsUrl = url;
 
         String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
@@ -360,15 +352,14 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
 
         // parse the wildcard result files
         try {
-            if(!scanAndUpload(build, workspace, contents, lifecycleStage, bluemixToken, buildNumber, buildUrl)){
+            if(!scanAndUpload(build, workspace, contents, lifecycleStage, bluemixToken)){
                 // if there is any error when scanning and uploading
                 return;
             }
 
             // check to see if we need to upload additional result file
             if (!Util.isNullOrEmpty(additionalContents) && !Util.isNullOrEmpty(additionalLifecycleStage)) {
-                if(!scanAndUpload(build, workspace, additionalContents, additionalLifecycleStage,
-                        bluemixToken, buildNumber, buildUrl)) {
+                if(!scanAndUpload(build, workspace, additionalContents, additionalLifecycleStage, bluemixToken)) {
                     return;
                 }
             }
@@ -387,7 +378,6 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         }
 
         this.draUrl = chooseDRAUrl(env);
-        String reportUrl = chooseReportUrl(env);
 
         // get decision response from DRA
         try {
@@ -412,14 +402,16 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
 
             String cclink = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
 
-            GatePublisherAction action = new GatePublisherAction(reportUrl + decisionId, cclink, decision, this.policyName, build);
+            String reportUrl = chooseReportUrl(env) + "decisionreport?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId="
+                    + URLEncoder.encode(toolchainName, "UTF-8") + "&reportId=" + decisionId;
+            GatePublisherAction action = new GatePublisherAction(reportUrl, cclink, decision, this.policyName, build);
             build.addAction(action);
 
+            printStream.println("************************************");
+            printStream.println("Check IBM Cloud DevOps Gate Evaluation report here -" + reportUrl);
+            printStream.println("Check IBM Cloud DevOps Deployment Risk Dashboard here -" + cclink);
             // console output for a "fail" decision
             if (decision.equals("Failed")) {
-                printStream.println("************************************");
-                printStream.println("Check IBM Cloud DevOps Gate Evaluation report here -" + reportUrl + decisionId);
-                printStream.println("Check IBM Cloud DevOps Deployment Risk Dashboard here -" + cclink);
                 printStream.println("IBM Cloud DevOps decision to proceed is:  false");
                 printStream.println("************************************");
                 if (willDisrupt) {
@@ -430,9 +422,6 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             }
 
             // console output for a "proceed" decision
-            printStream.println("************************************");
-            printStream.println("Check IBM Cloud DevOps Gate Evaluation report here -" + reportUrl + decisionId);
-            printStream.println("Check IBM Cloud DevOps Deployment Risk Dashboard here -" + cclink);
             printStream.println("IBM Cloud DevOps decision to proceed is:  true");
             printStream.println("************************************");
             return;
@@ -452,11 +441,9 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
      * Support wildcard for the result file path, scan the path and upload each matching result file to the DLMS
      * @param build - the current build
      * @param bluemixToken - the Bluemix toekn
-     * @param buildNumber - the build number
-     * @param buildUrl - the url to build job in Jenkins
      * @return false if there is any error when scan and upload the file
      */
-    public boolean scanAndUpload(Run build, FilePath workspace, String path, String lifecycleStage, String bluemixToken, String buildNumber, String buildUrl) throws Exception {
+    public boolean scanAndUpload(Run build, FilePath workspace, String path, String lifecycleStage, String bluemixToken) throws Exception {
         boolean errorFlag = true;
         FilePath[] filePaths = null;
 
@@ -502,8 +489,11 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                 dateFormat.setTimeZone(utc);
                 String timestamp = dateFormat.format(System.currentTimeMillis());
 
+                String rootUrl = Jenkins.getInstance().getRootUrl();
+                String jobUrl = rootUrl + build.getUrl();
+
                 // upload the result file to DLMS
-                String res = sendFormToDLMS(bluemixToken, fp, lifecycleStage, buildNumber, buildUrl, timestamp);
+                String res = sendFormToDLMS(bluemixToken, fp, lifecycleStage, jobUrl, timestamp);
                 if(!printUploadMessage(res, fp.getName())) {
                     errorFlag = false;
                 }
@@ -587,12 +577,11 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
      * * Send POST request to DLMS back end with the result file
      * @param bluemixToken - the Bluemix token
      * @param contents - the result file
-     * @param buildNumber - the build number of the build job in Jenkins
-     * @param buildUrl -  the build url of the build job in Jenkins
+     * @param jobUrl -  the build url of the build job in Jenkins
      * @param timestamp
      * @return - response/error message from DLMS
      */
-    public String sendFormToDLMS(String bluemixToken, FilePath contents, String lifecycleStage, String buildNumber, String buildUrl, String timestamp) throws IOException {
+    public String sendFormToDLMS(String bluemixToken, FilePath contents, String lifecycleStage, String jobUrl, String timestamp) throws IOException {
 
         // create http client and post method
         CloseableHttpClient httpClient = HttpClients.createDefault();
@@ -615,7 +604,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             }
             //Todo check the value of lifecycleStage
             builder.addTextBody("lifecycle_stage", lifecycleStage);
-            builder.addTextBody("url", buildUrl);
+            builder.addTextBody("url", jobUrl);
             builder.addTextBody("timestamp", timestamp);
 
             String fileExt = FilenameUtils.getExtension(contents.getName());

@@ -65,13 +65,13 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
     private final static String CONTENT_TYPE_JSON = "application/json";
 
     // form fields from UI
-    private String buildNumber;
     private String applicationName;
     private String buildJobName;
     private String orgName;
     private String toolchainName;
     private String environmentName;
     private String credentialsId;
+    private String buildNumber;
 
     private String SQProjectKey;
     private String SQHostName;
@@ -89,14 +89,14 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
 
     @DataBoundConstructor
     public PublishSQ(String credentialsId,
-                        String orgName,
-                        String toolchainName,
-                        String buildJobName,
-                        String applicationName,
-                        String SQHostName,
-                        String SQAuthToken,
-                        String SQProjectKey,
-                        Boolean isFreestyle) {
+                     String orgName,
+                     String toolchainName,
+                     String buildJobName,
+                     String applicationName,
+                     String SQHostName,
+                     String SQAuthToken,
+                     String SQProjectKey,
+                     OptionalBuildInfo additionalBuildInfo) {
         this.credentialsId = credentialsId;
         this.orgName = orgName;
         this.toolchainName = toolchainName;
@@ -105,6 +105,12 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         this.SQHostName = SQHostName;
         this.SQAuthToken = SQAuthToken;
         this.SQProjectKey = SQProjectKey;
+
+        if (additionalBuildInfo == null) {
+            this.buildNumber = null;
+        } else {
+            this.buildNumber = additionalBuildInfo.buildNumber;
+        }
     }
 
     public PublishSQ(String orgName,
@@ -123,6 +129,10 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         this.SQAuthToken = SQAuthToken;
         this.IBMusername = IBMusername;
         this.IBMpassword = IBMpassword;
+    }
+
+    public void setBuildNumber(String buildNumber) {
+        this.buildNumber = buildNumber;
     }
 
     /**
@@ -168,6 +178,16 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         return isDeploy;
     }
 
+    public static class OptionalBuildInfo {
+        private String buildNumber;
+
+        @DataBoundConstructor
+        public OptionalBuildInfo(String buildNumber) {
+            this.buildNumber = buildNumber;
+        }
+    }
+
+
     @Override
     public void perform(@Nonnull Run build, @Nonnull FilePath workspace, @Nonnull Launcher launcher, @Nonnull TaskListener listener) throws InterruptedException, IOException {
 
@@ -208,8 +228,8 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
             buildNumber = envVars.expand(this.buildNumber);
         }
 
-        url = url.replace("{org_name}", this.orgName);
-        url = url.replace("{toolchain_id}", this.toolchainName);
+        url = url.replace("{org_name}", URLEncoder.encode(this.orgName, "UTF-8").replaceAll("\\+", "%20"));
+        url = url.replace("{toolchain_id}", URLEncoder.encode(this.toolchainName, "UTF-8").replaceAll("\\+", "%20"));
         url = url.replace("{build_artifact}", URLEncoder.encode(this.applicationName, "UTF-8").replaceAll("\\+", "%20"));
         url = url.replace("{build_id}", URLEncoder.encode(buildNumber, "UTF-8").replaceAll("\\+", "%20"));
         this.dlmsUrl = url;
