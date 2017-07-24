@@ -420,8 +420,8 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
     // If your plugin doesn't really define any property on Descriptor,
     // you don't have to do this.
     @Override
-    public PublishSQ.PublishTestImpl getDescriptor() {
-        return (PublishSQ.PublishTestImpl)super.getDescriptor();
+    public PublishSQImpl getDescriptor() {
+        return (PublishSQImpl)super.getDescriptor();
     }
 
     /**
@@ -433,7 +433,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
      * for the actual HTML fragment for the configuration screen.
      */
     @Extension // This indicates to Jenkins that this is an implementation of an extension point.
-    public static final class PublishTestImpl extends BuildStepDescriptor<Publisher> {
+    public static final class PublishSQImpl extends BuildStepDescriptor<Publisher> {
         /**
          * To persist global configuration information,
          * simply store it in a field and call save().
@@ -446,7 +446,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
          * In order to load the persisted global configuration, you have to
          * call load() in the constructor.
          */
-        public PublishTestImpl() {
+        public PublishSQImpl() {
             super(PublishSQ.class);
             load();
         }
@@ -463,9 +463,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
          *      prevent the form from being saved. It just means that a message
          *      will be displayed to the user.
          */
-
-        private String environment;
-        private boolean debug_mode;
 
         public FormValidation doCheckOrgName(@QueryParameter String value)
                 throws IOException, ServletException {
@@ -502,6 +499,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
 
         public FormValidation doTestConnection(@AncestorInPath ItemGroup context,
                                                @QueryParameter("credentialsId") final String credentialsId) {
+            String environment = getEnvironment();
             String targetAPI = chooseTargetAPI(environment);
             if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
                 preCredentials = credentialsId;
@@ -549,16 +547,17 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         public ListBoxModel doFillToolchainNameItems(@AncestorInPath ItemGroup context,
                                                      @QueryParameter("credentialsId") final String credentialsId,
                                                      @QueryParameter("orgName") final String orgName) {
+            String environment = getEnvironment();
             String targetAPI = chooseTargetAPI(environment);
             try {
                 bluemixToken = getBluemixToken(context, credentialsId, targetAPI);
             } catch (Exception e) {
                 return new ListBoxModel();
             }
-            if(debug_mode){
+            if(isDebug_mode()){
                 LOGGER.info("#######UPLOAD BUILD INFO : calling getToolchainList#######");
             }
-            ListBoxModel toolChainListBox = getToolchainList(bluemixToken, orgName, environment, debug_mode);
+            ListBoxModel toolChainListBox = getToolchainList(bluemixToken, orgName, environment, isDebug_mode());
             return toolChainListBox;
 
         }
@@ -585,21 +584,12 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
             return "Publish SonarQube test result to IBM Cloud DevOps";
         }
 
-        @Override
-        public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
-            // To persist global configuration information,
-            // set that to properties and call save().
-            environment = formData.getString("environment");
-            debug_mode = Boolean.parseBoolean(formData.getString("debug_mode"));
-            save();
-            return super.configure(req,formData);
+        public String getEnvironment() {
+            return getEnv(Jenkins.getInstance().getDescriptorByType(DevOpsGlobalConfiguration.class).getConsoleUrl());
         }
 
-        public String getEnvironment() {
-            return environment;
-        }
-        public boolean getDebugMode() {
-            return debug_mode;
+        public boolean isDebug_mode() {
+            return Jenkins.getInstance().getDescriptorByType(DevOpsGlobalConfiguration.class).isDebug_mode();
         }
     }
 }

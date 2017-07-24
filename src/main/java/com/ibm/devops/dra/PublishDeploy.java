@@ -335,8 +335,8 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 	// If your plugin doesn't really define any property on Descriptor,
 	// you don't have to do this.
 	@Override
-	public PublishDeploy.PublishDeployImpl getDescriptor() {
-		return (PublishDeploy.PublishDeployImpl) super.getDescriptor();
+	public PublishDeployImpl getDescriptor() {
+		return (PublishDeployImpl) super.getDescriptor();
 	}
 
 	/**
@@ -381,9 +381,6 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		 *         message will be displayed to the user.
 		 */
 
-		private String environment;
-		private boolean debug_mode;
-
 		public FormValidation doCheckOrgName(@QueryParameter String value) throws IOException, ServletException {
 			return FormValidation.validateRequired(value);
 		}
@@ -408,6 +405,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 
 		public FormValidation doTestConnection(@AncestorInPath ItemGroup context,
 				@QueryParameter("credentialsId") final String credentialsId) {
+			String environment = getEnvironment();
 			String targetAPI = chooseTargetAPI(environment);
 			if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
 				preCredentials = credentialsId;
@@ -474,16 +472,17 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		public ListBoxModel doFillToolchainNameItems(@AncestorInPath ItemGroup context,
 													 @QueryParameter("credentialsId") final String credentialsId,
 													 @QueryParameter("orgName") final String orgName) {
+			String environment = getEnvironment();
 			String targetAPI = chooseTargetAPI(environment);
 			try {
 				bluemixToken = getBluemixToken(context, credentialsId, targetAPI);
 			} catch (Exception e) {
 				return new ListBoxModel();
 			}
-			if(debug_mode){
+				if(isDebug_mode()){
 				LOGGER.info("#######UPLOAD DEPLOYMENT INFO : calling getToolchainList#######");
 			}
-			ListBoxModel toolChainListBox = getToolchainList(bluemixToken, orgName, environment, debug_mode);
+			ListBoxModel toolChainListBox = getToolchainList(bluemixToken, orgName, environment, isDebug_mode());
 			return toolChainListBox;
 		}
 
@@ -515,21 +514,12 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 			return "Publish deployment information to IBM Cloud DevOps";
 		}
 
-		@Override
-		public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
-			// To persist global configuration information,
-			// set that to properties and call save().
-			environment = formData.getString("environment");
-			debug_mode = Boolean.parseBoolean(formData.getString("debug_mode"));
-			save();
-			return super.configure(req, formData);
+		public String getEnvironment() {
+			return getEnv(Jenkins.getInstance().getDescriptorByType(DevOpsGlobalConfiguration.class).getConsoleUrl());
 		}
 
-		public String getEnvironment() {
-			return environment;
-		}
-		public boolean getDebugMode() {
-			return debug_mode;
+		public boolean isDebug_mode() {
+			return Jenkins.getInstance().getDescriptorByType(DevOpsGlobalConfiguration.class).isDebug_mode();
 		}
 	}
 }

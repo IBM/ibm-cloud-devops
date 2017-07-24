@@ -151,6 +151,24 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
     }
 
+    /**
+     * get the environment based on the console
+     * @param consoleUrl
+     */
+    public static String getEnv(String consoleUrl) {
+
+        System.out.println("try to get env" + consoleUrl);
+        if (consoleUrl.contains("dev-")) {
+            return "dev";
+        } else if (consoleUrl.contains("new-")) {
+            return "new";
+        } else if (consoleUrl.contains("stage1")) {
+            return "stage1";
+        } else {
+            return "production";
+        }
+    }
+
     public static String chooseTargetAPI(String environment) {
         if (!Util.isNullOrEmpty(environment)) {
             String target_api = TARGET_API_MAP.get(environment);
