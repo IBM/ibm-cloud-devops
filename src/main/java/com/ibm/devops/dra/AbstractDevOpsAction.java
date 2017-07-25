@@ -126,18 +126,12 @@ public abstract class AbstractDevOpsAction extends Recorder {
             "stage1", "https://dra.stage1.ng.bluemix.net/api/v4"
     );
 
+    // Todo: need to get rid of ng and add env_id
     private static Map<String, String> CONTROL_CENTER_ENV_MAP = ImmutableMap.of(
             "production", "https://console.ng.bluemix.net/devops/insights/#!/",
             "dev", "https://dev-console.stage1.ng.bluemix.net/devops/insights/#!/",
             "new", "https://new-console.stage1.ng.bluemix.net/devops/insights/#!/",
             "stage1", "https://console.stage1.ng.bluemix.net/devops/insights/#!/"
-    );
-
-    private static Map<String, String> DRA_REPORT_ENV_MAP = ImmutableMap.of(
-            "production", "https://dra.ng.bluemix.net/report/",
-            "dev", "https://dev-dra.stage1.ng.bluemix.net/report/",
-            "new", "https://new-dra.stage1.ng.bluemix.net/report/",
-            "stage1", "https://dra.stage1.ng.bluemix.net/report/"
     );
 
     public static void printPluginVersion(ClassLoader loader, PrintStream printStream) {
@@ -157,23 +151,30 @@ public abstract class AbstractDevOpsAction extends Recorder {
      */
     public static String getEnv(String consoleUrl) {
 
-        System.out.println("try to get env" + consoleUrl);
-        if (consoleUrl.contains("dev-")) {
+        if (consoleUrl.contains("dev-console.stage1.bluemix.net") || consoleUrl.contains("dev-console.stage1.ng.bluemix.net")) {
             return "dev";
-        } else if (consoleUrl.contains("new-")) {
+        } else if (consoleUrl.contains("new-console.stage1.bluemix.net") || consoleUrl.contains("new-console.stage1.ng.bluemix.net")) {
             return "new";
-        } else if (consoleUrl.contains("stage1")) {
+        } else if (consoleUrl.contains("console.stage1.bluemix.net") || consoleUrl.contains("console.stage1.ng.bluemix.net")) {
             return "stage1";
-        } else {
+        } else if (consoleUrl.contains("console.bluemix.net") || consoleUrl.contains("console.ng.bluemix.net")){
             return "production";
+        } else {
+            int start = consoleUrl.indexOf("console") + 8;
+            int end = consoleUrl.indexOf("bluemix.net") - 1;
+            String local = consoleUrl.substring(start, end);
+            System.out.println("prefix + " + local);
+            return local;
         }
     }
 
     public static String chooseTargetAPI(String environment) {
         if (!Util.isNullOrEmpty(environment)) {
-            String target_api = TARGET_API_MAP.get(environment);
-            if (!Util.isNullOrEmpty(target_api)) {
-                return target_api;
+            if (TARGET_API_MAP.keySet().contains(environment)) {
+                return TARGET_API_MAP.get(environment);
+            } else {
+                String api = TARGET_API_MAP.get("production").replace("ng", environment);
+                return api;
             }
         }
 
@@ -182,9 +183,11 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
     public static String chooseToolchainsUrl(String environment) {
         if (!Util.isNullOrEmpty(environment)) {
-            String toolchains_url = TOOLCHAINS_URL_MAP.get(environment);
-            if (!Util.isNullOrEmpty(toolchains_url)) {
-                return toolchains_url;
+            if (TOOLCHAINS_URL_MAP.keySet().contains(environment)) {
+                return TOOLCHAINS_URL_MAP.get(environment);
+            } else {
+                String api = TOOLCHAINS_URL_MAP.get("production").replace("ng", environment);
+                return api;
             }
         }
 
@@ -193,20 +196,23 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
     public static String chooseOrganizationsUrl(String environment) {
         if (!Util.isNullOrEmpty(environment)) {
-            String organizations_url = ORGANIZATIONS_URL_MAP.get(environment);
-            if (!Util.isNullOrEmpty(organizations_url)) {
-                return organizations_url;
+            if (ORGANIZATIONS_URL_MAP.keySet().contains(environment)) {
+                return ORGANIZATIONS_URL_MAP.get(environment);
+            } else {
+                String api = ORGANIZATIONS_URL_MAP.get("production").replace("ng", environment);
+                return api;
             }
         }
-
         return ORGANIZATIONS_URL_MAP.get("production");
     }
     
     public static String chooseSpacesUrl(String environment) {
         if (!Util.isNullOrEmpty(environment)) {
-            String spaces_url = SPACES_URL_MAP.get(environment);
-            if (!Util.isNullOrEmpty(spaces_url)) {
-                return spaces_url;
+            if (SPACES_URL_MAP.keySet().contains(environment)) {
+                return SPACES_URL_MAP.get(environment);
+            } else {
+                String api = SPACES_URL_MAP.get("production").replace("ng", environment);
+                return api;
             }
         }
 
@@ -215,9 +221,11 @@ public abstract class AbstractDevOpsAction extends Recorder {
     
     public static String chooseAppsUrl(String environment) {
         if (!Util.isNullOrEmpty(environment)) {
-            String apps_url = APPS_URL_MAP.get(environment);
-            if (!Util.isNullOrEmpty(apps_url)) {
-                return apps_url;
+            if (APPS_URL_MAP.keySet().contains(environment)) {
+                return APPS_URL_MAP.get(environment);
+            } else {
+                String api = APPS_URL_MAP.get("production").replace("ng", environment);
+                return api;
             }
         }
 
@@ -226,9 +234,11 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
     public static String choosePoliciesUrl(String environment) {
         if (!Util.isNullOrEmpty(environment)) {
-            String policies_url = POLICIES_URL_MAP.get(environment);
-            if (!Util.isNullOrEmpty(policies_url)) {
-                return policies_url;
+            if (POLICIES_URL_MAP.keySet().contains(environment)) {
+                return POLICIES_URL_MAP.get(environment);
+            } else {
+                String api = POLICIES_URL_MAP.get("production").replace("ng", environment);
+                return api;
             }
         }
 
@@ -238,15 +248,17 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
     /**
      * choose DLMS Url for different environment (production, stage1, new, dev)
-     * @param envStr
+     * @param environment
      * @return
      */
 
-    public static String chooseDLMSUrl(String envStr) {
-        if (!Util.isNullOrEmpty(envStr)) {
-            String dlmsUrl = DLMS_ENV_MAP.get(envStr);
-            if (!Util.isNullOrEmpty(dlmsUrl)) {
-                return dlmsUrl;
+    public static String chooseDLMSUrl(String environment) {
+        if (!Util.isNullOrEmpty(environment)) {
+            if (DLMS_ENV_MAP.keySet().contains(environment)) {
+                return DLMS_ENV_MAP.get(environment);
+            } else {
+                String api = DLMS_ENV_MAP.get("production").replace("ng", environment);
+                return api;
             }
         }
 
@@ -255,14 +267,16 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
     /**
      * choose DRA Url for different environment (production, stage1, new, dev)
-     * @param envStr
+     * @param environment
      * @return
      */
-    public static String chooseDRAUrl(String envStr) {
-        if (!Util.isNullOrEmpty(envStr)) {
-            String draUrl = GATE_DECISION_ENV_MAP.get(envStr);
-            if (!Util.isNullOrEmpty(draUrl)) {
-                return draUrl;
+    public static String chooseDRAUrl(String environment) {
+        if (!Util.isNullOrEmpty(environment)) {
+            if (GATE_DECISION_ENV_MAP.keySet().contains(environment)) {
+                return GATE_DECISION_ENV_MAP.get(environment);
+            } else {
+                String api = GATE_DECISION_ENV_MAP.get("production").replace("ng", environment);
+                return api;
             }
         }
 
@@ -271,29 +285,16 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
     /**
      * choose control center Url for different environment (production, stage1, new, dev)
-     * @param envStr
+     * @param environment
      * @return
      */
-    public static String chooseControlCenterUrl(String envStr) {
-        if (!Util.isNullOrEmpty(envStr)) {
-            String ccUrl = CONTROL_CENTER_ENV_MAP.get(envStr);
-            if (!Util.isNullOrEmpty(ccUrl)) {
-                return ccUrl;
-            }
-        }
-        return CONTROL_CENTER_ENV_MAP.get("production");
-    }
-
-    /**
-     * choose report prefix url for different environment (production, stage1, new, dev)
-     * @param envStr
-     * @return
-     */
-    public static String chooseReportUrl(String envStr) {
-        if (!Util.isNullOrEmpty(envStr)) {
-            String ccUrl = CONTROL_CENTER_ENV_MAP.get(envStr);
-            if (!Util.isNullOrEmpty(ccUrl)) {
-                return ccUrl;
+    public static String chooseControlCenterUrl(String environment) {
+        if (!Util.isNullOrEmpty(environment)) {
+            if (CONTROL_CENTER_ENV_MAP.keySet().contains(environment)) {
+                return CONTROL_CENTER_ENV_MAP.get(environment);
+            } else {
+                String api = CONTROL_CENTER_ENV_MAP.get("production").replace("ng", environment);
+                return api;
             }
         }
         return CONTROL_CENTER_ENV_MAP.get("production");
