@@ -163,7 +163,6 @@ public abstract class AbstractDevOpsAction extends Recorder {
             int start = consoleUrl.indexOf("console") + 8;
             int end = consoleUrl.indexOf("bluemix.net") - 1;
             String local = consoleUrl.substring(start, end);
-            System.out.println("prefix + " + local);
             return local;
         }
     }
