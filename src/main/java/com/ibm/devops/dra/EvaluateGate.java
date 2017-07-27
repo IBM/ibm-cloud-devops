@@ -296,7 +296,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             }
 
             String cclink = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
-            String reportUrl = chooseReportUrl(env) + "decisionreport?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId="
+            String reportUrl = chooseControlCenterUrl(env) + "decisionreport?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId="
                     + URLEncoder.encode(toolchainName, "UTF-8") + "&reportId=" + decisionId;
 
             GatePublisherAction action = new GatePublisherAction(reportUrl, cclink, decision, this.policyName, build);
@@ -391,8 +391,8 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
 
 
     @Override
-    public EvaluateGate.EvaluateGateImpl getDescriptor() {
-        return (EvaluateGate.EvaluateGateImpl)super.getDescriptor();
+    public EvaluateGateImpl getDescriptor() {
+        return (EvaluateGateImpl)super.getDescriptor();
     }
 
     /**
@@ -405,9 +405,6 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
      */
     @Extension // This indicates to Jenkins that this is an implementation of an extension point.
     public static final class EvaluateGateImpl extends BuildStepDescriptor<Publisher> {
-
-        private String environment;
-        private boolean debug_mode;
 
         /**
          * In order to load the persisted global configuration, you have to
@@ -463,6 +460,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
 
         public FormValidation doTestConnection(@AncestorInPath ItemGroup context,
                                                @QueryParameter("credentialsId") final String credentialsId) {
+            String environment = getEnvironment();
             String targetAPI = chooseTargetAPI(environment);
             if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
                 preCredentials = credentialsId;
@@ -533,6 +531,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
                                                   @QueryParameter final String orgName,
                                                   @QueryParameter final String toolchainName,
                                                   @QueryParameter final String credentialsId) {
+            String environment = getEnvironment();
             String targetAPI = chooseTargetAPI(environment);
             try {
                 // if user changes to a different credential, need to get a new token
@@ -543,10 +542,10 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             } catch (Exception e) {
                 return new ListBoxModel();
             }
-            if(debug_mode){
+            if(isDebug_mode()){
                 LOGGER.info("#######GATE : calling getPolicyList#######");
             }
-            return getPolicyList(bluemixToken, orgName, toolchainName, environment, debug_mode);
+            return getPolicyList(bluemixToken, orgName, toolchainName, environment, isDebug_mode());
 
         }
 
@@ -560,16 +559,17 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         public ListBoxModel doFillToolchainNameItems(@AncestorInPath ItemGroup context,
                                                   @QueryParameter final String orgName,
                                                   @QueryParameter final String credentialsId) {
+            String environment = getEnvironment();
             String targetAPI = chooseTargetAPI(environment);
             try {
                 bluemixToken = getBluemixToken(context, credentialsId, targetAPI);
             } catch (Exception e) {
                 return new ListBoxModel();
             }
-            if(debug_mode){
+            if(isDebug_mode()){
                 LOGGER.info("#######GATE : calling getToolchainList#######");
             }
-            return getToolchainList(bluemixToken, orgName, environment, debug_mode);
+            return getToolchainList(bluemixToken, orgName, environment, isDebug_mode());
         }
 
 
@@ -595,21 +595,12 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             return "IBM Cloud DevOps Gate";
         }
 
-        @Override
-        public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
-            // To persist global configuration information,
-            // set that to properties and call save().
-            environment = formData.getString("environment");
-            debug_mode = Boolean.parseBoolean(formData.getString("debug_mode"));
-            save();
-            return super.configure(req,formData);
+        public String getEnvironment() {
+            return getEnv(Jenkins.getInstance().getDescriptorByType(DevOpsGlobalConfiguration.class).getConsoleUrl());
         }
 
-        public String getEnvironment() {
-            return environment;
-        }
-        public boolean getDebugMode() {
-            return debug_mode;
+        public boolean isDebug_mode() {
+            return Jenkins.getInstance().getDescriptorByType(DevOpsGlobalConfiguration.class).isDebug_mode();
         }
     }
 }

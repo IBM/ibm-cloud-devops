@@ -402,7 +402,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
 
             String cclink = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
 
-            String reportUrl = chooseReportUrl(env) + "decisionreport?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId="
+            String reportUrl = chooseControlCenterUrl(env) + "decisionreport?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId="
                     + URLEncoder.encode(toolchainName, "UTF-8") + "&reportId=" + decisionId;
             GatePublisherAction action = new GatePublisherAction(reportUrl, cclink, decision, this.policyName, build);
             build.addAction(action);
@@ -716,8 +716,8 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
     // If your plugin doesn't really define any property on Descriptor,
     // you don't have to do this.
     @Override
-    public PublishTest.PublishTestImpl getDescriptor() {
-        return (PublishTest.PublishTestImpl)super.getDescriptor();
+    public PublishTestImpl getDescriptor() {
+        return (PublishTestImpl)super.getDescriptor();
     }
 
     /**
@@ -760,9 +760,6 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
          *      will be displayed to the user.
          */
 
-        private String environment;
-        private boolean debug_mode;
-
         public FormValidation doCheckOrgName(@QueryParameter String value)
                 throws IOException, ServletException {
             return FormValidation.validateRequired(value);
@@ -796,6 +793,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
 
         public FormValidation doTestConnection(@AncestorInPath ItemGroup context,
                                                @QueryParameter("credentialsId") final String credentialsId) {
+            String environment = getEnvironment();
             String targetAPI = chooseTargetAPI(environment);
             if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
                 preCredentials = credentialsId;
@@ -871,6 +869,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                                                   @RelativePath("..") @QueryParameter final String orgName,
                                                   @RelativePath("..") @QueryParameter final String toolchainName,
                                                   @RelativePath("..") @QueryParameter final String credentialsId) {
+            String environment = getEnvironment();
             String targetAPI = chooseTargetAPI(environment);
             try {
                 // if user changes to a different credential, need to get a new token
@@ -881,10 +880,10 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             } catch (Exception e) {
                 return new ListBoxModel();
             }
-            if(debug_mode){
+            if(isDebug_mode()){
                 LOGGER.info("#######UPLOAD TEST RESULTS : calling getPolicyList#######");
             }
-            return getPolicyList(bluemixToken, orgName, toolchainName, environment, debug_mode);
+            return getPolicyList(bluemixToken, orgName, toolchainName, environment, isDebug_mode());
         }
 
         /**
@@ -897,16 +896,17 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         public ListBoxModel doFillToolchainNameItems(@AncestorInPath ItemGroup context,
                                                      @QueryParameter("credentialsId") final String credentialsId,
                                                      @QueryParameter("orgName") final String orgName) {
+            String environment = getEnvironment();
             String targetAPI = chooseTargetAPI(environment);
             try {
                 bluemixToken = getBluemixToken(context, credentialsId, targetAPI);
             } catch (Exception e) {
                 return new ListBoxModel();
             }
-            if(debug_mode){
+            if(isDebug_mode()){
                 LOGGER.info("#######UPLOAD TEST RESULTS : calling getToolchainList#######");
             }
-            ListBoxModel toolChainListBox = getToolchainList(bluemixToken, orgName, environment, debug_mode);
+            ListBoxModel toolChainListBox = getToolchainList(bluemixToken, orgName, environment, isDebug_mode());
             return toolChainListBox;
 
         }
@@ -954,21 +954,12 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             return "Publish test result to IBM Cloud DevOps";
         }
 
-        @Override
-        public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
-            // To persist global configuration information,
-            // set that to properties and call save().
-            environment = formData.getString("environment");
-            debug_mode = Boolean.parseBoolean(formData.getString("debug_mode"));
-            save();
-            return super.configure(req,formData);
+        public String getEnvironment() {
+            return getEnv(Jenkins.getInstance().getDescriptorByType(DevOpsGlobalConfiguration.class).getConsoleUrl());
         }
 
-        public String getEnvironment() {
-            return environment;
-        }
-        public boolean getDebugMode() {
-            return debug_mode;
+        public boolean isDebug_mode() {
+            return Jenkins.getInstance().getDescriptorByType(DevOpsGlobalConfiguration.class).isDebug_mode();
         }
     }
 }

@@ -77,9 +77,9 @@
       <email>xunrongli@us.ibm.com</email>
     </developer>
     <developer>
-      <id>patjoy</id>
-      <name>Patrick Joy</name>
-      <email>patrick.joy1@ibm.com</email>
+      <id>aggarwav</id>
+      <name>Vijay Aggarwal</name>
+      <email>aggarwav@us.ibm.com</email>
     </developer>
     <developer>
       <id>imvijay2007</id>
@@ -90,6 +90,11 @@
       <id>ejodet</id>
       <name>Eric Jodet</name>
       <email>eric_jodet@fr.ibm.com</email>
+    </developer>
+    <developer>
+      <id>patjoy</id>
+      <name>Patrick Joy</name>
+      <email>patrick.joy1@ibm.com</email>
     </developer>
   </developers>
 
