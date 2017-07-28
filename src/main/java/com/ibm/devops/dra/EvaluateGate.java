@@ -227,10 +227,6 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         this.applicationName = envVars.expand(this.applicationName);
         this.toolchainName = envVars.expand(this.toolchainName);
 
-        if (!checkRootUrl(printStream)) {
-            return;
-        }
-
         if (this.isDeploy || !Util.isNullOrEmpty(this.envName)) {
             this.environmentName = envVars.expand(this.envName);
         }

@@ -290,10 +290,6 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         // Get the project name and build id from environment
         EnvVars envVars = build.getEnvironment(listener);
 
-        if (!checkRootUrl(printStream)) {
-            return;
-        }
-
         // verify if user chooses advanced option to input customized DLMS
         String env = getDescriptor().getEnvironment();
         String targetAPI = chooseTargetAPI(env);
@@ -307,7 +303,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             this.environmentName = envVars.expand(this.envName);
         }
 
-        String buildNumber, buildUrl;
+        String buildNumber;
         // if user does not specify the build number
         if (Util.isNullOrEmpty(this.buildNumber)) {
             // locate the build job that triggers current build
@@ -489,8 +485,12 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                 dateFormat.setTimeZone(utc);
                 String timestamp = dateFormat.format(System.currentTimeMillis());
 
-                String rootUrl = Jenkins.getInstance().getRootUrl();
-                String jobUrl = rootUrl + build.getUrl();
+                String jobUrl;
+                if (checkRootUrl(printStream)) {
+                    jobUrl = Jenkins.getInstance().getRootUrl() + build.getUrl();
+                } else {
+                    jobUrl = build.getAbsoluteUrl();
+                }
 
                 // upload the result file to DLMS
                 String res = sendFormToDLMS(bluemixToken, fp, lifecycleStage, jobUrl, timestamp);

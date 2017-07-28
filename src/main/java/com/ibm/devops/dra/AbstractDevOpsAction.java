@@ -31,15 +31,15 @@ import hudson.tasks.Recorder;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
+import org.apache.http.HttpHost;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-import org.apache.http.HttpHost;
-import org.apache.http.client.config.RequestConfig;
 import org.cloudfoundry.client.lib.CloudCredentials;
 import org.cloudfoundry.client.lib.CloudFoundryClient;
 import org.cloudfoundry.client.lib.CloudFoundryException;
@@ -51,14 +51,10 @@ import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.regex.Pattern;
-import java.util.Scanner;
-import java.util.logging.Logger;
+import java.util.*;
 import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 /**
  * Abstract DRA Builder to share common method between two different post-build actions
@@ -151,7 +147,9 @@ public abstract class AbstractDevOpsAction extends Recorder {
      */
     public static String getEnv(String consoleUrl) {
 
-        if (consoleUrl.contains("dev-console.stage1.bluemix.net") || consoleUrl.contains("dev-console.stage1.ng.bluemix.net")) {
+        if (Util.isNullOrEmpty(consoleUrl)) {
+            return "production";
+        } else if (consoleUrl.contains("dev-console.stage1.bluemix.net") || consoleUrl.contains("dev-console.stage1.ng.bluemix.net")) {
             return "dev";
         } else if (consoleUrl.contains("new-console.stage1.bluemix.net") || consoleUrl.contains("new-console.stage1.ng.bluemix.net")) {
             return "new";
@@ -305,10 +303,11 @@ public abstract class AbstractDevOpsAction extends Recorder {
      * @return
      */
     public static boolean checkRootUrl(PrintStream printStream) {
+
         if (Util.isNullOrEmpty(Jenkins.getInstance().getRootUrl())) {
             printStream.println(
                     "[IBM Cloud DevOps] The Jenkins global root url is not set. Please set it to use this postbuild Action.  \"Manage Jenkins > Configure System > Jenkins URL\"");
-            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Build Info.");
+            printStream.println("[IBM Cloud DevOps] Warning: You would not get the correct project url");
             return false;
         }
         return true;

@@ -170,10 +170,6 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         // Get the project name and build id from environment
         EnvVars envVars = build.getEnvironment(listener);
 
-        if (!checkRootUrl(printStream)) {
-            return;
-        }
-
         // verify if user chooses advanced option to input customized DLMS
         String env = getDescriptor().getEnvironment();
         this.dlmsUrl = chooseDLMSUrl(env) + BUILD_API_URL;
@@ -261,8 +257,12 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
                 buildNumber = envVars.expand(this.buildNumber);
             }
 
-            String buildUrl = Jenkins.getInstance().getRootUrl() + build.getUrl();
-
+            String buildUrl;
+            if (checkRootUrl(printStream)) {
+                buildUrl = Jenkins.getInstance().getRootUrl() + build.getUrl();
+            } else {
+                buildUrl = build.getAbsoluteUrl();
+            }
             HttpPost postMethod = new HttpPost(url);
             postMethod = addProxyInformation(postMethod);
             postMethod.setHeader("Authorization", bluemixToken);

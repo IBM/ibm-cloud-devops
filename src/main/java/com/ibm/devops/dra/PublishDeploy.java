@@ -182,10 +182,6 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		// Get the project name and build id from environment
 		EnvVars envVars = build.getEnvironment(listener);
 
-		if (!checkRootUrl(printStream)) {
-			return;
-		}
-
 		// verify if user chooses advanced option to input customized DLMS
 		String env = getDescriptor().getEnvironment();
 		String targetAPI = chooseTargetAPI(env);
@@ -228,8 +224,12 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		dlmsUrl = dlmsUrl.replace("{build_artifact}", URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20"));
 		dlmsUrl = dlmsUrl.replace("{build_id}", URLEncoder.encode(buildNumber, "UTF-8").replaceAll("\\+", "%20"));
 		String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
-		String rootUrl = Jenkins.getInstance().getRootUrl();
-		String jobUrl = rootUrl + build.getUrl();
+		String jobUrl;
+		if (checkRootUrl(printStream)) {
+			jobUrl = Jenkins.getInstance().getRootUrl() + build.getUrl();
+		} else {
+			jobUrl = build.getAbsoluteUrl();
+		}
 
 		String bluemixToken;
 		// get the Bluemix token
