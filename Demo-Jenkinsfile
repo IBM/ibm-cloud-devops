@@ -32,7 +32,7 @@ pipeline {
                 GIT_COMMIT = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
                 GIT_BRANCH = 'master'
             }
-            steps {git
+            steps {
                 sh 'npm --version'
                 sh 'npm install'
                 sh 'grunt dev-setup --no-color'
