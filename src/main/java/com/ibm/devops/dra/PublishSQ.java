@@ -256,7 +256,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         try {
             JsonObject SQqualityGate = sendGETRequest(this.SQHostName + "/api/qualitygates/project_status?projectKey=" + this.SQProjectKey, headers);
             printStream.println("[IBM Cloud DevOps] Successfully queried SonarQube for quality gate information");
-            JsonObject SQissues = sendGETRequest(this.SQHostName + "/api/issues/search?statuses=OPEN&componentKeys=" + this.SQProjectKey, headers);
+            JsonObject SQissues = getFullResponse(this.SQHostName + "/api/issues/search?statuses=OPEN&projectKeys=" + this.SQProjectKey, headers);
             printStream.println("[IBM Cloud DevOps] Successfully queried SonarQube for issue information");
             JsonObject SQratings = sendGETRequest(this.SQHostName + "/api/measures/component?metricKeys=reliability_rating,security_rating,sqale_rating&componentKey=" + this.SQProjectKey, headers);
             printStream.println("[IBM Cloud DevOps] Successfully queried SonarQube for metric information");
@@ -337,6 +337,34 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         JsonObject resJson = element.getAsJsonObject();
 
         return resJson;
+    }
+    
+    /**
+     * Get all the pages of response, a call to the api returns a single page response, this function will iterate thru all the 
+     * pages to get a full response. Gets 250 records per page at a time.
+     * 
+     * @param url the endpoint of the request
+     * @param headers a map of headers where key is the header name and the map value is the header value
+     * @return a JSON parsed representation of the payload returned
+     * @throws Exception
+     */
+    private JsonObject getFullResponse(String url, Map<String, String> headers) throws Exception {
+    	JsonArray finalArray = new JsonArray();
+    	int recordCount = 0;
+    	int page = 1;
+    	
+    	do {
+    		String uurl = url + "&ps=250&p=" + page;
+    		JsonObject partResponse = sendGETRequest(uurl, headers);
+    		JsonArray issues = partResponse.getAsJsonArray("issues");
+    		finalArray.addAll(issues);
+    		recordCount = issues.size();
+    		page += 1;
+    	} while(recordCount > 0);
+    	
+    	JsonObject payload = new JsonObject();
+    	payload.add("issues", finalArray);
+    	return payload;
     }
 
     /**
