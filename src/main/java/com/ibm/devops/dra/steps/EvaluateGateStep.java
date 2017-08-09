@@ -22,12 +22,7 @@ import org.kohsuke.stapler.DataBoundSetter;
 
 import javax.annotation.Nonnull;
 
-public class EvaluateGateStep extends AbstractStepImpl {
-    // optional form fields from UI
-    private String applicationName;
-    private String orgName;
-    private String credentialsId;
-    private String toolchainId;
+public class EvaluateGateStep extends AbstractDevOpsStep {
 
     // required parameters to support pipeline script
     private String policy;
@@ -40,26 +35,6 @@ public class EvaluateGateStep extends AbstractStepImpl {
     @DataBoundConstructor
     public EvaluateGateStep(String policy) {
         this.policy = policy;
-    }
-
-    @DataBoundSetter
-    public void setApplicationName(String applicationName) {
-        this.applicationName = applicationName;
-    }
-
-    @DataBoundSetter
-    public void setOrgName(String orgName) {
-        this.orgName = orgName;
-    }
-
-    @DataBoundSetter
-    public void setCredentialsId(String credentialsId) {
-        this.credentialsId = credentialsId;
-    }
-
-    @DataBoundSetter
-    public void setToolchainId(String toolchainId) {
-        this.toolchainId = toolchainId;
     }
 
     @DataBoundSetter
@@ -79,22 +54,6 @@ public class EvaluateGateStep extends AbstractStepImpl {
 
     public String getBuildNumber() {
         return buildNumber;
-    }
-
-    public String getApplicationName() {
-        return applicationName;
-    }
-
-    public String getOrgName() {
-        return orgName;
-    }
-
-    public String getCredentialsId() {
-        return credentialsId;
-    }
-
-    public String getToolchainId() {
-        return toolchainId;
     }
 
     public String getEnvironment() {

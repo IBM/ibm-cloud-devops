@@ -23,6 +23,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.ibm.devops.dra.steps.AbstractDevOpsStep;
 import hudson.EnvVars;
 import hudson.ProxyConfiguration;
 import hudson.model.*;
@@ -62,6 +63,13 @@ import java.util.regex.Pattern;
 public abstract class AbstractDevOpsAction extends Recorder {
 
     public final static Logger LOGGER = Logger.getLogger(AbstractDevOpsAction.class.getName());
+    public final static String ORG_NAME = "IBM_CLOUD_DEVOPS_ORG";
+    public final static String APP_NAME = "IBM_CLOUD_DEVOPS_APP_NAME";
+    public final static String TOOLCHAIN_ID = "IBM_CLOUD_DEVOPS_TOOLCHAIN_ID";
+    public final static String USERNAME = "IBM_CLOUD_DEVOPS_CREDS_USR";
+    public final static String PASSWORD = "IBM_CLOUD_DEVOPS_CREDS_PSW";
+    public final static String RESULT_SUCCESS = "SUCCESS";
+    public final static String RESULT_FAIL = "FAIL";
     
     private final static String ORG= "&&organization_guid:";
     private final static String SPACE= "&&space_guid:";
@@ -163,6 +171,22 @@ public abstract class AbstractDevOpsAction extends Recorder {
             String local = consoleUrl.substring(start, end);
             return local;
         }
+    }
+
+    /**
+     * set the required env variables' HashMap for all steps
+     * @param step
+     * @param envVars
+     * @return
+     */
+    public static HashMap<String, String> setRequiredEnvVars(AbstractDevOpsStep step, EnvVars envVars) {
+        HashMap<String, String> requiredEnvVars = new HashMap<>();
+        requiredEnvVars.put(ORG_NAME, Util.isNullOrEmpty(step.getOrgName()) ? envVars.get("IBM_CLOUD_DEVOPS_ORG") : step.getOrgName());
+        requiredEnvVars.put(APP_NAME, Util.isNullOrEmpty(step.getApplicationName()) ? envVars.get("IBM_CLOUD_DEVOPS_APP_NAME") : step.getApplicationName());
+        requiredEnvVars.put(TOOLCHAIN_ID, Util.isNullOrEmpty(step.getToolchainId()) ? envVars.get("IBM_CLOUD_DEVOPS_TOOLCHAIN_ID") : step.getToolchainId());
+        requiredEnvVars.put(USERNAME, envVars.get("IBM_CLOUD_DEVOPS_CREDS_USR"));
+        requiredEnvVars.put(PASSWORD, envVars.get("IBM_CLOUD_DEVOPS_CREDS_PSW"));
+        return requiredEnvVars;
     }
 
     public static String chooseTargetAPI(String environment) {

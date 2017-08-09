@@ -32,7 +32,6 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
-import net.sf.json.JSONObject;
 
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -113,22 +112,17 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         }
     }
 
-    public PublishSQ(String orgName,
-                        String applicationName,
-                        String toolchainName,
-                        String SQProjectKey,
-                        String SQHostName,
-                        String SQAuthToken,
-                        String IBMusername,
-                        String IBMpassword) {
-        this.orgName = orgName;
-        this.applicationName = applicationName;
-        this.toolchainName = toolchainName;
-        this.SQProjectKey = SQProjectKey;
-        this.SQHostName = SQHostName;
-        this.SQAuthToken = SQAuthToken;
-        this.IBMusername = IBMusername;
-        this.IBMpassword = IBMpassword;
+
+    public PublishSQ(HashMap<String, String> envVarsMap, HashMap<String, String> paramsMap) {
+        this.SQProjectKey = paramsMap.get("SQProjectKey");
+        this.SQHostName = paramsMap.get("SQHostName");
+        this.SQAuthToken = paramsMap.get("SQAuthToken");
+
+        this.applicationName = envVarsMap.get(APP_NAME);
+        this.orgName = envVarsMap.get(ORG_NAME);
+        this.toolchainName = envVarsMap.get(TOOLCHAIN_ID);
+        this.IBMusername = envVarsMap.get(USERNAME);
+        this.IBMpassword = envVarsMap.get(PASSWORD);
     }
 
     public void setBuildNumber(String buildNumber) {

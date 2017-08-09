@@ -17,6 +17,7 @@ package com.ibm.devops.dra;
 
 import hudson.EnvVars;
 import java.io.PrintStream;
+import java.util.HashMap;
 
 /**
  * Utilities functions
@@ -35,9 +36,22 @@ public class Util {
         return false;
     }
 
-    public static boolean allNotNullOrEmpty(String... strs) {
-        for (String str : strs) {
-            if (isNullOrEmpty(str)) {
+	public static boolean allNotNullOrEmpty(String... strs) {
+		for (String str : strs) {
+			if (isNullOrEmpty(str)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+    public static boolean allNotNullOrEmpty(HashMap<String, String> vars, PrintStream printStream) {
+        for (String key : vars.keySet()) {
+            if (isNullOrEmpty(vars.get(key))) {
+				if (key.contains("IBM"))
+					printStream.println("[IBM Cloud DevOps] Missing environment variables \"" + key + "\" configurations");
+				else
+					printStream.println("[IBM Cloud DevOps] Missing required parameters, \"" + key + "\"");
                 return false;
             }
         }

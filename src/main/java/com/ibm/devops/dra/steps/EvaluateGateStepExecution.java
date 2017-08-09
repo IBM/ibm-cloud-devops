@@ -27,6 +27,9 @@ import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
 
 import javax.inject.Inject;
 import java.io.PrintStream;
+import java.util.HashMap;
+
+import static com.ibm.devops.dra.AbstractDevOpsAction.setRequiredEnvVars;
 
 public class EvaluateGateStepExecution extends AbstractSynchronousNonBlockingStepExecution<Void> {
     private static final long serialVersionUID = 1L;
@@ -48,16 +51,11 @@ public class EvaluateGateStepExecution extends AbstractSynchronousNonBlockingSte
     protected Void run() throws Exception {
 
         PrintStream printStream = listener.getLogger();
+        HashMap<String, String> requiredEnvVars = setRequiredEnvVars(step, envVars);
 
-        String orgName = Util.isNullOrEmpty(step.getOrgName()) ? envVars.get("IBM_CLOUD_DEVOPS_ORG") : step.getOrgName();
-        String applicationName =  Util.isNullOrEmpty(step.getApplicationName()) ? envVars.get("IBM_CLOUD_DEVOPS_APP_NAME") : step.getApplicationName();
-        String toolchainName = Util.isNullOrEmpty(step.getToolchainId()) ? envVars.get("IBM_CLOUD_DEVOPS_TOOLCHAIN_ID") : step.getToolchainId();
-        String username = envVars.get("IBM_CLOUD_DEVOPS_CREDS_USR");
-        String password = envVars.get("IBM_CLOUD_DEVOPS_CREDS_PSW");
 
         //check all the required env vars
-        if (!Util.allNotNullOrEmpty(orgName, applicationName,toolchainName, username, password)) {
-            printStream.println("[IBM Cloud DevOps] Missing environment variables configurations, please specify all required environment variables in the pipeline");
+        if (!Util.allNotNullOrEmpty(requiredEnvVars, printStream)) {
             printStream.println("[IBM Cloud DevOps] Error: Failed to get Gate decision.");
             return null;
         }
@@ -77,15 +75,7 @@ public class EvaluateGateStepExecution extends AbstractSynchronousNonBlockingSte
 
         // optional build number, if user wants to set their own build number
         String buildNumber = step.getBuildNumber();
-        EvaluateGate evaluateGate = new EvaluateGate(
-                policy,
-                orgName,
-                applicationName,
-                toolchainName,
-                step.getEnvironment(),
-                username,
-                password,
-                willDisrupt);
+        EvaluateGate evaluateGate = new EvaluateGate(requiredEnvVars, policy, step.getEnvironment(), willDisrupt);
         try {
             if (!Util.isNullOrEmpty(buildNumber)) {
                 evaluateGate.setBuildNumber(buildNumber);

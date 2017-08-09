@@ -26,6 +26,9 @@ import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
 
 import javax.inject.Inject;
 import java.io.PrintStream;
+import java.util.HashMap;
+
+import static com.ibm.devops.dra.AbstractDevOpsAction.*;
 
 public class PublishBuildStepExecution extends AbstractSynchronousNonBlockingStepExecution<Void> {
     private static final long serialVersionUID = 1L;
@@ -47,53 +50,41 @@ public class PublishBuildStepExecution extends AbstractSynchronousNonBlockingSte
     protected Void run() throws Exception {
 
         PrintStream printStream = listener.getLogger();
-
-        String orgName = Util.isNullOrEmpty(step.getOrgName()) ? envVars.get("IBM_CLOUD_DEVOPS_ORG") : step.getOrgName();
-        String applicationName =  Util.isNullOrEmpty(step.getApplicationName()) ? envVars.get("IBM_CLOUD_DEVOPS_APP_NAME") : step.getApplicationName();
-        String toolchainName = Util.isNullOrEmpty(step.getToolchainId()) ? envVars.get("IBM_CLOUD_DEVOPS_TOOLCHAIN_ID") : step.getToolchainId();
-        String username = envVars.get("IBM_CLOUD_DEVOPS_CREDS_USR");
-        String password = envVars.get("IBM_CLOUD_DEVOPS_CREDS_PSW");
+        HashMap<String, String> requiredEnvVars = setRequiredEnvVars(step, envVars);
 
         //check all the required env vars
-        if (!Util.allNotNullOrEmpty(orgName, applicationName,toolchainName, username, password)) {
-            printStream.println("[IBM Cloud DevOps] Missing environment variables configurations, please specify all required environment variables in the pipeline");
+        if (!Util.allNotNullOrEmpty(requiredEnvVars, printStream)) {
             printStream.println("[IBM Cloud DevOps] Error: Failed to upload Build Record.");
             return null;
         }
 
         //check all the required parameters
+        HashMap<String, String> requiredParams = new HashMap<>();
         String result = step.getResult();
-        String gitRepo = step.getGitRepo();
-        String gitBranch = step.getGitBranch();
-        String gitCommit = step.getGitCommit();
+        requiredParams.put("result", result);
+        requiredParams.put("gitRepo", step.getGitRepo());
+        requiredParams.put("gitBranch", step.getGitBranch());
+        requiredParams.put("gitCommit", step.getGitCommit());
+
         // optional build number, if user wants to set their own build number
         String buildNumber = step.getBuildNumber();
 
-        if (!Util.allNotNullOrEmpty(result, gitRepo, gitBranch, gitCommit)) {
-            printStream.println("[IBM Cloud DevOps] publishBuildRecord is missing required parameters, " +
-                    "please make sure you specify \"result\", \"gitRepo\", \"gitBranch\", \"gitCommit\"");
+        if (!Util.allNotNullOrEmpty(requiredEnvVars, printStream)) {
             printStream.println("[IBM Cloud DevOps] Error: Failed to upload Build Record.");
             return null;
         }
 
-        if (result.equals("SUCCESS") || result.equals("FAIL")) {
-            PublishBuild publishBuild = new PublishBuild(
-                    result,
-                    gitRepo,
-                    gitBranch,
-                    gitCommit,
-                    orgName,
-                    applicationName,
-                    toolchainName,
-                    username,
-                    password);
+        if (result.equals(RESULT_SUCCESS) || result.equals(RESULT_FAIL)) {
+            PublishBuild publishBuild = new PublishBuild(requiredEnvVars, requiredParams);
 
             if (!Util.isNullOrEmpty(buildNumber)) {
                 publishBuild.setBuildNumber(buildNumber);
             }
             publishBuild.perform(build, ws, launcher, listener);
         } else {
-            printStream.println("[IBM Cloud DevOps] the \"result\" in the publishBuildRecord should be either \"SUCCESS\" or \"FAIL\"");
+            printStream.println("[IBM Cloud DevOps] the \"result\" in the publishBuildRecord should be either \""
+                    + RESULT_SUCCESS + "\" or \"" + RESULT_FAIL + "\"");
+            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Build Record.");
         }
 
         return null;

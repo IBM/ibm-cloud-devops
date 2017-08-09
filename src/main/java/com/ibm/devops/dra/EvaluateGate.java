@@ -50,6 +50,7 @@ import javax.servlet.ServletException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URLEncoder;
+import java.util.HashMap;
 import java.util.List;
 
 
@@ -116,23 +117,19 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         }
     }
 
-    public EvaluateGate(String policyName,
-                        String orgName,
-                        String applicationName,
-                        String toolchainName,
+    public EvaluateGate(HashMap<String, String> envVarsMap,
+                        String policyName,
                         String environmentName,
-                        String username,
-                        String password,
                         boolean willDisrupt) {
-        this.policyName = policyName;
-        this.orgName = orgName;
-        this.applicationName = applicationName;
-        this.toolchainName = toolchainName;
+
+        this.applicationName = envVarsMap.get(APP_NAME);
+        this.orgName = envVarsMap.get(ORG_NAME);
+        this.toolchainName = envVarsMap.get(TOOLCHAIN_ID);
+        this.username = envVarsMap.get(USERNAME);
+        this.password = envVarsMap.get(PASSWORD);
         this.envName = environmentName;
         this.willDisrupt = willDisrupt;
-        this.username = username;
-        this.password = password;
-        this.willDisrupt = willDisrupt;
+        this.policyName = policyName;
     }
 
     public void setBuildNumber(String buildNumber) {

@@ -22,12 +22,7 @@ import org.kohsuke.stapler.DataBoundSetter;
 
 import javax.annotation.Nonnull;
 
-public class PublishDeployStep extends AbstractStepImpl {
-    // optional form fields from UI
-    private String applicationName;
-    private String orgName;
-    private String credentialsId;
-    private String toolchainId;
+public class PublishDeployStep extends AbstractDevOpsStep {
 
     // required parameters to support pipeline script
     private String result;
@@ -45,26 +40,6 @@ public class PublishDeployStep extends AbstractStepImpl {
     }
 
     @DataBoundSetter
-    public void setApplicationName(String applicationName) {
-        this.applicationName = applicationName;
-    }
-
-    @DataBoundSetter
-    public void setOrgName(String orgName) {
-        this.orgName = orgName;
-    }
-
-    @DataBoundSetter
-    public void setCredentialsId(String credentialsId) {
-        this.credentialsId = credentialsId;
-    }
-
-    @DataBoundSetter
-    public void setToolchainId(String toolchainId) {
-        this.toolchainId = toolchainId;
-    }
-
-    @DataBoundSetter
     public void setBuildNumber(String buildNumber) {
         this.buildNumber = buildNumber;
     }
@@ -73,28 +48,12 @@ public class PublishDeployStep extends AbstractStepImpl {
         return buildNumber;
     }
 
-    public String getApplicationName() {
-        return applicationName;
-    }
-
-    public String getOrgName() {
-        return orgName;
-    }
-
-    public String getCredentialsId() {
-        return credentialsId;
-    }
-
     public String getEnvironment() {
         return environment;
     }
 
     public String getAppUrl() {
         return appUrl;
-    }
-
-    public String getToolchainId() {
-        return toolchainId;
     }
 
     public String getResult() {

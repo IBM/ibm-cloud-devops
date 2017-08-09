@@ -34,7 +34,6 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
-import net.sf.json.JSONObject;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -51,6 +50,7 @@ import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.util.HashMap;
 import java.util.List;
 import java.util.TimeZone;
 
@@ -102,22 +102,14 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		}
 	}
 
-	public PublishDeploy(String environmentName,
-						 String applicationUrl,
-						 String result,
-						 String toolchainName,
-						 String applicationName,
-						 String orgName,
-						 String username,
-						 String password) {
-		this.environmentName = environmentName;
-		this.applicationName = applicationUrl;
-		this.result = result;
-		this.toolchainName = toolchainName;
-		this.applicationName = applicationName;
-		this.orgName = orgName;
-		this.username = username;
-		this.password = password;
+	public PublishDeploy(HashMap<String, String> envVarsMap, HashMap<String, String> paramsMap) {
+		this.environmentName = paramsMap.get("environment");
+		this.result = paramsMap.get("result");
+		this.applicationName = envVarsMap.get(APP_NAME);
+		this.orgName = envVarsMap.get(ORG_NAME);
+		this.toolchainName = envVarsMap.get(TOOLCHAIN_ID);
+		this.username = envVarsMap.get(USERNAME);
+		this.password = envVarsMap.get(PASSWORD);
 	}
 
 	public void setBuildNumber(String buildNumber) {
@@ -266,7 +258,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 			String buildStatus;
 			Result result = build.getResult();
 			if ((result != null && result.equals(Result.SUCCESS))
-					|| (this.result != null && this.result.equals("SUCCESS"))) {
+					|| (this.result != null && this.result.equals(RESULT_SUCCESS))) {
 				buildStatus = "pass";
 			} else {
 				buildStatus = "fail";
