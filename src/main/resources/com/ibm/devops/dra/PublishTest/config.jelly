@@ -56,7 +56,7 @@
         </f:select>
     </f:entry>
 
-    <f:entry title="Result file location" field="fileLocation">
+    <f:entry title="Result file location" field="contents">
         <f:textbox />
     </f:entry>
 
