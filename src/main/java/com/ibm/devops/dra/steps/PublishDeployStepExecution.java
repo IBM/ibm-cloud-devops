@@ -26,6 +26,11 @@ import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
 
 import javax.inject.Inject;
 import java.io.PrintStream;
+import java.util.HashMap;
+
+import static com.ibm.devops.dra.AbstractDevOpsAction.RESULT_FAIL;
+import static com.ibm.devops.dra.AbstractDevOpsAction.RESULT_SUCCESS;
+import static com.ibm.devops.dra.AbstractDevOpsAction.setRequiredEnvVars;
 
 public class PublishDeployStepExecution extends AbstractSynchronousNonBlockingStepExecution<Void> {
     private static final long serialVersionUID = 1L;
@@ -48,48 +53,37 @@ public class PublishDeployStepExecution extends AbstractSynchronousNonBlockingSt
     protected Void run() throws Exception {
 
         PrintStream printStream = listener.getLogger();
-
-        String orgName = Util.isNullOrEmpty(step.getOrgName()) ? envVars.get("IBM_CLOUD_DEVOPS_ORG") : step.getOrgName();
-        String applicationName =  Util.isNullOrEmpty(step.getApplicationName()) ? envVars.get("IBM_CLOUD_DEVOPS_APP_NAME") : step.getApplicationName();
-        String toolchainName = Util.isNullOrEmpty(step.getToolchainId()) ? envVars.get("IBM_CLOUD_DEVOPS_TOOLCHAIN_ID") : step.getToolchainId();
-        String username = envVars.get("IBM_CLOUD_DEVOPS_CREDS_USR");
-        String password = envVars.get("IBM_CLOUD_DEVOPS_CREDS_PSW");
+        HashMap<String, String> requiredEnvVars = setRequiredEnvVars(step, envVars);
 
         //check all the required env vars
-        if (!Util.allNotNullOrEmpty(orgName, applicationName,toolchainName, username, password)) {
-            printStream.println("[IBM Cloud DevOps] Missing environment variables configurations, please specify all required environment variables in the pipeline");
-            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Deploy Record.");
+        if (!Util.allNotNullOrEmpty(requiredEnvVars, printStream)) {
+            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Test Result.");
             return null;
         }
 
         //check all the required parameters
-        String environment = step.getEnvironment();
+        HashMap<String, String> requiredParams = new HashMap<>();
         String result = step.getResult();
+        requiredParams.put("environment", step.getEnvironment());
+        requiredParams.put("result", result);
+
         // optional build number, if user wants to set their own build number
         String buildNumber = step.getBuildNumber();
-        if (!Util.allNotNullOrEmpty(result, environment)) {
-            printStream.println("[IBM Cloud DevOps] publishDeployRecord is missing required parameters, " +
-                    "please make sure you specify \"result\" and \"environment\"");
+        if (!Util.allNotNullOrEmpty(requiredParams, printStream)) {
             printStream.println("[IBM Cloud DevOps] Error: Failed to upload Deploy Record.");
             return null;
         }
 
-        if (result.equals("SUCCESS") || result.equals("FAIL")) {
-            PublishDeploy publishDeploy = new PublishDeploy(
-                    environment,
-                    step.getAppUrl(),
-                    result,
-                    toolchainName,
-                    applicationName,
-                    orgName,
-                    username,
-                    password);
+        if (result.equals(RESULT_SUCCESS) || result.equals(RESULT_FAIL)) {
+            PublishDeploy publishDeploy = new PublishDeploy(requiredEnvVars, requiredParams);
             if (!Util.isNullOrEmpty(buildNumber)) {
                 publishDeploy.setBuildNumber(buildNumber);
             }
             publishDeploy.perform(build, ws, launcher, listener);
         } else {
-            printStream.println("[IBM Cloud DevOps] the \"result\" in the publishDeployRecord should be either \"SUCCESS\" or \"FAIL\"");
+            printStream.println("[IBM Cloud DevOps] the \"result\" in the publishDeployRecord should be either \""
+                    + RESULT_SUCCESS + "\" or \"" + RESULT_FAIL + "\"");
+            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Deploy Record.");
         }
         return null;
     }

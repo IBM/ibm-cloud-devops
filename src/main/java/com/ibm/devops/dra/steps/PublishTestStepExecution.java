@@ -26,6 +26,9 @@ import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
 
 import javax.inject.Inject;
 import java.io.PrintStream;
+import java.util.HashMap;
+
+import static com.ibm.devops.dra.AbstractDevOpsAction.setRequiredEnvVars;
 
 public class PublishTestStepExecution extends AbstractSynchronousNonBlockingStepExecution<Void> {
     private static final long serialVersionUID = 1L;
@@ -48,45 +51,35 @@ public class PublishTestStepExecution extends AbstractSynchronousNonBlockingStep
 
         PrintStream printStream = listener.getLogger();
 
-        String orgName = Util.isNullOrEmpty(step.getOrgName()) ? envVars.get("IBM_CLOUD_DEVOPS_ORG") : step.getOrgName();
-        String applicationName =  Util.isNullOrEmpty(step.getApplicationName()) ? envVars.get("IBM_CLOUD_DEVOPS_APP_NAME") : step.getApplicationName();
-        String toolchainName = Util.isNullOrEmpty(step.getToolchainId()) ? envVars.get("IBM_CLOUD_DEVOPS_TOOLCHAIN_ID") : step.getToolchainId();
-        String username = envVars.get("IBM_CLOUD_DEVOPS_CREDS_USR");
-        String password = envVars.get("IBM_CLOUD_DEVOPS_CREDS_PSW");
+        HashMap<String, String> requiredEnvVars = setRequiredEnvVars(step, envVars);
 
         //check all the required env vars
-        if (!Util.allNotNullOrEmpty(orgName, applicationName,toolchainName, username, password)) {
-            printStream.println("[IBM Cloud DevOps] Missing environment variables configurations, please specify all required environment variables in the pipeline");
+        if (!Util.allNotNullOrEmpty(requiredEnvVars, printStream)) {
             printStream.println("[IBM Cloud DevOps] Error: Failed to upload Test Result.");
             return null;
         }
 
         //check all the required parameters
+        HashMap<String, String> requiredParams = new HashMap<>();
         String type = step.getType();
-        String fileLocation = step.getFileLocation();
+        requiredParams.put("type", type);
+        requiredParams.put("fileLocation", step.getFileLocation());
+
         // optional build number, if user wants to set their own build number
         String buildNumber = step.getBuildNumber();
+        String envName = step.getEnvironment();
 
-        if (!Util.allNotNullOrEmpty(type, fileLocation)) {
-            printStream.println("[IBM Cloud DevOps] publishTestResult is missing required parameters, " +
-                    "please make sure you specify \"type\", \"fileLocation\"");
+        if (!Util.allNotNullOrEmpty(requiredParams, printStream)) {
             printStream.println("[IBM Cloud DevOps] Error: Failed to upload Test Result.");
             return null;
         }
 
         if (type.equals("unittest") || type.equals("code") || type.equals("fvt")) {
-            PublishTest publishTest = new PublishTest(
-                    type,
-                    fileLocation,
-                    step.getEnvironment(),
-                    orgName,
-                    applicationName,
-                    toolchainName,
-                    username,
-                    password);
-            if (!Util.isNullOrEmpty(buildNumber)) {
-                publishTest.setBuildNumber(buildNumber);
-            }
+            PublishTest publishTest = new PublishTest(requiredEnvVars, requiredParams);
+
+            if (!Util.isNullOrEmpty(envName)) publishTest.setEnvName(envName);
+            if (!Util.isNullOrEmpty(buildNumber)) publishTest.setBuildNumber(buildNumber);
+
             publishTest.perform(build, ws, launcher, listener);
         } else {
             printStream.println("[IBM Cloud DevOps] the \"type\" in the publishTestResult should be either \"unittest\", \"code\" or \"fvt\"");

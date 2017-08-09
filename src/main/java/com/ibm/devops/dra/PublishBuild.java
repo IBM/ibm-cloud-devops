@@ -31,7 +31,6 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
-import net.sf.json.JSONObject;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -45,6 +44,7 @@ import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import java.io.*;
 import java.text.SimpleDateFormat;
+import java.util.HashMap;
 import java.util.TimeZone;
 import java.net.URLEncoder;
 
@@ -90,16 +90,16 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         }
     }
 
-    public PublishBuild(String result, String gitRepo, String gitBranch, String gitCommit, String orgName, String applicationName, String toolchainName, String username, String password) {
-        this.gitRepo = gitRepo;
-        this.gitBranch = gitBranch;
-        this.gitCommit = gitCommit;
-        this.result = result;
-        this.applicationName = applicationName;
-        this.orgName = orgName;
-        this.toolchainName = toolchainName;
-        this.username = username;
-        this.password = password;
+    public PublishBuild(HashMap<String, String> envVarsMap, HashMap<String, String> paramsMap) {
+        this.gitRepo = paramsMap.get("gitRepo");
+        this.gitBranch = paramsMap.get("gitBranch");
+        this.gitCommit = paramsMap.get("gitCommit");
+        this.result = paramsMap.get("result");
+        this.applicationName = envVarsMap.get(APP_NAME);
+        this.orgName = envVarsMap.get(ORG_NAME);
+        this.toolchainName = envVarsMap.get(TOOLCHAIN_ID);
+        this.username = envVarsMap.get(USERNAME);
+        this.password = envVarsMap.get(PASSWORD);
     }
 
     @DataBoundSetter
@@ -271,7 +271,7 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             String buildStatus;
             Result result = build.getResult();
             if ((result != null && result.equals(Result.SUCCESS))
-                    || (this.result != null && this.result.equals("SUCCESS"))) {
+                    || (this.result != null && this.result.equals(RESULT_SUCCESS))) {
                 buildStatus = "pass";
             } else {
                 buildStatus = "fail";

@@ -22,14 +22,7 @@ import org.kohsuke.stapler.DataBoundSetter;
 
 import javax.annotation.Nonnull;
 
-public class PublishSQStep extends AbstractStepImpl {
-    // optional form fields from UI
-    private String applicationName;
-    private String orgName;
-    private String credentialsId;
-    private String toolchainId;
-    private String environment;
-
+public class PublishSQStep extends AbstractDevOpsStep {
     // required parameters
     private String SQHostURL;
     private String SQAuthToken;
@@ -37,6 +30,7 @@ public class PublishSQStep extends AbstractStepImpl {
 
     // custom build number, optional
     private String buildNumber;
+    private String environment;
 
     @DataBoundConstructor
     public PublishSQStep(String SQHostURL, String SQAuthToken, String SQProjectKey) {
@@ -44,26 +38,6 @@ public class PublishSQStep extends AbstractStepImpl {
         this.SQHostURL = SQHostURL;
         this.SQAuthToken = SQAuthToken;
         this.SQProjectKey = SQProjectKey;
-    }
-
-    @DataBoundSetter
-    public void setApplicationName(String applicationName) {
-        this.applicationName = applicationName;
-    }
-
-    @DataBoundSetter
-    public void setOrgName(String orgName) {
-        this.orgName = orgName;
-    }
-
-    @DataBoundSetter
-    public void setCredentialsId(String credentialsId) {
-        this.credentialsId = credentialsId;
-    }
-
-    @DataBoundSetter
-    public void setToolchainId(String toolchainId) {
-        this.toolchainId = toolchainId;
     }
 
     @DataBoundSetter
@@ -93,22 +67,6 @@ public class PublishSQStep extends AbstractStepImpl {
 
     public String getBuildNumber() {
         return buildNumber;
-    }
-
-    public String getApplicationName() {
-        return applicationName;
-    }
-
-    public String getOrgName() {
-        return orgName;
-    }
-
-    public String getCredentialsId() {
-        return credentialsId;
-    }
-
-    public String getToolchainId() {
-        return toolchainId;
     }
 
     public String getEnvironment() {

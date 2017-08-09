@@ -15,7 +15,6 @@
 package com.ibm.devops.dra.steps;
 
 import com.ibm.devops.dra.PublishSQ;
-import com.ibm.devops.dra.steps.PublishSQStep;
 import com.ibm.devops.dra.Util;
 import hudson.EnvVars;
 import hudson.FilePath;
@@ -27,6 +26,9 @@ import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
 
 import javax.inject.Inject;
 import java.io.PrintStream;
+import java.util.HashMap;
+
+import static com.ibm.devops.dra.AbstractDevOpsAction.setRequiredEnvVars;
 
 public class PublishSQStepExecution extends AbstractSynchronousNonBlockingStepExecution<Void> {
     private static final long serialVersionUID = 1L;
@@ -49,35 +51,29 @@ public class PublishSQStepExecution extends AbstractSynchronousNonBlockingStepEx
 
         PrintStream printStream = listener.getLogger();
 
-        String orgName = Util.isNullOrEmpty(step.getOrgName()) ? envVars.get("IBM_CLOUD_DEVOPS_ORG") : step.getOrgName();
-        String applicationName =  Util.isNullOrEmpty(step.getApplicationName()) ? envVars.get("IBM_CLOUD_DEVOPS_APP_NAME") : step.getApplicationName();
-        String toolchainName = Util.isNullOrEmpty(step.getToolchainId()) ? envVars.get("IBM_CLOUD_DEVOPS_TOOLCHAIN_ID") : step.getToolchainId();
-        String IBMusername = envVars.get("IBM_CLOUD_DEVOPS_CREDS_USR");
-        String IBMpassword = envVars.get("IBM_CLOUD_DEVOPS_CREDS_PSW");
-        // Project Key defaults to app name if nothing is passed in
-        String SQProjectKey = step.getSQProjectKey();
-        String SQHostURL = step.getSQHostURL();
-        String SQAuthToken = step.getSQAuthToken();
-
-        // optional build number, if user wants to set their own build number
-        String buildNumber = step.getBuildNumber();
+        HashMap<String, String> requiredEnvVars = setRequiredEnvVars(step, envVars);
 
         //check all the required env vars
-        if (!Util.allNotNullOrEmpty(orgName, applicationName, toolchainName, IBMusername, IBMpassword, SQAuthToken, SQProjectKey, SQHostURL)) {
-            printStream.println("[IBM Cloud DevOps] Missing environment variables configurations, please specify all required environment variables in the pipeline");
+        if (!Util.allNotNullOrEmpty(requiredEnvVars, printStream)) {
             printStream.println("[IBM Cloud DevOps] Error: Failed to upload Test Result.");
             return null;
         }
 
-        PublishSQ publisher = new PublishSQ(
-                orgName,
-                applicationName,
-                toolchainName,
-                SQProjectKey,
-                SQHostURL,
-                SQAuthToken,
-                IBMusername,
-                IBMpassword);
+        //check all the required parameters
+        HashMap<String, String> requiredParams = new HashMap<>();
+        requiredParams.put("SQProjectKey", step.getSQProjectKey());
+        requiredParams.put("SQHostURL", step.getSQHostURL());
+        requiredParams.put("SQAuthToken", step.getSQAuthToken());
+
+        if (!Util.allNotNullOrEmpty(requiredParams, printStream)) {
+            printStream.println("[IBM Cloud DevOps] Error: Failed to upload SonarQube Test Result.");
+            return null;
+        }
+
+        // optional build number, if user wants to set their own build number
+        String buildNumber = step.getBuildNumber();
+
+        PublishSQ publisher = new PublishSQ(requiredEnvVars, requiredEnvVars);
 
         if (!Util.isNullOrEmpty(buildNumber)) {
             publisher.setBuildNumber(buildNumber);

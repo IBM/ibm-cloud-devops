@@ -31,7 +31,6 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
-import net.sf.json.JSONObject;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -49,9 +48,9 @@ import javax.servlet.ServletException;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.Serializable;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.util.HashMap;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.HashSet;
@@ -141,22 +140,15 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         }
     }
 
-    public PublishTest(String lifecycleStage,
-                       String contents,
-                       String envName,
-                       String orgName,
-                       String applicationName,
-                       String toolchainName,
-                       String username,
-                       String password) {
-        this.lifecycleStage = lifecycleStage;
-        this.contents = contents;
-        this.envName = envName;
-        this.applicationName = applicationName;
-        this.orgName = orgName;
-        this.toolchainName = toolchainName;
-        this.username = username;
-        this.password = password;
+    public PublishTest(HashMap<String, String> envVarsMap, HashMap<String, String> paramsMap) {
+        this.lifecycleStage = paramsMap.get("type");
+        this.contents = paramsMap.get("fileLocation");
+
+        this.applicationName = envVarsMap.get(APP_NAME);
+        this.orgName = envVarsMap.get(ORG_NAME);
+        this.toolchainName = envVarsMap.get(TOOLCHAIN_ID);
+        this.username = envVarsMap.get(USERNAME);
+        this.password = envVarsMap.get(PASSWORD);
     }
 
     public void setBuildNumber(String buildNumber) {
@@ -224,6 +216,10 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
 
     public String getEnvName() {
         return envName;
+    }
+
+    public void setEnvName(String envName) {
+        this.envName = envName;
     }
 
     public boolean isDeploy() {

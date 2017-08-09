@@ -22,13 +22,7 @@ import org.kohsuke.stapler.DataBoundSetter;
 
 import javax.annotation.Nonnull;
 
-public class PublishTestStep extends AbstractStepImpl {
-    // optional form fields from UI
-    private String applicationName;
-    private String orgName;
-    private String credentialsId;
-    private String toolchainId;
-    private String environment;
+public class PublishTestStep extends AbstractDevOpsStep {
 
     // required parameters
     private String type;
@@ -36,30 +30,13 @@ public class PublishTestStep extends AbstractStepImpl {
     // custom build number, optional
     private String buildNumber;
 
+    // optional form fields for fvt
+    private String environment;
+
     @DataBoundConstructor
     public PublishTestStep(String type, String fileLocation) {
         this.type = type;
         this.fileLocation = fileLocation;
-    }
-
-    @DataBoundSetter
-    public void setApplicationName(String applicationName) {
-        this.applicationName = applicationName;
-    }
-
-    @DataBoundSetter
-    public void setOrgName(String orgName) {
-        this.orgName = orgName;
-    }
-
-    @DataBoundSetter
-    public void setCredentialsId(String credentialsId) {
-        this.credentialsId = credentialsId;
-    }
-
-    @DataBoundSetter
-    public void setToolchainId(String toolchainId) {
-        this.toolchainId = toolchainId;
     }
 
     @DataBoundSetter
@@ -74,22 +51,6 @@ public class PublishTestStep extends AbstractStepImpl {
 
     public String getBuildNumber() {
         return buildNumber;
-    }
-
-    public String getApplicationName() {
-        return applicationName;
-    }
-
-    public String getOrgName() {
-        return orgName;
-    }
-
-    public String getCredentialsId() {
-        return credentialsId;
-    }
-
-    public String getToolchainId() {
-        return toolchainId;
     }
 
     public String getEnvironment() {
