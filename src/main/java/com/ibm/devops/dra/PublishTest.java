@@ -63,7 +63,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
     private final static String API_PART = "/organizations/{org_name}/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/results_multipart";
     private final static String CONTENT_TYPE_JSON = "application/json";
     private final static String CONTENT_TYPE_XML = "application/xml";
-    private final static String CONTENT_TYPE_ICOV = "text/plain";
+    private final static String CONTENT_TYPE_LCOV = "text/plain";
 
     // form fields from UI
     private final String lifecycleStage;
@@ -620,7 +620,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                     contentType = CONTENT_TYPE_XML;
                     break;
                 case "info":
-                    contentType = CONTENT_TYPE_ICOV;
+                    contentType = CONTENT_TYPE_LCOV;
                     break;
                 default:
                     return "Error: " + contents.getName() + " is an invalid result file type";
