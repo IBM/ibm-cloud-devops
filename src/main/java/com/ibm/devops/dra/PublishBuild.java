@@ -98,8 +98,14 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         this.applicationName = envVarsMap.get(APP_NAME);
         this.orgName = envVarsMap.get(ORG_NAME);
         this.toolchainName = envVarsMap.get(TOOLCHAIN_ID);
-        this.username = envVarsMap.get(USERNAME);
-        this.password = envVarsMap.get(PASSWORD);
+
+        if (Util.isNullOrEmpty(envVarsMap.get(API_KEY))) {
+            this.username = envVarsMap.get(USERNAME);
+            this.password = envVarsMap.get(PASSWORD);
+        } else {
+            this.username = "apikey";
+            this.password = envVarsMap.get(API_KEY);
+        }
     }
 
     @DataBoundSetter
