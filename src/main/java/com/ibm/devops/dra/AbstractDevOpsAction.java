@@ -68,6 +68,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
     public final static String TOOLCHAIN_ID = "IBM_CLOUD_DEVOPS_TOOLCHAIN_ID";
     public final static String USERNAME = "IBM_CLOUD_DEVOPS_CREDS_USR";
     public final static String PASSWORD = "IBM_CLOUD_DEVOPS_CREDS_PSW";
+    public final static String API_KEY = "IBM_CLOUD_DEVOPS_API_KEY";
     public final static String RESULT_SUCCESS = "SUCCESS";
     public final static String RESULT_FAIL = "FAIL";
     
@@ -181,11 +182,17 @@ public abstract class AbstractDevOpsAction extends Recorder {
      */
     public static HashMap<String, String> setRequiredEnvVars(AbstractDevOpsStep step, EnvVars envVars) {
         HashMap<String, String> requiredEnvVars = new HashMap<>();
-        requiredEnvVars.put(ORG_NAME, Util.isNullOrEmpty(step.getOrgName()) ? envVars.get("IBM_CLOUD_DEVOPS_ORG") : step.getOrgName());
-        requiredEnvVars.put(APP_NAME, Util.isNullOrEmpty(step.getApplicationName()) ? envVars.get("IBM_CLOUD_DEVOPS_APP_NAME") : step.getApplicationName());
-        requiredEnvVars.put(TOOLCHAIN_ID, Util.isNullOrEmpty(step.getToolchainId()) ? envVars.get("IBM_CLOUD_DEVOPS_TOOLCHAIN_ID") : step.getToolchainId());
-        requiredEnvVars.put(USERNAME, envVars.get("IBM_CLOUD_DEVOPS_CREDS_USR"));
-        requiredEnvVars.put(PASSWORD, envVars.get("IBM_CLOUD_DEVOPS_CREDS_PSW"));
+        requiredEnvVars.put(ORG_NAME, Util.isNullOrEmpty(step.getOrgName()) ? envVars.get(ORG_NAME) : step.getOrgName());
+        requiredEnvVars.put(APP_NAME, Util.isNullOrEmpty(step.getApplicationName()) ? envVars.get(APP_NAME) : step.getApplicationName());
+        requiredEnvVars.put(TOOLCHAIN_ID, Util.isNullOrEmpty(step.getToolchainId()) ? envVars.get(TOOLCHAIN_ID) : step.getToolchainId());
+
+        if (Util.isNullOrEmpty(envVars.get(API_KEY))) {
+            requiredEnvVars.put(USERNAME, envVars.get(USERNAME));
+            requiredEnvVars.put(PASSWORD, envVars.get(PASSWORD));
+        } else {
+            requiredEnvVars.put(API_KEY, envVars.get(API_KEY).trim());
+        }
+
         return requiredEnvVars;
     }
 

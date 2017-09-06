@@ -63,6 +63,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
     private final static String API_PART = "/organizations/{org_name}/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/results_multipart";
     private final static String CONTENT_TYPE_JSON = "application/json";
     private final static String CONTENT_TYPE_XML = "application/xml";
+    private final static String CONTENT_TYPE_LCOV = "text/plain";
 
     // form fields from UI
     private final String lifecycleStage;
@@ -147,8 +148,14 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         this.applicationName = envVarsMap.get(APP_NAME);
         this.orgName = envVarsMap.get(ORG_NAME);
         this.toolchainName = envVarsMap.get(TOOLCHAIN_ID);
-        this.username = envVarsMap.get(USERNAME);
-        this.password = envVarsMap.get(PASSWORD);
+
+        if (Util.isNullOrEmpty(envVarsMap.get(API_KEY))) {
+            this.username = envVarsMap.get(USERNAME);
+            this.password = envVarsMap.get(PASSWORD);
+        } else {
+            this.username = "apikey";
+            this.password = envVarsMap.get(API_KEY);
+        }
     }
 
     public void setBuildNumber(String buildNumber) {
@@ -611,6 +618,9 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                     break;
                 case "xml":
                     contentType = CONTENT_TYPE_XML;
+                    break;
+                case "info":
+                    contentType = CONTENT_TYPE_LCOV;
                     break;
                 default:
                     return "Error: " + contents.getName() + " is an invalid result file type";

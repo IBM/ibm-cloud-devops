@@ -75,8 +75,8 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
     private String SQProjectKey;
     private String SQHostName;
     private String SQAuthToken;
-    private String IBMusername;
-    private String IBMpassword;
+    private String username;
+    private String password;
 
     private String envName;
     private boolean isDeploy;
@@ -121,8 +121,13 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         this.applicationName = envVarsMap.get(APP_NAME);
         this.orgName = envVarsMap.get(ORG_NAME);
         this.toolchainName = envVarsMap.get(TOOLCHAIN_ID);
-        this.IBMusername = envVarsMap.get(USERNAME);
-        this.IBMpassword = envVarsMap.get(PASSWORD);
+        if (Util.isNullOrEmpty(envVarsMap.get(API_KEY))) {
+            this.username = envVarsMap.get(USERNAME);
+            this.password = envVarsMap.get(PASSWORD);
+        } else {
+            this.username = "apikey";
+            this.password = envVarsMap.get(API_KEY);
+        }
     }
 
     public void setBuildNumber(String buildNumber) {
@@ -232,7 +237,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         // get the Bluemix token
         try {
             if (Util.isNullOrEmpty(this.credentialsId)) {
-                bluemixToken = getBluemixToken(IBMusername, IBMpassword, targetAPI);
+                bluemixToken = getBluemixToken(username, password, targetAPI);
             } else {
                 bluemixToken = getBluemixToken(build.getParent(), this.credentialsId, targetAPI);
             }
