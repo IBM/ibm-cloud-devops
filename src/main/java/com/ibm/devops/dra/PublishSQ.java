@@ -68,7 +68,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
     private String buildJobName;
     private String orgName;
     private String toolchainName;
-    private String environmentName;
     private String credentialsId;
     private String buildNumber;
 
@@ -77,9 +76,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
     private String SQAuthToken;
     private String username;
     private String password;
-
-    private String envName;
-    private boolean isDeploy;
 
     private PrintStream printStream;
     private String dlmsUrl;
@@ -173,9 +169,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         return buildNumber;
     }
 
-    public boolean isDeploy() {
-        return isDeploy;
-    }
 
     public static class OptionalBuildInfo {
         private String buildNumber;
@@ -201,12 +194,9 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         String targetAPI = chooseTargetAPI(env);
         String url = chooseDLMSUrl(env) + API_PART;
         // expand to support env vars
-        this.orgName = envVars.expand(this.orgName);
-        this.applicationName = envVars.expand(this.applicationName);
+        String orgName = envVars.expand(this.orgName);
+        String applicationName = envVars.expand(this.applicationName);
         this.toolchainName = envVars.expand(this.toolchainName);
-        if (this.isDeploy || !Util.isNullOrEmpty(this.envName)) {
-            this.environmentName = envVars.expand(this.envName);
-        }
 
         String buildNumber;
         // if user does not specify the build number
@@ -227,9 +217,9 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
             buildNumber = envVars.expand(this.buildNumber);
         }
 
-        url = url.replace("{org_name}", URLEncoder.encode(this.orgName, "UTF-8").replaceAll("\\+", "%20"));
+        url = url.replace("{org_name}", URLEncoder.encode(orgName, "UTF-8").replaceAll("\\+", "%20"));
         url = url.replace("{toolchain_id}", URLEncoder.encode(this.toolchainName, "UTF-8").replaceAll("\\+", "%20"));
-        url = url.replace("{build_artifact}", URLEncoder.encode(this.applicationName, "UTF-8").replaceAll("\\+", "%20"));
+        url = url.replace("{build_artifact}", URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20"));
         url = url.replace("{build_id}", URLEncoder.encode(buildNumber, "UTF-8").replaceAll("\\+", "%20"));
         this.dlmsUrl = url;
 
@@ -262,7 +252,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
 
             JsonObject payload = createDLMSPayload(SQqualityGate, SQissues, SQratings);
             JsonArray urls = createPayloadUrls(this.SQHostName, this.SQProjectKey);
-            sendPayloadToDLMS(bluemixToken, payload, urls);
+            sendPayloadToDLMS(bluemixToken, payload, urls, orgName);
 
         } catch (Exception e) {
             printStream.println("[IBM Cloud DevOps] Error: Unable to upload results. Please make sure all parameters are valid");
@@ -374,7 +364,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
      * @param urls a json array that holds the urls for a payload
      * @return boolean based on if the request was successful or not
      */
-    private boolean sendPayloadToDLMS(String bluemixToken, JsonObject payload, JsonArray urls) {
+    private boolean sendPayloadToDLMS(String bluemixToken, JsonObject payload, JsonArray urls, String orgName) {
         String resStr = "";
         printStream.println("[IBM Cloud DevOps] Uploading SonarQube results...");
         try {
@@ -424,7 +414,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         } catch (IllegalStateException e) {
             // will be triggered when 403 Forbidden
             try {
-                printStream.println("[IBM Cloud DevOps] Please check if you have the access to " + URLEncoder.encode(this.orgName, "UTF-8") + " org");
+                printStream.println("[IBM Cloud DevOps] Please check if you have the access to " + URLEncoder.encode(orgName, "UTF-8") + " org");
             } catch (UnsupportedEncodingException e1) {
                 e1.printStackTrace();
             }

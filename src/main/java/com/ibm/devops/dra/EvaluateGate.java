@@ -68,7 +68,6 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
     private String buildJobName;
     private String applicationName;
     private String toolchainName;
-    private String environmentName;
     private String credentialsId;
     private boolean willDisrupt;
 
@@ -93,7 +92,6 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
                         String orgName,
                         String applicationName,
                         String toolchainName,
-                        String environmentName,
                         String buildJobName,
                         String credentialsId,
                         boolean willDisrupt,
@@ -103,7 +101,6 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         this.orgName = orgName;
         this.applicationName = applicationName;
         this.toolchainName = toolchainName;
-        this.environmentName = environmentName;
         this.buildJobName = buildJobName;
         this.credentialsId = credentialsId;
         this.willDisrupt = willDisrupt;
@@ -165,10 +162,6 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         return toolchainName;
     }
 
-    public String getEnvironmentName() {
-        return environmentName;
-    }
-
     public String getCredentialsId() {
         return credentialsId;
     }
@@ -225,12 +218,15 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
 
         // Get the project name and build id from environment
         EnvVars envVars = build.getEnvironment(listener);
-        this.orgName = envVars.expand(this.orgName);
-        this.applicationName = envVars.expand(this.applicationName);
+
+        String orgName = envVars.expand(this.orgName);
+        String applicationName = envVars.expand(this.applicationName);
+        String policyName = envVars.expand(this.policyName);
         this.toolchainName = envVars.expand(this.toolchainName);
 
+        String environmentName = null;
         if (this.isDeploy || !Util.isNullOrEmpty(this.envName)) {
-            this.environmentName = envVars.expand(this.envName);
+            environmentName = envVars.expand(this.envName);
         }
 
         // verify if user chooses advanced option to input customized DRA
@@ -274,7 +270,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
 
         // get decision response from DRA
         try {
-            JsonObject decisionJson = getDecisionFromDRA(bluemixToken, buildNumber);
+            JsonObject decisionJson = getDecisionFromDRA(bluemixToken, buildNumber, orgName, applicationName, policyName, environmentName);
             if (decisionJson == null) {
                 printStream.println("[IBM Cloud DevOps] get empty decision");
                 return;
@@ -293,11 +289,11 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
                 decision = "Failed";
             }
 
-            String cclink = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
-            String reportUrl = chooseControlCenterUrl(env) + "decisionreport?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId="
+            String cclink = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
+            String reportUrl = chooseControlCenterUrl(env) + "decisionreport?orgName=" + URLEncoder.encode(orgName, "UTF-8") + "&toolchainId="
                     + URLEncoder.encode(toolchainName, "UTF-8") + "&reportId=" + decisionId;
 
-            GatePublisherAction action = new GatePublisherAction(reportUrl, cclink, decision, this.policyName, build);
+            GatePublisherAction action = new GatePublisherAction(reportUrl, cclink, decision, policyName, build);
             build.addAction(action);
 
             printStream.println("************************************");
@@ -338,7 +334,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
      * @param buildId - build ID, get from Jenkins environment
      * @return - the response decision Json file
      */
-    private JsonObject getDecisionFromDRA(String bluemixToken, String buildId) throws IOException {
+    private JsonObject getDecisionFromDRA(String bluemixToken, String buildId, String orgName, String applicationName, String policyName, String environmentName) throws IOException {
         // create http client and post method
         CloseableHttpClient httpClient = HttpClients.createDefault();
         String url = this.draUrl;
@@ -348,7 +344,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
                 "/builds/" + URLEncoder.encode(buildId, "UTF-8").replaceAll("\\+", "%20") +
                 "/policies/" + URLEncoder.encode(policyName, "UTF-8").replaceAll("\\+", "%20") +
                 "/decisions";
-        if (!Util.isNullOrEmpty(this.environmentName)) {
+        if (!Util.isNullOrEmpty(environmentName)) {
             url = url.concat("?environment_name=" + environmentName);
         }
 

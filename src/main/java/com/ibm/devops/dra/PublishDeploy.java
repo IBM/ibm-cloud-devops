@@ -186,13 +186,14 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		String dlmsUrl = chooseDLMSUrl(env) + DEPLOYMENT_API_URL;
 
 		// expand to support env vars
-		this.orgName = envVars.expand(this.orgName);
-		this.toolchainName = envVars.expand(this.toolchainName);
-		this.applicationName = envVars.expand(this.applicationName);
-		this.environmentName = envVars.expand(this.environmentName);
-		this.applicationUrl = envVars.expand(this.applicationUrl);
 
-		if (Util.isNullOrEmpty(orgName) || Util.isNullOrEmpty(applicationName) || Util.isNullOrEmpty(environmentName) || Util.isNullOrEmpty(toolchainName)) {
+		String orgName = envVars.expand(this.orgName);
+		String applicationName = envVars.expand(this.applicationName);
+		String environmentName = envVars.expand(this.environmentName);
+		String applicationUrl = envVars.expand(this.applicationUrl);
+		this.toolchainName = envVars.expand(this.toolchainName);
+
+		if (Util.isNullOrEmpty(orgName) || Util.isNullOrEmpty(applicationName) || Util.isNullOrEmpty(environmentName) || Util.isNullOrEmpty(this.toolchainName)) {
 			printStream.println("[IBM Cloud DevOps] Missing few required configurations");
 			printStream.println("[IBM Cloud DevOps] Error: Failed to upload Deployment Info.");
 			return;
@@ -217,11 +218,11 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 			buildNumber = envVars.expand(this.buildNumber);
 		}
 
-		dlmsUrl = dlmsUrl.replace("{org_name}", URLEncoder.encode(this.orgName, "UTF-8").replaceAll("\\+", "%20"));
-		dlmsUrl = dlmsUrl.replace("{toolchain_id}", URLEncoder.encode(toolchainName, "UTF-8").replaceAll("\\+", "%20"));
+		dlmsUrl = dlmsUrl.replace("{org_name}", URLEncoder.encode(orgName, "UTF-8").replaceAll("\\+", "%20"));
+		dlmsUrl = dlmsUrl.replace("{toolchain_id}", URLEncoder.encode(this.toolchainName, "UTF-8").replaceAll("\\+", "%20"));
 		dlmsUrl = dlmsUrl.replace("{build_artifact}", URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20"));
 		dlmsUrl = dlmsUrl.replace("{build_id}", URLEncoder.encode(buildNumber, "UTF-8").replaceAll("\\+", "%20"));
-		String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
+		String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
 		String jobUrl;
 		if (checkRootUrl(printStream)) {
 			jobUrl = Jenkins.getInstance().getRootUrl() + build.getUrl();
@@ -245,12 +246,12 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 			return;
 		}
 
-		if (uploadDeploymentInfo(bluemixToken, dlmsUrl, build, jobUrl)) {
+		if (uploadDeploymentInfo(bluemixToken, dlmsUrl, build, jobUrl, applicationUrl, environmentName, orgName)) {
 			printStream.println("[IBM Cloud DevOps] Go to Control Center (" + link + ") to check your deployment status");
 		}
 	}
 
-	private boolean uploadDeploymentInfo(String token, String dlmsUrl, Run build, String jobUrl) {
+	private boolean uploadDeploymentInfo(String token, String dlmsUrl, Run build, String jobUrl, String applicationUrl, String environmentName, String orgName) {
 
 		String resStr = "";
 
@@ -309,7 +310,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		} catch (IllegalStateException e) {
 			// will be triggered when 403 Forbidden
 			try {
-				printStream.println("[IBM Cloud DevOps] Please check if you have the access to " + URLEncoder.encode(this.orgName, "UTF-8") + " org");
+				printStream.println("[IBM Cloud DevOps] Please check if you have the access to " + URLEncoder.encode(orgName, "UTF-8") + " org");
 			} catch (UnsupportedEncodingException e1) {
 				e1.printStackTrace();
 			}

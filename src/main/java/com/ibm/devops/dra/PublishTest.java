@@ -75,7 +75,6 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
     private String buildJobName;
     private String orgName;
     private String toolchainName;
-    private String environmentName;
     private String credentialsId;
     private String policyName;
     private boolean willDisrupt;
@@ -175,10 +174,6 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
 
     public String getOrgName() {
         return orgName;
-    }
-
-    public String getEnvironmentName() {
-        return environmentName;
     }
 
     public String getBuildJobName() {
@@ -298,12 +293,14 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         String targetAPI = chooseTargetAPI(env);
         String url = chooseDLMSUrl(env) + API_PART;
         // expand to support env vars
-        this.orgName = envVars.expand(this.orgName);
-        this.applicationName = envVars.expand(this.applicationName);
         this.toolchainName = envVars.expand(this.toolchainName);
-        this.contents = envVars.expand(this.contents);
+        String orgName = envVars.expand(this.orgName);
+        String applicationName = envVars.expand(this.applicationName);
+
+        String contents = envVars.expand(this.contents);
+        String environmentName = "";
         if (this.isDeploy || !Util.isNullOrEmpty(this.envName)) {
-            this.environmentName = envVars.expand(this.envName);
+            environmentName = envVars.expand(this.envName);
         }
 
         String buildNumber;
@@ -325,13 +322,13 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             buildNumber = envVars.expand(this.buildNumber);
         }
 
-        url = url.replace("{org_name}", URLEncoder.encode(this.orgName, "UTF-8").replaceAll("\\+", "%20"));
+        url = url.replace("{org_name}", URLEncoder.encode(orgName, "UTF-8").replaceAll("\\+", "%20"));
         url = url.replace("{toolchain_id}", URLEncoder.encode(this.toolchainName, "UTF-8").replaceAll("\\+", "%20"));
-        url = url.replace("{build_artifact}", URLEncoder.encode(this.applicationName, "UTF-8").replaceAll("\\+", "%20"));
+        url = url.replace("{build_artifact}", URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20"));
         url = url.replace("{build_id}", URLEncoder.encode(buildNumber, "UTF-8").replaceAll("\\+", "%20"));
         this.dlmsUrl = url;
 
-        String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
+        String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
 
         String bluemixToken;
         // get the Bluemix token
@@ -351,14 +348,14 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
 
         // parse the wildcard result files
         try {
-            if(!scanAndUpload(build, workspace, contents, lifecycleStage, bluemixToken)){
+            if(!scanAndUpload(build, workspace, contents, lifecycleStage, bluemixToken, environmentName)){
                 // if there is any error when scanning and uploading
                 return;
             }
 
             // check to see if we need to upload additional result file
             if (!Util.isNullOrEmpty(additionalContents) && !Util.isNullOrEmpty(additionalLifecycleStage)) {
-                if(!scanAndUpload(build, workspace, additionalContents, additionalLifecycleStage, bluemixToken)) {
+                if(!scanAndUpload(build, workspace, additionalContents, additionalLifecycleStage, bluemixToken, environmentName)) {
                     return;
                 }
             }
@@ -380,7 +377,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
 
         // get decision response from DRA
         try {
-            JsonObject decisionJson = getDecisionFromDRA(bluemixToken, buildNumber);
+            JsonObject decisionJson = getDecisionFromDRA(bluemixToken, buildNumber, orgName, applicationName, environmentName);
             if (decisionJson == null) {
                 printStream.println("[IBM Cloud DevOps] get empty decision");
                 return;
@@ -399,9 +396,9 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                 decision = "Failed";
             }
 
-            String cclink = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
+            String cclink = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
 
-            String reportUrl = chooseControlCenterUrl(env) + "decisionreport?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId="
+            String reportUrl = chooseControlCenterUrl(env) + "decisionreport?orgName=" + URLEncoder.encode(orgName, "UTF-8") + "&toolchainId="
                     + URLEncoder.encode(toolchainName, "UTF-8") + "&reportId=" + decisionId;
             GatePublisherAction action = new GatePublisherAction(reportUrl, cclink, decision, this.policyName, build);
             build.addAction(action);
@@ -442,7 +439,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
      * @param bluemixToken - the Bluemix toekn
      * @return false if there is any error when scan and upload the file
      */
-    public boolean scanAndUpload(Run build, FilePath workspace, String path, String lifecycleStage, String bluemixToken) throws Exception {
+    public boolean scanAndUpload(Run build, FilePath workspace, String path, String lifecycleStage, String bluemixToken, String environmentName) throws Exception {
         boolean errorFlag = true;
         FilePath[] filePaths = null;
 
@@ -496,7 +493,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                 }
 
                 // upload the result file to DLMS
-                String res = sendFormToDLMS(bluemixToken, fp, lifecycleStage, jobUrl, timestamp);
+                String res = sendFormToDLMS(bluemixToken, fp, lifecycleStage, jobUrl, timestamp, environmentName);
                 if(!printUploadMessage(res, fp.getName())) {
                     errorFlag = false;
                 }
@@ -584,7 +581,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
      * @param timestamp
      * @return - response/error message from DLMS
      */
-    public String sendFormToDLMS(String bluemixToken, FilePath contents, String lifecycleStage, String jobUrl, String timestamp) throws IOException {
+    public String sendFormToDLMS(String bluemixToken, FilePath contents, String lifecycleStage, String jobUrl, String timestamp, String environmentName) throws IOException {
 
         // create http client and post method
         CloseableHttpClient httpClient = HttpClients.createDefault();
@@ -667,7 +664,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
      * @param buildId - build ID, get from Jenkins environment
      * @return - the response decision Json file
      */
-    private JsonObject getDecisionFromDRA(String bluemixToken, String buildId) throws IOException {
+    private JsonObject getDecisionFromDRA(String bluemixToken, String buildId, String orgName, String applicationName, String environmentName) throws IOException {
         // create http client and post method
         CloseableHttpClient httpClient = HttpClients.createDefault();
 

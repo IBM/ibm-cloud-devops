@@ -182,8 +182,8 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         String targetAPI = chooseTargetAPI(env);
 
         //expand the variables
-        this.orgName = envVars.expand(this.orgName);
-        this.applicationName = envVars.expand(this.applicationName);
+        String orgName = envVars.expand(this.orgName);
+        String applicationName = envVars.expand(this.applicationName);
         this.toolchainName = envVars.expand(this.toolchainName);
 
         // Check required parameters
@@ -210,7 +210,7 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         }
 
         String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
-        if (uploadBuildInfo(bluemixToken, build, envVars)) {
+        if (uploadBuildInfo(bluemixToken, build, envVars, orgName, applicationName)) {
             printStream.println("[IBM Cloud DevOps] Go to Control Center (" + link + ") to check your build status");
             BuildPublisherAction action = new BuildPublisherAction(link);
             build.addAction(action);
@@ -246,15 +246,15 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
      * @param envVars
      * @throws IOException
      */
-    private boolean uploadBuildInfo(String bluemixToken, Run build, EnvVars envVars) {
+    private boolean uploadBuildInfo(String bluemixToken, Run build, EnvVars envVars, String orgName, String applicationName) {
         String resStr = "";
 
         try {
             CloseableHttpClient httpClient = HttpClients.createDefault();
             String url = this.dlmsUrl;
-            url = url.replace("{org_name}", URLEncoder.encode(this.orgName, "UTF-8").replaceAll("\\+", "%20"));
+            url = url.replace("{org_name}", URLEncoder.encode(orgName, "UTF-8").replaceAll("\\+", "%20"));
             url = url.replace("{toolchain_id}", URLEncoder.encode(this.toolchainName, "UTF-8").replaceAll("\\+", "%20"));
-            url = url.replace("{build_artifact}", URLEncoder.encode(this.applicationName, "UTF-8").replaceAll("\\+", "%20"));
+            url = url.replace("{build_artifact}", URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20"));
 
             String buildNumber;
             if (Util.isNullOrEmpty(this.buildNumber)) {
