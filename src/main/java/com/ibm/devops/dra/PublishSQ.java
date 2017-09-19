@@ -111,7 +111,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
 
     public PublishSQ(HashMap<String, String> envVarsMap, HashMap<String, String> paramsMap) {
         this.SQProjectKey = paramsMap.get("SQProjectKey");
-        this.SQHostName = paramsMap.get("SQHostName");
+        this.SQHostName = paramsMap.get("SQHostURL");
         this.SQAuthToken = paramsMap.get("SQAuthToken");
 
         this.applicationName = envVarsMap.get(APP_NAME);
