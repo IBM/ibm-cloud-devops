@@ -67,7 +67,7 @@ public class MessageHandlerTest {
         when(r.getQueueId()).thenReturn((long)0);
         when(r.getUrl()).thenReturn("job/test/1/");
         when(r.getDuration()).thenReturn((long)0);
-        when(job.getName()).thenReturn("test");
+        when(job.getDisplayName()).thenReturn("test");
         when(job.getUrl()).thenReturn("job/test/");
         when(envVars.get("GIT_COMMIT")).thenReturn("commit");
         when(envVars.get("GIT_BRANCH")).thenReturn("branch");
@@ -101,7 +101,7 @@ public class MessageHandlerTest {
         build.put("status", result);
         build.put("duration", r.getDuration());
         build.put("scm", scm);
-        message.put("name", job.getName());
+        message.put("name", job.getDisplayName());
         message.put("url", job.getUrl());
         message.put("build", build);
 

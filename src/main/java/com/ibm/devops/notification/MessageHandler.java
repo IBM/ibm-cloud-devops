@@ -113,7 +113,7 @@ public final class MessageHandler {
         build.put("scm", scm);
 
         //setup the message
-        message.put("name", job.getName());
+        message.put("name", job.getDisplayName());
         message.put("url", job.getUrl());
         message.put("build", build);
 
