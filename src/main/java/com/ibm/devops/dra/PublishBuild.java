@@ -294,8 +294,9 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             BuildInfoModel buildInfo = new BuildInfoModel(buildNumber, buildUrl, buildStatus, timestamp, repo);
 
             String json = gson.toJson(buildInfo);
-            StringEntity data = new StringEntity(json);
+            StringEntity data = new StringEntity(json, "UTF-8");
             postMethod.setEntity(data);
+
             CloseableHttpResponse response = httpClient.execute(postMethod);
             resStr = EntityUtils.toString(response.getEntity());
             if (response.getStatusLine().toString().contains("200")) {

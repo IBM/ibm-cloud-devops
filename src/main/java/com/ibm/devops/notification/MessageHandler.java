@@ -138,7 +138,7 @@ public final class MessageHandler {
         		    .build();
             HttpPost postMethod = new HttpPost(webhook);
             try {
-                StringEntity data = new StringEntity(message.toString());
+                StringEntity data = new StringEntity(message.toString(), "UTF-8");
                 postMethod.setEntity(data);
                 postMethod = Proxy.addProxyInformation(postMethod);
                 postMethod.addHeader("Content-Type", "application/json");

@@ -389,7 +389,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
             body.addProperty("lifecycle_stage", "sonarqube");
             body.add("url", urls);
 
-            StringEntity data = new StringEntity(body.toString());
+            StringEntity data = new StringEntity(body.toString(), "UTF-8");
             postMethod.setEntity(data);
             CloseableHttpResponse response = httpClient.execute(postMethod);
             resStr = EntityUtils.toString(response.getEntity());

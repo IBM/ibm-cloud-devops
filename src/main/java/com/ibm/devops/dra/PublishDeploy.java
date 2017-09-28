@@ -282,7 +282,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 					timestamp);
 
 			String json = gson.toJson(deploymentInfo);
-			StringEntity data = new StringEntity(json);
+			StringEntity data = new StringEntity(json, "UTF-8");
 			postMethod.setEntity(data);
 			CloseableHttpResponse response = httpClient.execute(postMethod);
 			resStr = EntityUtils.toString(response.getEntity());
