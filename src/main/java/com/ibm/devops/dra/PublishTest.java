@@ -455,6 +455,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
 
             try {
                 filePaths = workspace.list(path);
+
             } catch(InterruptedException ie) {
                 printStream.println("[IBM Cloud DevOps] catching interrupt" + ie.getMessage());
                 ie.printStackTrace();
@@ -946,6 +947,9 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             model.add("Unit Test", "unittest");
             model.add("Functional Verification Test", "fvt");
             model.add("Code Coverage", "code");
+            model.add("Static Security Scan", "staticsecurityscan");
+            model.add("Dynamic Security Scan", "dynamicsecurityscan");
+
             return model;
         }
 

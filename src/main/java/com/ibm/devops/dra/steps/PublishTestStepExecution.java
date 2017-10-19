@@ -74,7 +74,8 @@ public class PublishTestStepExecution extends AbstractSynchronousNonBlockingStep
             return null;
         }
 
-        if (type.equals("unittest") || type.equals("code") || type.equals("fvt")) {
+        if (type.equals("unittest") || type.equals("code") || type.equals("fvt")
+                || type.equals("staticsecurityscan") || type.equals("dynamicsecurityscan")) {
             PublishTest publishTest = new PublishTest(requiredEnvVars, requiredParams);
 
             if (!Util.isNullOrEmpty(envName)) publishTest.setEnvName(envName);
@@ -82,7 +83,8 @@ public class PublishTestStepExecution extends AbstractSynchronousNonBlockingStep
 
             publishTest.perform(build, ws, launcher, listener);
         } else {
-            printStream.println("[IBM Cloud DevOps] the \"type\" in the publishTestResult should be either \"unittest\", \"code\" or \"fvt\"");
+            printStream.println("[IBM Cloud DevOps] the \"type\" in the publishTestResult should be either \"unittest\", \"code\", " +
+                    "\"fvt\", \"dynamicsecurityscan\" or \"staticsecurityscan\"");
         }
 
         return null;
