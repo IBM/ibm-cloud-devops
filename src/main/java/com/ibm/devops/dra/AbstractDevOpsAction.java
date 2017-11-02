@@ -133,7 +133,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
     // Todo: need to get rid of ng and add env_id
     private static Map<String, String> CONTROL_CENTER_ENV_MAP = ImmutableMap.of(
-            "production", "https://console.ng.bluemix.net/devops/insights/#!/",
+            "production", "https://console.ng.bluemix.net/devops/insights?env_id=ibm:yp:us-south#!/",
             "dev", "https://dev-console.stage1.ng.bluemix.net/devops/insights/#!/",
             "new", "https://new-console.stage1.ng.bluemix.net/devops/insights/#!/",
             "stage1", "https://console.stage1.ng.bluemix.net/devops/insights/#!/"
