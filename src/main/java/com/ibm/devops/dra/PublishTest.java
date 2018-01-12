@@ -603,7 +603,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             if (this.isDeploy) {
                 builder.addTextBody("environment_name", environmentName);
             }
-            //Todo check the value of lifecycleStage
+
             builder.addTextBody("lifecycle_stage", lifecycleStage);
             builder.addTextBody("url", jobUrl);
             builder.addTextBody("timestamp", timestamp);
