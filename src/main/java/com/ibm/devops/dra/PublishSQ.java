@@ -395,7 +395,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
             resStr = EntityUtils.toString(response.getEntity());
             if (response.getStatusLine().toString().contains("200")) {
                 // get 200 response
-                printStream.println("[IBM Cloud DevOps] Upload Build Information successfully");
+                printStream.println("[IBM Cloud DevOps] Upload SonarQube Information successfully");
                 return true;
 
             } else {
