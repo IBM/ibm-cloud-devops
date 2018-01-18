@@ -49,6 +49,7 @@ import java.io.*;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.TimeZone;
 
@@ -338,7 +339,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
      * @throws Exception
      */
     private JsonObject getFullResponse(String url, Map<String, String> headers) throws Exception {
-    	JsonArray finalArray = new JsonArray();
+    	JsonArray intermediateArray = new JsonArray();
     	int recordCount = 0;
     	int page = 1;
     	
@@ -346,10 +347,23 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
     		String uurl = url + "&ps=250&p=" + page;
     		JsonObject partResponse = sendGETRequest(uurl, headers);
     		JsonArray issues = partResponse.getAsJsonArray("issues");
-    		finalArray.addAll(issues);
+    		intermediateArray.addAll(issues);
     		recordCount = issues.size();
     		page += 1;
     	} while(recordCount > 0);
+    	
+    	// reduce the amount of data uploaded to DevOps Insights to only what is essential
+    	JsonArray finalArray = new JsonArray();
+    	Iterator<JsonElement> iter = intermediateArray.iterator();
+    	while(iter.hasNext()) {
+    			JsonObject aObj = (JsonObject)iter.next();
+    			JsonObject newObj = new JsonObject();
+    			newObj.add("severity", aObj.get("severity"));
+    			newObj.add("project", aObj.get("project"));
+    			newObj.add("component", aObj.get("component"));
+    			newObj.add("type", aObj.get("type"));
+    			finalArray.add(newObj);
+    	}
     	
     	JsonObject payload = new JsonObject();
     	payload.add("issues", finalArray);
