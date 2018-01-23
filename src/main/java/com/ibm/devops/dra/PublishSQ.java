@@ -33,6 +33,7 @@ import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 
+import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpGet;
@@ -256,8 +257,8 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
             sendPayloadToDLMS(bluemixToken, payload, urls, orgName);
 
         } catch (Exception e) {
-            printStream.println("[IBM Cloud DevOps] Error: Unable to upload results. Please make sure all parameters are valid");
-            e.printStackTrace();
+            printStream.println("[IBM Cloud DevOps] Error: " + e.getMessage());
+            printStream.println("[IBM Cloud DevOps] Error: Unable to upload SonarQube results. Please make sure all parameters are valid");
         }
     }
 
@@ -308,7 +309,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
      */
     private JsonObject sendGETRequest(String url, Map<String, String> headers) throws Exception {
 
-        String resStr;
         CloseableHttpClient httpClient = HttpClients.createDefault();
 
         HttpGet getMethod = new HttpGet(url);
@@ -320,13 +320,19 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         }
 
         CloseableHttpResponse response = httpClient.execute(getMethod);
-        resStr = EntityUtils.toString(response.getEntity());
-
+        StatusLine statusLine = response.getStatusLine();
+        String resStr = EntityUtils.toString(response.getEntity());
         JsonParser parser = new JsonParser();
-        JsonElement element = parser.parse(resStr);
-        JsonObject resJson = element.getAsJsonObject();
 
-        return resJson;
+        if (statusLine.getStatusCode() == 200) {
+            JsonElement element = parser.parse(resStr);
+            JsonObject resJson = element.getAsJsonObject();
+            return resJson;
+        } else if (statusLine.getStatusCode() == 401){
+            throw new Exception(statusLine.getStatusCode() + " Failed to authenticate with this token, please make sure the token is valid");
+        } else {
+            throw new Exception(statusLine.getStatusCode() + " " + resStr);
+        }
     }
     
     /**
