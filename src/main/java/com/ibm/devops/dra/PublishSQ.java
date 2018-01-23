@@ -331,7 +331,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         } else if (statusLine.getStatusCode() == 401){
             throw new Exception(statusLine.getStatusCode() + " Failed to authenticate with this token, please make sure the token is valid");
         } else {
-            throw new Exception(statusLine.getStatusCode() + " " + resStr);
+            throw new Exception("SonarQube project key " + SQProjectKey + " was not found at " + SQHostName);
         }
     }
     
