@@ -8,7 +8,6 @@ node {
             'IBM_CLOUD_DEVOPS_ORG=dlatest',
             'IBM_CLOUD_DEVOPS_APP_NAME=Weather-V1-Scripted',
             'IBM_CLOUD_DEVOPS_TOOLCHAIN_ID=1320cec1-daaa-4b63-bf06-7001364865d2'
-            'IBM_CLOUD_DEVOPS_WEBHOOK_URL=WEBHOOK_URL_PLACEHOLDER'
     ]) {
         //specify your bluemix credentials, please use "IBM_CLOUD_DEVOPS_CREDS_USR" for usernameVariable, "IBM_CLOUD_DEVOPS_CREDS_PSW" for passwordVariable
         withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'BM_CRED',
@@ -40,31 +39,14 @@ node {
                 stage('Deploy to Staging') {
                     try {
                     	// Push the Weather App to Bluemix, staging space
-                        	sh '''
-                                echo "CF Login..."
-                                cf api https://api.ng.bluemix.net
-                                cf login -u $IBM_CLOUD_DEVOPS_CREDS_USR -p $IBM_CLOUD_DEVOPS_CREDS_PSW -o $IBM_CLOUD_DEVOPS_ORG -s staging
-
-                                echo "Deploying...."
-                                export CF_APP_NAME="staging-$IBM_CLOUD_DEVOPS_APP_NAME"
-                                cf delete $CF_APP_NAME -f
-                                cf push $CF_APP_NAME -n $CF_APP_NAME -m 64M -i 1
-
-                                # use "cf icd --create-connection" to enable traceability
-                                cf icd --create-connection $IBM_CLOUD_DEVOPS_WEBHOOK_URL $CF_APP_NAME
-                                
-                                export APP_URL=http://$(cf app $CF_APP_NAME | grep urls: | awk '{print $2}')
+                        	sh '''                              
+                                echo "Deploying...."                              
                             '''
                         // use "publishDeployRecord" method to publish deploy record
-                        publishDeployRecord environment: "STAGING", appUrl: "http://staging-${IBM_CLOUD_DEVOPS_APP_NAME}.mybluemix.net", result:"SUCCESS"
-                        // use "notifyOTC" method to notify otc of stage status
-                        notifyOTC stageName: "Deploy to Staging", status: "SUCCESS"
-                        sendDeployableMessage status: "SUCCESS"
+                        publishDeployRecord environment: "STAGING", appUrl: "http://staging-${IBM_CLOUD_DEVOPS_APP_NAME}.mybluemix.net", result:"SUCCESS"                       
                     }
                     catch (Exception e) {
-                        publishDeployRecord environment: "STAGING", appUrl: "http://staging-${IBM_CLOUD_DEVOPS_APP_NAME}.mybluemix.net", result:"FAIL"
-                        // use "notifyOTC" method to notify otc of stage status
-                        notifyOTC stageName: "Deploy to Staging", status: "FAILURE"
+                        publishDeployRecord environment: "STAGING", appUrl: "http://staging-${IBM_CLOUD_DEVOPS_APP_NAME}.mybluemix.net", result:"FAIL"                        
                     }
                 }
                 stage('FVT') {
@@ -82,32 +64,14 @@ node {
                 stage('Deploy to Prod') {
                     try {
                     	// Push the Weather App to Bluemix, production space
-                        sh '''
-                                echo "CF Login..."
-                                cf api https://api.ng.bluemix.net
-                                cf login -u $IBM_CLOUD_DEVOPS_CREDS_USR -p $IBM_CLOUD_DEVOPS_CREDS_PSW -o $IBM_CLOUD_DEVOPS_ORG -s production
-
-                                echo "Deploying...."
-                                export CF_APP_NAME="prod-$IBM_CLOUD_DEVOPS_APP_NAME"
-                                cf delete $CF_APP_NAME -f
-                                cf push $CF_APP_NAME -n $CF_APP_NAME -m 64M -i 1
-
-                                # use "cf icd --create-connection" to enable traceability
-                                cf icd --create-connection $IBM_CLOUD_DEVOPS_WEBHOOK_URL $CF_APP_NAME
-
-                                export APP_URL=http://$(cf app $CF_APP_NAME | grep urls: | awk '{print $2}')
-                            '''
-                        
+                        sh '''                                
+                                echo "Deploying...."                              
+                            '''         
                     	// use "publishDeployRecord" method to publish deploy record
-                        publishDeployRecord environment: "PRODUCTION", appUrl: "http://prod-${IBM_CLOUD_DEVOPS_APP_NAME}.mybluemix.net", result:"SUCCESS"
-                        // use "notifyOTC" method to notify otc of stage status
-                        notifyOTC stageName: "Deploy to Prod", status: "SUCCESS"
-                        sendDeployableMessage status: "SUCCESS"
+                        publishDeployRecord environment: "PRODUCTION", appUrl: "http://prod-${IBM_CLOUD_DEVOPS_APP_NAME}.mybluemix.net", result:"SUCCESS"                     
                     }
                     catch(Exception e) {
                         publishDeployRecord environment: "PRODUCTION", appUrl: "http://prod-${IBM_CLOUD_DEVOPS_APP_NAME}.mybluemix.net", result:"FAIL"
-                        // use "notifyOTC" method to notify otc of stage status
-                        notifyOTC stageName: "Deploy to Prod", status: "FAILURE"
                     }
                 }
             }
