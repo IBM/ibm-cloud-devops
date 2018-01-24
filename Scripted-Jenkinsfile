@@ -10,9 +10,7 @@ node {
             'IBM_CLOUD_DEVOPS_TOOLCHAIN_ID=1320cec1-daaa-4b63-bf06-7001364865d2'
     ]) {
         //specify your bluemix credentials, please use "IBM_CLOUD_DEVOPS_CREDS_USR" for usernameVariable, "IBM_CLOUD_DEVOPS_CREDS_PSW" for passwordVariable
-        withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'BM_CRED',
-                          usernameVariable: 'IBM_CLOUD_DEVOPS_CREDS_USR', passwordVariable: 'IBM_CLOUD_DEVOPS_CREDS_PSW']]) {
-
+        withCredentials([string(credentialsId: 'YOUR_API_KEY_ID', variable: 'IBM_CLOUD_DEVOPS_API_KEY')]) {
             // work around to get the git commit id
             def gitCommit = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
             stage('Build') {
