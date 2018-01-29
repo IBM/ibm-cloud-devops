@@ -69,6 +69,7 @@ public class PublishDeployStepExecution extends AbstractSynchronousNonBlockingSt
 
         // optional build number, if user wants to set their own build number
         String buildNumber = step.getBuildNumber();
+        String appUrl = step.getAppUrl();
         if (!Util.allNotNullOrEmpty(requiredParams, printStream)) {
             printStream.println("[IBM Cloud DevOps] Error: Failed to upload Deploy Record.");
             return null;
@@ -76,9 +77,13 @@ public class PublishDeployStepExecution extends AbstractSynchronousNonBlockingSt
 
         if (result.equals(RESULT_SUCCESS) || result.equals(RESULT_FAIL)) {
             PublishDeploy publishDeploy = new PublishDeploy(requiredEnvVars, requiredParams);
-            if (!Util.isNullOrEmpty(buildNumber)) {
+            if (!Util.isNullOrEmpty(buildNumber))
                 publishDeploy.setBuildNumber(buildNumber);
-            }
+
+
+            if (!Util.isNullOrEmpty(appUrl))
+                publishDeploy.setApplicationUrl(appUrl);
+
             publishDeploy.perform(build, ws, launcher, listener);
         } else {
             printStream.println("[IBM Cloud DevOps] the \"result\" in the publishDeployRecord should be either \""
