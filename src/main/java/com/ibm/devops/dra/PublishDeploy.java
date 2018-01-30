@@ -122,6 +122,10 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		this.buildNumber = buildNumber;
 	}
 
+	public void setApplicationUrl(String applicationUrl) {
+		this.applicationUrl = applicationUrl;
+	}
+
 	/**
 	 * We'll use this from the <tt>config.jelly</tt>.
 	 */

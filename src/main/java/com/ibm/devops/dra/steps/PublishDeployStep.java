@@ -27,21 +27,25 @@ public class PublishDeployStep extends AbstractDevOpsStep {
     // required parameters to support pipeline script
     private String result;
     private String environment;
-    private String appUrl;
 
     // custom build number, optional
     private String buildNumber;
+    private String appUrl;
 
     @DataBoundConstructor
-    public PublishDeployStep(String result, String environment, String appUrl) {
+    public PublishDeployStep(String result, String environment) {
         this.environment = environment;
-        this.appUrl = appUrl;
         this.result = result;
     }
 
     @DataBoundSetter
     public void setBuildNumber(String buildNumber) {
         this.buildNumber = buildNumber;
+    }
+
+    @DataBoundSetter
+    public void setAppUrl(String appUrl) {
+        this.appUrl = appUrl;
     }
 
     public String getBuildNumber() {
