@@ -290,12 +290,24 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         JsonObject payload = new JsonObject();
 
         payload.add("qualityGate", qualityGateData.get("projectStatus"));
-        payload.add("issues", issuesData.get("issues"));
 
         JsonParser parser = new JsonParser();
         JsonObject component = (JsonObject)parser.parse(ratingsData.get("component").toString());
         payload.add("ratings", component.get("measures"));
 
+        JsonObject error = new JsonObject();
+
+        if (issuesData == null) {
+            payload.addProperty("issues", "{}");
+            error.addProperty("errorCode", "overLimit");
+            error.addProperty("message", "SonarQube web service APIs only allow less than 10,000 issues");
+        } else {
+            payload.add("issues", issuesData.get("issues"));
+            error.addProperty("errorCode", "");
+            error.addProperty("message", "");
+        }
+
+        payload.add("error", error);
         return payload;
     }
 
@@ -330,8 +342,14 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
             return resJson;
         } else if (statusLine.getStatusCode() == 401){
             throw new Exception(statusLine.getStatusCode() + " Failed to authenticate with this token, please make sure the token is valid");
-        } else {
+        } else if (statusLine.getStatusCode() == 400){
+            printStream.println("[IBM Cloud DevOps] Warning: You have over 10,000 issues, SonarQube only returns first 10,000 issues");
+            printStream.println("[IBM Cloud DevOps]" + resStr);
+            return null;
+        } else if (statusLine.getStatusCode() == 404) {
             throw new Exception("SonarQube project key " + SQProjectKey + " was not found at " + SQHostName);
+        } else {
+            throw new Exception("Get " + statusLine.getStatusCode() + " response from SonarQube, " + resStr);
         }
     }
     
@@ -344,36 +362,44 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
      * @return a JSON parsed representation of the payload returned
      * @throws Exception
      */
-    private JsonObject getFullResponse(String url, Map<String, String> headers) throws Exception {
+    private JsonObject getFullResponse(String url, Map<String, String> headers)  {
     	JsonArray intermediateArray = new JsonArray();
     	int recordCount = 0;
     	int page = 1;
-    	
-    	do {
-    		String uurl = url + "&ps=250&p=" + page;
-    		JsonObject partResponse = sendGETRequest(uurl, headers);
-    		JsonArray issues = partResponse.getAsJsonArray("issues");
-    		intermediateArray.addAll(issues);
-    		recordCount = issues.size();
-    		page += 1;
-    	} while(recordCount > 0);
-    	
-    	// reduce the amount of data uploaded to DevOps Insights to only what is essential
-    	JsonArray finalArray = new JsonArray();
-    	Iterator<JsonElement> iter = intermediateArray.iterator();
-    	while(iter.hasNext()) {
-    			JsonObject aObj = (JsonObject)iter.next();
-    			JsonObject newObj = new JsonObject();
-    			newObj.add("severity", aObj.get("severity"));
-    			newObj.add("project", aObj.get("project"));
-    			newObj.add("component", aObj.get("component"));
-    			newObj.add("type", aObj.get("type"));
-    			finalArray.add(newObj);
-    	}
-    	
-    	JsonObject payload = new JsonObject();
-    	payload.add("issues", finalArray);
-    	return payload;
+    	try {
+            do {
+                String uurl = url + "&ps=250&p=" + page;
+                JsonObject partResponse = sendGETRequest(uurl, headers);
+                if (partResponse == null) {
+
+                    return null;
+                }
+                JsonArray issues = partResponse.getAsJsonArray("issues");
+                intermediateArray.addAll(issues);
+                recordCount = issues.size();
+                page += 1;
+            } while(recordCount > 0);
+
+            // reduce the amount of data uploaded to DevOps Insights to only what is essential
+            JsonArray finalArray = new JsonArray();
+            Iterator<JsonElement> iter = intermediateArray.iterator();
+            while(iter.hasNext()) {
+                    JsonObject aObj = (JsonObject)iter.next();
+                    JsonObject newObj = new JsonObject();
+                    newObj.add("severity", aObj.get("severity"));
+                    newObj.add("project", aObj.get("project"));
+                    newObj.add("component", aObj.get("component"));
+                    newObj.add("type", aObj.get("type"));
+                    finalArray.add(newObj);
+            }
+
+            JsonObject payload = new JsonObject();
+            payload.add("issues", finalArray);
+            return payload;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     /**
@@ -401,18 +427,17 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
             String timestamp = dateFormat.format(System.currentTimeMillis());
 
             JsonObject body = new JsonObject();
-
             body.addProperty("contents", DatatypeConverter.printBase64Binary(payload.toString().getBytes("UTF-8")));
             body.addProperty("contents_type", CONTENT_TYPE_JSON);
             body.addProperty("timestamp", timestamp);
             body.addProperty("tool_name", "sonarqube");
             body.addProperty("lifecycle_stage", "sonarqube");
             body.add("url", urls);
-
             StringEntity data = new StringEntity(body.toString(), "UTF-8");
             postMethod.setEntity(data);
             CloseableHttpResponse response = httpClient.execute(postMethod);
             resStr = EntityUtils.toString(response.getEntity());
+
             if (response.getStatusLine().toString().contains("200")) {
                 // get 200 response
                 printStream.println("[IBM Cloud DevOps] Upload SonarQube Information successfully");
