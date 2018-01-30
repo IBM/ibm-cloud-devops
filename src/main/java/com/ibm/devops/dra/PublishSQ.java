@@ -248,7 +248,12 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
             JsonObject SQqualityGate = sendGETRequest(this.SQHostName + "/api/qualitygates/project_status?projectKey=" + this.SQProjectKey, headers);
             printStream.println("[IBM Cloud DevOps] Successfully queried SonarQube for quality gate information");
             JsonObject SQissues = getFullResponse(this.SQHostName + "/api/issues/search?statuses=OPEN&projectKeys=" + this.SQProjectKey, headers);
-            printStream.println("[IBM Cloud DevOps] Successfully queried SonarQube for issue information");
+
+            if (SQissues == null)
+                printStream.println("[IBM Cloud DevOps] Failed to query SonarQube for issue information");
+            else
+                printStream.println("[IBM Cloud DevOps] Successfully queried SonarQube for issue information");
+
             JsonObject SQratings = sendGETRequest(this.SQHostName + "/api/measures/component?metricKeys=reliability_rating,security_rating,sqale_rating&componentKey=" + this.SQProjectKey, headers);
             printStream.println("[IBM Cloud DevOps] Successfully queried SonarQube for metric information");
 
@@ -343,8 +348,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         } else if (statusLine.getStatusCode() == 401){
             throw new Exception(statusLine.getStatusCode() + " Failed to authenticate with this token, please make sure the token is valid");
         } else if (statusLine.getStatusCode() == 400){
-            printStream.println("[IBM Cloud DevOps] Warning: You have over 10,000 issues, SonarQube only returns first 10,000 issues");
-            printStream.println("[IBM Cloud DevOps]" + resStr);
+            printStream.println("[IBM Cloud DevOps] Warning: You have more than 10,000 issues, which is over the SonarQube Web Service API limit");
             return null;
         } else if (statusLine.getStatusCode() == 404) {
             throw new Exception("SonarQube project key " + SQProjectKey + " was not found at " + SQHostName);
