@@ -299,20 +299,17 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         JsonParser parser = new JsonParser();
         JsonObject component = (JsonObject)parser.parse(ratingsData.get("component").toString());
         payload.add("ratings", component.get("measures"));
-
-        JsonObject error = new JsonObject();
-
+  
         if (issuesData == null) {
-            payload.addProperty("issues", "{}");
+            JsonObject error = new JsonObject();
             error.addProperty("errorCode", "overLimit");
             error.addProperty("message", "SonarQube web service APIs only allow less than 10,000 issues");
+            payload.add("error", error);
+            payload.addProperty("issues", "[]");
         } else {
             payload.add("issues", issuesData.get("issues"));
-            error.addProperty("errorCode", "");
-            error.addProperty("message", "");
         }
 
-        payload.add("error", error);
         return payload;
     }
 
