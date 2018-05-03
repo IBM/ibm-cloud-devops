@@ -112,23 +112,23 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
     private static Map<String, String> POLICIES_URL_MAP = ImmutableMap.of(
             "production", "https://dra.ng.bluemix.net/api/v4/organizations/{org_name}/toolchainids/{toolchain_name}/policies",
-            "dev", "https://dra-dev.us-south.devopsinsights.cloud.ibm.com/gateservice/api/v4/organizations/{org_name}/toolchainids/{toolchain_name}/policies",
+            "dev", "https://dev-dra.stage1.ng.bluemix.net/api/v4/organizations/{org_name}/toolchainids/{toolchain_name}/policies",
             "new", "https://new-dra.stage1.ng.bluemix.net/api/v4/organizations/{org_name}/toolchainids/{toolchain_name}/policies",
-            "stage1", "https://dra-staging.us-south.devopsinsights.cloud.ibm.com/gateservice/api/v4/organizations/{org_name}/toolchainids/{toolchain_name}/policies"
+            "stage1", "https://dra.stage1.ng.bluemix.net/api/v4/organizations/{org_name}/toolchainids/{toolchain_name}/policies"
     );
 
     private static Map<String, String> DLMS_ENV_MAP = ImmutableMap.of(
             "production", "https://dlms.ng.bluemix.net/v2",
-            "dev", "https://dra-dev.us-south.devopsinsights.cloud.ibm.com/dlms/v2",
+            "dev", "https://dev-dlms.stage1.ng.bluemix.net/v2",
             "new", "https://new-dlms.stage1.ng.bluemix.net/v2",
-            "stage1", "https://dra-staging.us-south.devopsinsights.cloud.ibm.com/dlms/v2"
+            "stage1", "https://dlms.stage1.ng.bluemix.net/v2"
     );
 
     private static Map<String, String> GATE_DECISION_ENV_MAP = ImmutableMap.of(
             "production", "https://dra.ng.bluemix.net/api/v4",
-            "dev", "https://dra-dev.us-south.devopsinsights.cloud.ibm.com/gateservice/api/v4",
+            "dev", "https://dev-dra.stage1.ng.bluemix.net/api/v4",
             "new", "https://new-dra.stage1.ng.bluemix.net/api/v4",
-            "stage1", "https://dra-staging.us-south.devopsinsights.cloud.ibm.com/gateservice/api/v4"
+            "stage1", "https://dra.stage1.ng.bluemix.net/api/v4"
     );
 
     // Todo: need to get rid of ng and add env_id
