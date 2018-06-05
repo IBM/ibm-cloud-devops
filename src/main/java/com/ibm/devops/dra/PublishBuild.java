@@ -50,7 +50,7 @@ import java.net.URLEncoder;
 
 public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildStep {
 
-    private static String BUILD_API_URL = "/organizations/{org_name}/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds";
+    private static String BUILD_API_URL = "/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds";
     private final static String CONTENT_TYPE_JSON = "application/json";
     private final static String CONTENT_TYPE_XML = "application/xml";
 
@@ -96,7 +96,6 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         this.gitCommit = paramsMap.get("gitCommit");
         this.result = paramsMap.get("result");
         this.applicationName = envVarsMap.get(APP_NAME);
-        this.orgName = envVarsMap.get(ORG_NAME);
         this.toolchainName = envVarsMap.get(TOOLCHAIN_ID);
 
         if (Util.isNullOrEmpty(envVarsMap.get(API_KEY))) {
@@ -182,12 +181,11 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         String targetAPI = chooseTargetAPI(env);
 
         //expand the variables
-        String orgName = envVars.expand(this.orgName);
         String applicationName = envVars.expand(this.applicationName);
         this.toolchainName = envVars.expand(this.toolchainName);
 
         // Check required parameters
-        if (Util.isNullOrEmpty(orgName) || Util.isNullOrEmpty(applicationName) || Util.isNullOrEmpty(toolchainName)) {
+        if (Util.isNullOrEmpty(applicationName) || Util.isNullOrEmpty(toolchainName)) {
             printStream.println("[IBM Cloud DevOps] Missing few required configurations");
             printStream.println("[IBM Cloud DevOps] Error: Failed to upload Build Info.");
             return;
@@ -209,8 +207,8 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             return;
         }
 
-        String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(this.orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
-        if (uploadBuildInfo(bluemixToken, build, envVars, orgName, applicationName)) {
+        String link = chooseControlCenterUrl(env) + "deploymentrisk?toolchainId=" + this.toolchainName;
+        if (uploadBuildInfo(bluemixToken, build, envVars, applicationName)) {
             printStream.println("[IBM Cloud DevOps] Go to Control Center (" + link + ") to check your build status");
             BuildPublisherAction action = new BuildPublisherAction(link);
             build.addAction(action);
@@ -246,13 +244,12 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
      * @param envVars
      * @throws IOException
      */
-    private boolean uploadBuildInfo(String bluemixToken, Run build, EnvVars envVars, String orgName, String applicationName) {
+    private boolean uploadBuildInfo(String bluemixToken, Run build, EnvVars envVars, String applicationName) {
         String resStr = "";
 
         try {
             CloseableHttpClient httpClient = HttpClients.createDefault();
             String url = this.dlmsUrl;
-            url = url.replace("{org_name}", URLEncoder.encode(orgName, "UTF-8").replaceAll("\\+", "%20"));
             url = url.replace("{toolchain_id}", URLEncoder.encode(this.toolchainName, "UTF-8").replaceAll("\\+", "%20"));
             url = url.replace("{build_artifact}", URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20"));
 
@@ -319,11 +316,8 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             printStream.println("[IBM Cloud DevOps] Invalid Json response, response: " + resStr);
         } catch (IllegalStateException e) {
             // will be triggered when 403 Forbidden
-            try {
-                printStream.println("[IBM Cloud DevOps] Please check if you have the access to " + URLEncoder.encode(this.orgName, "UTF-8") + " org");
-            } catch (UnsupportedEncodingException e1) {
-                e1.printStackTrace();
-            }
+            printStream.println("[IBM Cloud DevOps] Please check if you have the access to toolchain" + toolchainName);
+
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         } catch (ClientProtocolException e) {
