@@ -284,8 +284,8 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
                 decision = "Failed";
             }
 
-            String cclink = chooseControlCenterUrl(env) + "deploymentrisk?&toolchainId=" + this.toolchainName;
-            String reportUrl = chooseControlCenterUrl(env) + "decisionreport?&toolchainId="
+            String cclink = chooseControlCenterUrl(env) + "deploymentrisk?toolchainId=" + this.toolchainName;
+            String reportUrl = chooseControlCenterUrl(env) + "decisionreport?toolchainId="
                     + URLEncoder.encode(toolchainName, "UTF-8") + "&reportId=" + decisionId;
 
             GatePublisherAction action = new GatePublisherAction(reportUrl, cclink, decision, policyName, build);

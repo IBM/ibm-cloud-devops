@@ -222,7 +222,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		dlmsUrl = dlmsUrl.replace("{toolchain_id}", URLEncoder.encode(this.toolchainName, "UTF-8").replaceAll("\\+", "%20"));
 		dlmsUrl = dlmsUrl.replace("{build_artifact}", URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20"));
 		dlmsUrl = dlmsUrl.replace("{build_id}", URLEncoder.encode(buildNumber, "UTF-8").replaceAll("\\+", "%20"));
-		String link = chooseControlCenterUrl(env) + "deploymentrisk?&toolchainId=" + this.toolchainName;
+		String link = chooseControlCenterUrl(env) + "deploymentrisk?toolchainId=" + this.toolchainName;
 		String jobUrl;
 		if (checkRootUrl(printStream)) {
 			jobUrl = Jenkins.getInstance().getRootUrl() + build.getUrl();
