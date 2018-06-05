@@ -119,7 +119,6 @@ public abstract class AbstractDevOpsAction extends Recorder {
     private static Map<String, String> GATE_DECISION_ENV_MAP = ImmutableMap.of(
             "production", "https://dra.ng.bluemix.net/api/v5",
             "dev", "https://dev-dra.stage1.ng.bluemix.net/api/v5",
-            "new", "https://new-dra.stage1.ng.bluemix.net/api/v5",
             "stage1", "https://dra.stage1.ng.bluemix.net/api/v5"
     );
 
