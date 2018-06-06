@@ -60,7 +60,7 @@ import java.util.HashSet;
  */
 public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep {
 
-    private final static String API_PART = "/organizations/{org_name}/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/results_multipart";
+    private final static String API_PART = "/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/results_multipart";
     private final static String CONTENT_TYPE_JSON = "application/json";
     private final static String CONTENT_TYPE_XML = "application/xml";
     private final static String CONTENT_TYPE_LCOV = "text/plain";
@@ -145,7 +145,6 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         this.contents = paramsMap.get("fileLocation");
 
         this.applicationName = envVarsMap.get(APP_NAME);
-        this.orgName = envVarsMap.get(ORG_NAME);
         this.toolchainName = envVarsMap.get(TOOLCHAIN_ID);
 
         if (Util.isNullOrEmpty(envVarsMap.get(API_KEY))) {
@@ -294,7 +293,6 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         String url = chooseDLMSUrl(env) + API_PART;
         // expand to support env vars
         this.toolchainName = envVars.expand(this.toolchainName);
-        String orgName = envVars.expand(this.orgName);
         String applicationName = envVars.expand(this.applicationName);
 
         String contents = envVars.expand(this.contents);
@@ -322,13 +320,12 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             buildNumber = envVars.expand(this.buildNumber);
         }
 
-        url = url.replace("{org_name}", URLEncoder.encode(orgName, "UTF-8").replaceAll("\\+", "%20"));
         url = url.replace("{toolchain_id}", URLEncoder.encode(this.toolchainName, "UTF-8").replaceAll("\\+", "%20"));
         url = url.replace("{build_artifact}", URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20"));
         url = url.replace("{build_id}", URLEncoder.encode(buildNumber, "UTF-8").replaceAll("\\+", "%20"));
         this.dlmsUrl = url;
 
-        String link = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
+        String link = chooseControlCenterUrl(env) + "deploymentrisk?toolchainId=" + this.toolchainName;
 
         String bluemixToken;
         // get the Bluemix token
@@ -377,7 +374,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
 
         // get decision response from DRA
         try {
-            JsonObject decisionJson = getDecisionFromDRA(bluemixToken, buildNumber, orgName, applicationName, environmentName);
+            JsonObject decisionJson = getDecisionFromDRA(bluemixToken, buildNumber, applicationName, environmentName);
             if (decisionJson == null) {
                 printStream.println("[IBM Cloud DevOps] get empty decision");
                 return;
@@ -396,9 +393,9 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                 decision = "Failed";
             }
 
-            String cclink = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
+            String cclink = chooseControlCenterUrl(env) + "deploymentrisk?toolchainId=" + this.toolchainName;
 
-            String reportUrl = chooseControlCenterUrl(env) + "decisionreport?orgName=" + URLEncoder.encode(orgName, "UTF-8") + "&toolchainId="
+            String reportUrl = chooseControlCenterUrl(env) + "decisionreport?toolchainId="
                     + URLEncoder.encode(toolchainName, "UTF-8") + "&reportId=" + decisionId;
             GatePublisherAction action = new GatePublisherAction(reportUrl, cclink, decision, this.policyName, build);
             build.addAction(action);
@@ -665,13 +662,12 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
      * @param buildId - build ID, get from Jenkins environment
      * @return - the response decision Json file
      */
-    private JsonObject getDecisionFromDRA(String bluemixToken, String buildId, String orgName, String applicationName, String environmentName) throws IOException {
+    private JsonObject getDecisionFromDRA(String bluemixToken, String buildId, String applicationName, String environmentName) throws IOException {
         // create http client and post method
         CloseableHttpClient httpClient = HttpClients.createDefault();
 
         String url = this.draUrl;
-        url = url + "/organizations/" + orgName +
-                "/toolchainids/" + toolchainName +
+        url = url + "/toolchainids/" + toolchainName +
                 "/buildartifacts/" + URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20") +
                 "/builds/" + buildId +
                 "/policies/" + URLEncoder.encode(policyName, "UTF-8").replaceAll("\\+", "%20") +

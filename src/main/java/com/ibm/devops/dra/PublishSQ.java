@@ -62,7 +62,7 @@ import javax.xml.bind.DatatypeConverter;
  */
 public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
 
-    private final static String API_PART = "/organizations/{org_name}/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/results";
+    private final static String API_PART = "/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/results";
     private final static String CONTENT_TYPE_JSON = "application/json";
 
     // form fields from UI
@@ -117,7 +117,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         this.SQAuthToken = paramsMap.get("SQAuthToken");
 
         this.applicationName = envVarsMap.get(APP_NAME);
-        this.orgName = envVarsMap.get(ORG_NAME);
         this.toolchainName = envVarsMap.get(TOOLCHAIN_ID);
         if (Util.isNullOrEmpty(envVarsMap.get(API_KEY))) {
             this.username = envVarsMap.get(USERNAME);
@@ -196,7 +195,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         String targetAPI = chooseTargetAPI(env);
         String url = chooseDLMSUrl(env) + API_PART;
         // expand to support env vars
-        String orgName = envVars.expand(this.orgName);
         String applicationName = envVars.expand(this.applicationName);
         this.toolchainName = envVars.expand(this.toolchainName);
 
@@ -219,7 +217,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
             buildNumber = envVars.expand(this.buildNumber);
         }
 
-        url = url.replace("{org_name}", URLEncoder.encode(orgName, "UTF-8").replaceAll("\\+", "%20"));
         url = url.replace("{toolchain_id}", URLEncoder.encode(this.toolchainName, "UTF-8").replaceAll("\\+", "%20"));
         url = url.replace("{build_artifact}", URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20"));
         url = url.replace("{build_id}", URLEncoder.encode(buildNumber, "UTF-8").replaceAll("\\+", "%20"));
@@ -259,7 +256,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
 
             JsonObject payload = createDLMSPayload(SQqualityGate, SQissues, SQratings);
             JsonArray urls = createPayloadUrls(this.SQHostName, this.SQProjectKey);
-            sendPayloadToDLMS(bluemixToken, payload, urls, orgName);
+            sendPayloadToDLMS(bluemixToken, payload, urls, toolchainName);
 
         } catch (Exception e) {
             printStream.println("[IBM Cloud DevOps] Error: " + e.getMessage());
@@ -411,7 +408,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
      * @param urls a json array that holds the urls for a payload
      * @return boolean based on if the request was successful or not
      */
-    private boolean sendPayloadToDLMS(String bluemixToken, JsonObject payload, JsonArray urls, String orgName) {
+    private boolean sendPayloadToDLMS(String bluemixToken, JsonObject payload, JsonArray urls, String toolchainName) {
         String resStr = "";
         printStream.println("[IBM Cloud DevOps] Uploading SonarQube results...");
         try {
@@ -459,11 +456,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
             printStream.println("[IBM Cloud DevOps] Invalid Json response, response: " + resStr);
         } catch (IllegalStateException e) {
             // will be triggered when 403 Forbidden
-            try {
-                printStream.println("[IBM Cloud DevOps] Please check if you have the access to " + URLEncoder.encode(orgName, "UTF-8") + " org");
-            } catch (UnsupportedEncodingException e1) {
-                e1.printStackTrace();
-            }
+            printStream.println("[IBM Cloud DevOps] Please check if you have the access to " + toolchainName);
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         } catch (ClientProtocolException e) {

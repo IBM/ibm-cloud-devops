@@ -34,7 +34,6 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
-import net.sf.json.JSONObject;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -43,7 +42,6 @@ import org.apache.http.util.EntityUtils;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
 
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
@@ -120,7 +118,6 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
                         boolean willDisrupt) {
 
         this.applicationName = envVarsMap.get(APP_NAME);
-        this.orgName = envVarsMap.get(ORG_NAME);
         this.toolchainName = envVarsMap.get(TOOLCHAIN_ID);
         if (Util.isNullOrEmpty(envVarsMap.get(API_KEY))) {
             this.username = envVarsMap.get(USERNAME);
@@ -218,8 +215,6 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
 
         // Get the project name and build id from environment
         EnvVars envVars = build.getEnvironment(listener);
-
-        String orgName = envVars.expand(this.orgName);
         String applicationName = envVars.expand(this.applicationName);
         String policyName = envVars.expand(this.policyName);
         this.toolchainName = envVars.expand(this.toolchainName);
@@ -270,7 +265,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
 
         // get decision response from DRA
         try {
-            JsonObject decisionJson = getDecisionFromDRA(bluemixToken, buildNumber, orgName, applicationName, policyName, environmentName);
+            JsonObject decisionJson = getDecisionFromDRA(bluemixToken, buildNumber, applicationName, policyName, environmentName);
             if (decisionJson == null) {
                 printStream.println("[IBM Cloud DevOps] get empty decision");
                 return;
@@ -289,8 +284,8 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
                 decision = "Failed";
             }
 
-            String cclink = chooseControlCenterUrl(env) + "deploymentrisk?orgName=" + URLEncoder.encode(orgName, "UTF-8") + "&toolchainId=" + this.toolchainName;
-            String reportUrl = chooseControlCenterUrl(env) + "decisionreport?orgName=" + URLEncoder.encode(orgName, "UTF-8") + "&toolchainId="
+            String cclink = chooseControlCenterUrl(env) + "deploymentrisk?toolchainId=" + this.toolchainName;
+            String reportUrl = chooseControlCenterUrl(env) + "decisionreport?toolchainId="
                     + URLEncoder.encode(toolchainName, "UTF-8") + "&reportId=" + decisionId;
 
             GatePublisherAction action = new GatePublisherAction(reportUrl, cclink, decision, policyName, build);
@@ -334,12 +329,11 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
      * @param buildId - build ID, get from Jenkins environment
      * @return - the response decision Json file
      */
-    private JsonObject getDecisionFromDRA(String bluemixToken, String buildId, String orgName, String applicationName, String policyName, String environmentName) throws IOException {
+    private JsonObject getDecisionFromDRA(String bluemixToken, String buildId, String applicationName, String policyName, String environmentName) throws IOException {
         // create http client and post method
         CloseableHttpClient httpClient = HttpClients.createDefault();
         String url = this.draUrl;
-        url = url + "/organizations/" + URLEncoder.encode(orgName, "UTF-8").replaceAll("\\+", "%20") +
-                "/toolchainids/" + URLEncoder.encode(toolchainName, "UTF-8").replaceAll("\\+", "%20") +
+        url = url + "/toolchainids/" + URLEncoder.encode(toolchainName, "UTF-8").replaceAll("\\+", "%20") +
                 "/buildartifacts/" + URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20") +
                 "/builds/" + URLEncoder.encode(buildId, "UTF-8").replaceAll("\\+", "%20") +
                 "/policies/" + URLEncoder.encode(policyName, "UTF-8").replaceAll("\\+", "%20") +

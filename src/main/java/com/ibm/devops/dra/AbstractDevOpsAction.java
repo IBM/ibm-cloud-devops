@@ -63,7 +63,6 @@ import java.util.regex.Pattern;
 public abstract class AbstractDevOpsAction extends Recorder {
 
     public final static Logger LOGGER = Logger.getLogger(AbstractDevOpsAction.class.getName());
-    public final static String ORG_NAME = "IBM_CLOUD_DEVOPS_ORG";
     public final static String APP_NAME = "IBM_CLOUD_DEVOPS_APP_NAME";
     public final static String TOOLCHAIN_ID = "IBM_CLOUD_DEVOPS_TOOLCHAIN_ID";
     public final static String USERNAME = "IBM_CLOUD_DEVOPS_CREDS_USR";
@@ -78,64 +77,55 @@ public abstract class AbstractDevOpsAction extends Recorder {
     private static Map<String, String> TARGET_API_MAP = ImmutableMap.of(
             "production", "https://api.ng.bluemix.net",
             "dev", "https://api.stage1.ng.bluemix.net",
-            "new", "https://api.stage1.ng.bluemix.net",
             "stage1", "https://api.stage1.ng.bluemix.net"
     );
 
     private static Map<String, String> ORGANIZATIONS_URL_MAP = ImmutableMap.of(
             "production", "https://api.ng.bluemix.net/v2/organizations?q=name:",
             "dev", "https://api.stage1.ng.bluemix.net/v2/organizations?q=name:",
-            "new", "https://api.stage1.ng.bluemix.net/v2/organizations?q=name:",
             "stage1", "https://api.stage1.ng.bluemix.net/v2/organizations?q=name:"
     );
     
     private static Map<String, String> SPACES_URL_MAP = ImmutableMap.of(
             "production", "https://api.ng.bluemix.net/v2/spaces?q=name:",
             "dev", "https://api.stage1.ng.bluemix.net/v2/spaces?q=name:",
-            "new", "https://api.stage1.ng.bluemix.net/v2/spaces?q=name:",
             "stage1", "https://api.stage1.ng.bluemix.net/v2/spaces?q=name:"
     );
     
     private static Map<String, String> APPS_URL_MAP = ImmutableMap.of(
             "production", "https://api.ng.bluemix.net/v2/apps?q=name:",
             "dev", "https://api.stage1.ng.bluemix.net/v2/apps?q=name:",
-            "new", "https://api.stage1.ng.bluemix.net/v2/apps?q=name:",
             "stage1", "https://api.stage1.ng.bluemix.net/v2/apps?q=name:"
     );
 
     private static Map<String, String> TOOLCHAINS_URL_MAP = ImmutableMap.of(
             "production", "https://otc-api.ng.bluemix.net/api/v1/toolchains?organization_guid=",
             "dev", "https://otc-api.stage1.ng.bluemix.net/api/v1/toolchains?organization_guid=",
-            "stage1", "https://otc-api-integration.stage1.ng.bluemix.net/api/v1/toolchains?organization_guid=",
-            "new", "https://otc-api.stage1.ng.bluemix.net/api/v1/toolchains?organization_guid="
+            "stage1", "https://otc-api-integration.stage1.ng.bluemix.net/api/v1/toolchains?organization_guid="
     );
 
     private static Map<String, String> POLICIES_URL_MAP = ImmutableMap.of(
-            "production", "https://dra.ng.bluemix.net/api/v4/organizations/{org_name}/toolchainids/{toolchain_name}/policies",
-            "dev", "https://dev-dra.stage1.ng.bluemix.net/api/v4/organizations/{org_name}/toolchainids/{toolchain_name}/policies",
-            "new", "https://new-dra.stage1.ng.bluemix.net/api/v4/organizations/{org_name}/toolchainids/{toolchain_name}/policies",
-            "stage1", "https://dra.stage1.ng.bluemix.net/api/v4/organizations/{org_name}/toolchainids/{toolchain_name}/policies"
+            "production", "https://dra.ng.bluemix.net/api/v5/toolchainids/{toolchain_name}/policies",
+            "dev", "https://dev-dra.stage1.ng.bluemix.net/api/v5/toolchainids/{toolchain_name}/policies",
+            "stage1", "https://dra.stage1.ng.bluemix.net/api/v5/toolchainids/{toolchain_name}/policies"
     );
 
     private static Map<String, String> DLMS_ENV_MAP = ImmutableMap.of(
-            "production", "https://dlms.ng.bluemix.net/v2",
-            "dev", "https://dev-dlms.stage1.ng.bluemix.net/v2",
-            "new", "https://new-dlms.stage1.ng.bluemix.net/v2",
-            "stage1", "https://dlms.stage1.ng.bluemix.net/v2"
+            "production", "https://dlms.ng.bluemix.net/v3",
+            "dev", "https://dev-dlms.stage1.ng.bluemix.net/v3",
+            "stage1", "https://dlms.stage1.ng.bluemix.net/v3"
     );
 
     private static Map<String, String> GATE_DECISION_ENV_MAP = ImmutableMap.of(
-            "production", "https://dra.ng.bluemix.net/api/v4",
-            "dev", "https://dev-dra.stage1.ng.bluemix.net/api/v4",
-            "new", "https://new-dra.stage1.ng.bluemix.net/api/v4",
-            "stage1", "https://dra.stage1.ng.bluemix.net/api/v4"
+            "production", "https://dra.ng.bluemix.net/api/v5",
+            "dev", "https://dev-dra.stage1.ng.bluemix.net/api/v5",
+            "stage1", "https://dra.stage1.ng.bluemix.net/api/v5"
     );
 
     // Todo: need to get rid of ng and add env_id
     private static Map<String, String> CONTROL_CENTER_ENV_MAP = ImmutableMap.of(
             "production", "https://console.ng.bluemix.net/devops/insights?env_id=ibm:yp:us-south#!/",
             "dev", "https://dev-console.stage1.ng.bluemix.net/devops/insights/#!/",
-            "new", "https://new-console.stage1.ng.bluemix.net/devops/insights/#!/",
             "stage1", "https://console.stage1.ng.bluemix.net/devops/insights/#!/"
     );
 
@@ -182,7 +172,6 @@ public abstract class AbstractDevOpsAction extends Recorder {
      */
     public static HashMap<String, String> setRequiredEnvVars(AbstractDevOpsStep step, EnvVars envVars) {
         HashMap<String, String> requiredEnvVars = new HashMap<>();
-        requiredEnvVars.put(ORG_NAME, Util.isNullOrEmpty(step.getOrgName()) ? envVars.get(ORG_NAME) : step.getOrgName());
         requiredEnvVars.put(APP_NAME, Util.isNullOrEmpty(step.getApplicationName()) ? envVars.get(APP_NAME) : step.getApplicationName());
         requiredEnvVars.put(TOOLCHAIN_ID, Util.isNullOrEmpty(step.getToolchainId()) ? envVars.get(TOOLCHAIN_ID) : step.getToolchainId());
 
@@ -861,7 +850,6 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
 
         try {
-            url = url.replace("{org_name}", URLEncoder.encode(orgName, "UTF-8").replaceAll("\\+", "%20"));
             url = url.replace("{toolchain_name}", URLEncoder.encode(toolchainName, "UTF-8").replaceAll("\\+", "%20"));
             if(debug_mode){
                 LOGGER.info("GET POLICIES URL:" + url);
