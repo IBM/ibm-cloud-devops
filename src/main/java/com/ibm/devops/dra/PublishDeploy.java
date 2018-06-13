@@ -178,6 +178,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 			@Nonnull TaskListener listener) throws InterruptedException, IOException {
 
 		printStream = listener.getLogger();
+		UIMessages messages = new UIMessages();
 		printPluginVersion(this.getClass().getClassLoader(), printStream);
 
 		// Get the project name and build id from environment
@@ -186,6 +187,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		// verify if user chooses advanced option to input customized DLMS
 		String env = getDescriptor().getEnvironment();
 		String targetAPI = chooseTargetAPI(env);
+		String iamAPI = chooseIAMAPI(env);
 		String dlmsUrl = chooseDLMSUrl(env) + DEPLOYMENT_API_URL;
 
 		// expand to support env vars
@@ -234,9 +236,18 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		// get the Bluemix token
 		try {
 			if (Util.isNullOrEmpty(this.credentialsId)) {
-				bluemixToken = getBluemixToken(username, password, targetAPI);
+				// pipeline script
+				if ("apikey".equals(username)) {
+					bluemixToken = getIAMToken(password, iamAPI);
+				} else {
+					bluemixToken = getBluemixToken(username, password, targetAPI);
+					printStream.println(messages.getMessage(messages.USERNAME_PASSWORD_DEPRECATED));
+				}
 			} else {
-				bluemixToken = getBluemixToken(build.getParent(), this.credentialsId, targetAPI);
+				// freestyle job
+				bluemixToken = getToken(this.credentialsId, iamAPI, targetAPI, build.getParent());
+				printStream.println(messages.getMessage(messages.FREESTYLE_DEPRECATED));
+
 			}
 
 			printStream.println("[IBM Cloud DevOps] Log in successfully, get the Bluemix token");

@@ -16,6 +16,7 @@ package com.ibm.devops.dra;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.google.common.collect.ImmutableMap;
@@ -32,14 +33,18 @@ import hudson.tasks.Recorder;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
+import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.cloudfoundry.client.lib.CloudCredentials;
 import org.cloudfoundry.client.lib.CloudFoundryClient;
@@ -71,13 +76,21 @@ public abstract class AbstractDevOpsAction extends Recorder {
     public final static String RESULT_SUCCESS = "SUCCESS";
     public final static String RESULT_FAIL = "FAIL";
     
-    private final static String ORG= "&&organization_guid:";
-    private final static String SPACE= "&&space_guid:";
-    
+    private final static String ORG = "&&organization_guid:";
+    private final static String SPACE = "&&space_guid:";
+    private final static String IAM_GRANT_TYPE = "urn:ibm:params:oauth:grant-type:apikey";
+    private final static String IAM_RESPONSE_TYPE = "cloud_iam";
+
     private static Map<String, String> TARGET_API_MAP = ImmutableMap.of(
             "production", "https://api.ng.bluemix.net",
             "dev", "https://api.stage1.ng.bluemix.net",
             "stage1", "https://api.stage1.ng.bluemix.net"
+    );
+
+    private static Map<String, String> IAM_API_MAP = ImmutableMap.of(
+            "production", "https://iam.bluemix.net/identity/token?",
+            "dev", "https:/iam.stage1.bluemix.net/identity/token?",
+            "stage1", "https://iam.stage1.bluemix.net/identity/token?"
     );
 
     private static Map<String, String> ORGANIZATIONS_URL_MAP = ImmutableMap.of(
@@ -150,8 +163,6 @@ public abstract class AbstractDevOpsAction extends Recorder {
             return "production";
         } else if (consoleUrl.contains("dev-console.stage1.bluemix.net") || consoleUrl.contains("dev-console.stage1.ng.bluemix.net")) {
             return "dev";
-        } else if (consoleUrl.contains("new-console.stage1.bluemix.net") || consoleUrl.contains("new-console.stage1.ng.bluemix.net")) {
-            return "new";
         } else if (consoleUrl.contains("console.stage1.bluemix.net") || consoleUrl.contains("console.stage1.ng.bluemix.net")) {
             return "stage1";
         } else if (consoleUrl.contains("console.bluemix.net") || consoleUrl.contains("console.ng.bluemix.net")){
@@ -196,6 +207,19 @@ public abstract class AbstractDevOpsAction extends Recorder {
         }
 
         return TARGET_API_MAP.get("production");
+    }
+
+    public static String chooseIAMAPI(String environment) {
+        if (!Util.isNullOrEmpty(environment)) {
+            if (IAM_API_MAP.keySet().contains(environment)) {
+                return IAM_API_MAP.get(environment);
+            } else {
+                String api = IAM_API_MAP.get(environment).replace("ng", environment);
+                return api;
+            }
+        }
+
+        return IAM_API_MAP.get("production");
     }
 
     public static String chooseToolchainsUrl(String environment) {
@@ -422,6 +446,91 @@ public abstract class AbstractDevOpsAction extends Recorder {
         } catch (CloudFoundryException e) {
             throw e;
         }
+    }
+
+    /**
+     * For FreeStyle Jobs, get IAM or UAA token
+     * @param credentialsId
+     * @param iamAPI
+     * @param targetAPI
+     * @param context
+     * @return IAM token when user is using apikey, otherwise return UAA token
+     * @throws Exception
+     */
+    public static String getToken (String credentialsId, String iamAPI, String targetAPI, Job context) throws Exception {
+        try {
+            List<StandardUsernamePasswordCredentials> standardCredentials = CredentialsProvider.lookupCredentials(
+                    StandardUsernamePasswordCredentials.class,
+                    context,
+                    ACL.SYSTEM,
+                    URIRequirementBuilder.fromUri(iamAPI).build());
+
+            StandardUsernamePasswordCredentials credentials =
+                    CredentialsMatchers.firstOrNull(standardCredentials, CredentialsMatchers.withId(credentialsId));
+
+            if (credentials == null || credentials.getUsername() == null || credentials.getPassword() == null) {
+                throw new Exception("Failed to get Credentials");
+            } else {
+                if (credentials.getUsername().equals("apikey")) {
+                    // user is using apikey, get IAM token
+                    return getIAMToken(Secret.toString(credentials.getPassword()), iamAPI);
+                } else {
+                    // user is using username/pw, get UAA token
+                    return getBluemixToken(context, credentialsId, targetAPI);
+                }
+            }
+        } catch (MalformedURLException e) {
+            throw e;
+        } catch (CloudFoundryException e) {
+            throw e;
+        }
+    }
+
+    /**
+     * get IAM token using API key
+     * @param apikey
+     * @param iamAPI
+     * @return
+     * @throws Exception
+     */
+    public static String getIAMToken(String apikey, String iamAPI) throws Exception {
+
+        try {
+            CloseableHttpClient httpClient = HttpClients.createDefault();
+            HttpPost post = new HttpPost(iamAPI);
+            post = addProxyInformation(post);
+            post.addHeader("Content-Type", "application/x-www-form-urlencoded");
+            post.addHeader("Accept", "application/json");
+
+            List<NameValuePair> params = new ArrayList<>();
+            params.add(new BasicNameValuePair("grant_type", IAM_GRANT_TYPE));
+            params.add(new BasicNameValuePair("response_type", IAM_RESPONSE_TYPE));
+            params.add(new BasicNameValuePair("apikey", apikey));
+            post.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
+
+            CloseableHttpResponse response = httpClient.execute(post);
+            String res = EntityUtils.toString(response.getEntity());
+
+            if (response.getStatusLine().toString().contains("200")) {
+                //get 200 response
+                JsonParser parser = new JsonParser();
+                JsonElement element = parser.parse(res);
+                JsonObject obj = element.getAsJsonObject();
+                if (obj != null && obj.has("access_token")) {
+                    return "Bearer " + obj.get("access_token").toString().replace("\"", "");
+                }
+            }
+            throw new Exception("fail to get IAM token");
+
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        } catch (ClientProtocolException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return "";
     }
 
     /**

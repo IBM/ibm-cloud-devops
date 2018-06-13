@@ -17,7 +17,7 @@
       This jelly script is used for per-project configuration.
     -->
 
-    <f:entry title="Bluemix credentials" field="credentialsId">
+    <f:entry title="IBM Cloud API Key" field="credentialsId">
         <c:select/>
     </f:entry>
 

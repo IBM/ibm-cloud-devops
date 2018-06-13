@@ -167,6 +167,7 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
     public void perform(@Nonnull Run build, @Nonnull FilePath workspace, @Nonnull Launcher launcher, @Nonnull TaskListener listener) throws InterruptedException, IOException {
 
         printStream = listener.getLogger();
+        UIMessages messages = new UIMessages();
         printPluginVersion(this.getClass().getClassLoader(), printStream);
 
         // create root dir for storing test result
@@ -179,9 +180,11 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         String env = getDescriptor().getEnvironment();
         this.dlmsUrl = chooseDLMSUrl(env) + BUILD_API_URL;
         String targetAPI = chooseTargetAPI(env);
+        String iamAPI = chooseIAMAPI(env);
 
         //expand the variables
         String applicationName = envVars.expand(this.applicationName);
+
         this.toolchainName = envVars.expand(this.toolchainName);
 
         // Check required parameters
@@ -195,9 +198,18 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         // get the Bluemix token
         try {
             if (Util.isNullOrEmpty(this.credentialsId)) {
-                bluemixToken = getBluemixToken(username, password, targetAPI);
+                // pipeline script
+                if ("apikey".equals(username)) {
+                    bluemixToken = getIAMToken(password, iamAPI);
+                } else {
+                    bluemixToken = getBluemixToken(username, password, targetAPI);
+                    printStream.println(messages.getMessage(messages.USERNAME_PASSWORD_DEPRECATED));
+                }
             } else {
-                bluemixToken = getBluemixToken(build.getParent(), this.credentialsId, targetAPI);
+                // freestyle job
+                bluemixToken = getToken(this.credentialsId, iamAPI, targetAPI, build.getParent());
+                printStream.println(messages.getMessage(messages.FREESTYLE_DEPRECATED));
+
             }
 
             printStream.println("[IBM Cloud DevOps] Log in successfully, get the Bluemix token");
@@ -316,7 +328,7 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             printStream.println("[IBM Cloud DevOps] Invalid Json response, response: " + resStr);
         } catch (IllegalStateException e) {
             // will be triggered when 403 Forbidden
-            printStream.println("[IBM Cloud DevOps] Please check if you have the access to toolchain" + toolchainName);
+            printStream.println("[IBM Cloud DevOps] Please check if you have the access to toolchain " + toolchainName);
 
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();

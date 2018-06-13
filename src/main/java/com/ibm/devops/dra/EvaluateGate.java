@@ -211,6 +211,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
     public void perform(@Nonnull Run<?, ?> build, @Nonnull FilePath filePath, @Nonnull Launcher launcher, @Nonnull TaskListener listener) throws InterruptedException, IOException {
         // This is where you 'build' the project.
         printStream = listener.getLogger();
+        UIMessages messages = new UIMessages();
         printPluginVersion(this.getClass().getClassLoader(), printStream);
 
         // Get the project name and build id from environment
@@ -228,6 +229,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         String env = getDescriptor().getEnvironment();
         this.draUrl = chooseDRAUrl(env);
         String targetAPI = chooseTargetAPI(env);
+        String iamAPI = chooseIAMAPI(env);
 
         String buildNumber;
         if (Util.isNullOrEmpty(this.buildNumber)) {
@@ -251,9 +253,18 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         // get the Bluemix token
         try {
             if (Util.isNullOrEmpty(this.credentialsId)) {
-                bluemixToken = getBluemixToken(username, password, targetAPI);
+                // pipeline script
+                if ("apikey".equals(username)) {
+                    bluemixToken = getIAMToken(password, iamAPI);
+                } else {
+                    bluemixToken = getBluemixToken(username, password, targetAPI);
+                    printStream.println(messages.getMessage(messages.USERNAME_PASSWORD_DEPRECATED));
+                }
             } else {
-                bluemixToken = getBluemixToken(build.getParent(), this.credentialsId, targetAPI);
+                // freestyle job
+                bluemixToken = getToken(this.credentialsId, iamAPI, targetAPI, build.getParent());
+                printStream.println(messages.getMessage(messages.FREESTYLE_DEPRECATED));
+
             }
 
             printStream.println("[IBM Cloud DevOps] Log in successfully, get the Bluemix token");

@@ -279,6 +279,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
     public void perform(@Nonnull Run build, @Nonnull FilePath workspace, @Nonnull Launcher launcher, @Nonnull TaskListener listener) throws InterruptedException, IOException {
 
         printStream = listener.getLogger();
+        UIMessages messages = new UIMessages();
         printPluginVersion(this.getClass().getClassLoader(), printStream);
 
         // create root dir for storing test result
@@ -290,12 +291,13 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         // verify if user chooses advanced option to input customized DLMS
         String env = getDescriptor().getEnvironment();
         String targetAPI = chooseTargetAPI(env);
+        String iamAPI = chooseIAMAPI(env);
         String url = chooseDLMSUrl(env) + API_PART;
         // expand to support env vars
         this.toolchainName = envVars.expand(this.toolchainName);
         String applicationName = envVars.expand(this.applicationName);
-
         String contents = envVars.expand(this.contents);
+
         String environmentName = "";
         if (this.isDeploy || !Util.isNullOrEmpty(this.envName)) {
             environmentName = envVars.expand(this.envName);
@@ -331,9 +333,18 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         // get the Bluemix token
         try {
             if (Util.isNullOrEmpty(this.credentialsId)) {
-                bluemixToken = getBluemixToken(username, password, targetAPI);
+                // pipeline script
+                if ("apikey".equals(username)) {
+                    bluemixToken = getIAMToken(password, iamAPI);
+                } else {
+                    bluemixToken = getBluemixToken(username, password, targetAPI);
+                    printStream.println(messages.getMessage(messages.USERNAME_PASSWORD_DEPRECATED));
+                }
             } else {
-                bluemixToken = getBluemixToken(build.getParent(), this.credentialsId, targetAPI);
+                // freestyle job
+                bluemixToken = getToken(this.credentialsId, iamAPI, targetAPI, build.getParent());
+                printStream.println(messages.getMessage(messages.FREESTYLE_DEPRECATED));
+
             }
 
             printStream.println("[IBM Cloud DevOps] Log in successfully, get the Bluemix token");
