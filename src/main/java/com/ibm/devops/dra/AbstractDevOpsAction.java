@@ -18,7 +18,6 @@ import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
-import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -33,7 +32,6 @@ import hudson.tasks.Recorder;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
@@ -50,6 +48,7 @@ import org.cloudfoundry.client.lib.CloudCredentials;
 import org.cloudfoundry.client.lib.CloudFoundryClient;
 import org.cloudfoundry.client.lib.CloudFoundryException;
 import org.cloudfoundry.client.lib.HttpProxyConfiguration;
+import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -58,9 +57,10 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.*;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+
+import static com.ibm.devops.dra.UIMessages.*;
 
 /**
  * Abstract DRA Builder to share common method between two different post-build actions
@@ -80,6 +80,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
     private final static String SPACE = "&&space_guid:";
     private final static String IAM_GRANT_TYPE = "urn:ibm:params:oauth:grant-type:apikey";
     private final static String IAM_RESPONSE_TYPE = "cloud_iam";
+
 
     private static Map<String, String> TARGET_API_MAP = ImmutableMap.of(
             "production", "https://api.ng.bluemix.net",
@@ -111,12 +112,6 @@ public abstract class AbstractDevOpsAction extends Recorder {
             "stage1", "https://api.stage1.ng.bluemix.net/v2/apps?q=name:"
     );
 
-    private static Map<String, String> TOOLCHAINS_URL_MAP = ImmutableMap.of(
-            "production", "https://otc-api.ng.bluemix.net/api/v1/toolchains?organization_guid=",
-            "dev", "https://otc-api.stage1.ng.bluemix.net/api/v1/toolchains?organization_guid=",
-            "stage1", "https://otc-api-integration.stage1.ng.bluemix.net/api/v1/toolchains?organization_guid="
-    );
-
     private static Map<String, String> POLICIES_URL_MAP = ImmutableMap.of(
             "production", "https://dra.ng.bluemix.net/api/v5/toolchainids/{toolchain_name}/policies",
             "dev", "https://dev-dra.stage1.ng.bluemix.net/api/v5/toolchainids/{toolchain_name}/policies",
@@ -135,7 +130,6 @@ public abstract class AbstractDevOpsAction extends Recorder {
             "stage1", "https://dra.stage1.ng.bluemix.net/api/v5"
     );
 
-    // Todo: need to get rid of ng and add env_id
     private static Map<String, String> CONTROL_CENTER_ENV_MAP = ImmutableMap.of(
             "production", "https://console.ng.bluemix.net/devops/insights?env_id=ibm:yp:us-south#!/",
             "dev", "https://dev-console.stage1.ng.bluemix.net/devops/insights/#!/",
@@ -150,7 +144,6 @@ public abstract class AbstractDevOpsAction extends Recorder {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     /**
@@ -192,7 +185,6 @@ public abstract class AbstractDevOpsAction extends Recorder {
         } else {
             requiredEnvVars.put(API_KEY, envVars.get(API_KEY).trim());
         }
-
         return requiredEnvVars;
     }
 
@@ -205,7 +197,6 @@ public abstract class AbstractDevOpsAction extends Recorder {
                 return api;
             }
         }
-
         return TARGET_API_MAP.get("production");
     }
 
@@ -218,21 +209,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
                 return api;
             }
         }
-
         return IAM_API_MAP.get("production");
-    }
-
-    public static String chooseToolchainsUrl(String environment) {
-        if (!Util.isNullOrEmpty(environment)) {
-            if (TOOLCHAINS_URL_MAP.keySet().contains(environment)) {
-                return TOOLCHAINS_URL_MAP.get(environment);
-            } else {
-                String api = TOOLCHAINS_URL_MAP.get("production").replace("ng", environment);
-                return api;
-            }
-        }
-
-        return TOOLCHAINS_URL_MAP.get("production");
     }
 
     public static String chooseOrganizationsUrl(String environment) {
@@ -269,7 +246,6 @@ public abstract class AbstractDevOpsAction extends Recorder {
                 return api;
             }
         }
-
         return APPS_URL_MAP.get("production");
     }
 
@@ -282,7 +258,6 @@ public abstract class AbstractDevOpsAction extends Recorder {
                 return api;
             }
         }
-
         return POLICIES_URL_MAP.get("production");
     }
 
@@ -292,7 +267,6 @@ public abstract class AbstractDevOpsAction extends Recorder {
      * @param environment
      * @return
      */
-
     public static String chooseDLMSUrl(String environment) {
         if (!Util.isNullOrEmpty(environment)) {
             if (DLMS_ENV_MAP.keySet().contains(environment)) {
@@ -302,7 +276,6 @@ public abstract class AbstractDevOpsAction extends Recorder {
                 return api;
             }
         }
-
         return DLMS_ENV_MAP.get("production");
     }
 
@@ -320,7 +293,6 @@ public abstract class AbstractDevOpsAction extends Recorder {
                 return api;
             }
         }
-
         return GATE_DECISION_ENV_MAP.get("production");
     }
 
@@ -347,100 +319,34 @@ public abstract class AbstractDevOpsAction extends Recorder {
      * @return
      */
     public static boolean checkRootUrl(PrintStream printStream) {
-
         if (Util.isNullOrEmpty(Jenkins.getInstance().getRootUrl())) {
-            printStream.println(
-                    "[IBM Cloud DevOps] The Jenkins global root url is not set. Please set it to use this postbuild Action.  \"Manage Jenkins > Configure System > Jenkins URL\"");
-            printStream.println("[IBM Cloud DevOps] Warning: You would not get the correct project url");
+            printStream.println(getMessage(PROJECT_URL_MISSED));
             return false;
         }
         return true;
     }
 
     /**
-     * Get the Bluemix Token using Cloud Foundry as the authentication with DLMS and DRA backend
-     * @param context - the current job
-     * @param credentialsId - the credential id in Jenkins
-     * @param targetAPI - the target api that used for logging in to the Bluemix
-     * @return the bearer token
+     * given the username and password, get the UAA token
+     * @param username
+     * @param password
+     * @param targetAPI
+     * @return
+     * @throws MalformedURLException
+     * @throws CloudFoundryException
      */
-    public static String getBluemixToken(Job context, String credentialsId, String targetAPI) throws Exception {
-
+    public static String getBluemixToken(String username, String password, String targetAPI, PrintStream printStream) throws MalformedURLException, CloudFoundryException {
         try {
-            List<StandardUsernamePasswordCredentials> standardCredentials = CredentialsProvider.lookupCredentials(
-                    StandardUsernamePasswordCredentials.class,
-                    context,
-                    ACL.SYSTEM,
-                    URIRequirementBuilder.fromUri(targetAPI).build());
-
-            StandardUsernamePasswordCredentials credentials =
-                    CredentialsMatchers.firstOrNull(standardCredentials, CredentialsMatchers.withId(credentialsId));
-
-            if (credentials == null || credentials.getUsername() == null || credentials.getPassword() == null) {
-                throw new Exception("Failed to get Credentials");
-            }
-            CloudCredentials cloudCredentials = new CloudCredentials(credentials.getUsername(), Secret.toString(credentials.getPassword()));
-            if (cloudCredentials == null) {
-                throw new Exception("Failed to get Cloud Credentials");
-            }
-
-            URL url = new URL(targetAPI);
-            HttpProxyConfiguration configuration = buildProxyConfiguration(url);
-
-            CloudFoundryClient client = new CloudFoundryClient(cloudCredentials, url, configuration, true);
-            return "bearer " + client.login().toString();
-
-        } catch (MalformedURLException e) {
-            throw e;
-        } catch (CloudFoundryException e) {
-            throw e;
-        }
-    }
-
-    public static String getBluemixToken(ItemGroup context, String credentialsId, String targetAPI) throws Exception {
-
-        try {
-            List<StandardUsernamePasswordCredentials> standardCredentials = CredentialsProvider.lookupCredentials(
-                    StandardUsernamePasswordCredentials.class,
-                    context,
-                    ACL.SYSTEM,
-                    URIRequirementBuilder.fromUri(targetAPI).build());
-
-            StandardUsernamePasswordCredentials credentials =
-                    CredentialsMatchers.firstOrNull(standardCredentials, CredentialsMatchers.withId(credentialsId));
-
-            if (credentials == null || credentials.getUsername() == null || credentials.getPassword() == null) {
-                throw new Exception("Failed to get Credentials");
-            }
-            CloudCredentials cloudCredentials = new CloudCredentials(credentials.getUsername(), Secret.toString(credentials.getPassword()));
-            if (cloudCredentials == null) {
-                throw new Exception("Failed to get Cloud Credentials");
-            }
-
-            URL url = new URL(targetAPI);
-            HttpProxyConfiguration configuration = buildProxyConfiguration(url);
-
-            CloudFoundryClient client = new CloudFoundryClient(cloudCredentials, url, configuration, true);
-            return "bearer " + client.login().toString();
-
-        } catch (MalformedURLException e) {
-            throw e;
-        } catch (CloudFoundryException e) {
-            throw e;
-        }
-    }
-
-    public static String getBluemixToken(String username, String password, String targetAPI) throws MalformedURLException, CloudFoundryException {
-        try {
-
             CloudCredentials cloudCredentials = new CloudCredentials(username, password);
-
             URL url = new URL(targetAPI);
             HttpProxyConfiguration configuration = buildProxyConfiguration(url);
 
             CloudFoundryClient client = new CloudFoundryClient(cloudCredentials, url, configuration, true);
+            if (printStream != null) {
+                printStream.println(getMessageWithPrefix(USERNAME_PASSWORD_DEPRECATED));
+                printStream.println(getMessageWithPrefix(LOGIN_IN_SUCCEED));
+            }
             return "bearer " + client.login().toString();
-
         } catch (MalformedURLException e) {
             throw e;
         } catch (CloudFoundryException e) {
@@ -449,39 +355,74 @@ public abstract class AbstractDevOpsAction extends Recorder {
     }
 
     /**
-     * For FreeStyle Jobs, get IAM or UAA token
+     * find Jenkins credential in the runtime
      * @param credentialsId
+     * @param context
+     * @return
+     * @throws Exception
+     */
+    public static StandardCredentials findCredentials(String credentialsId, Job context) throws Exception {
+        List<StandardCredentials> standardCredentials = CredentialsProvider.lookupCredentials(
+                StandardCredentials.class,
+                context,
+                ACL.SYSTEM);
+
+        StandardCredentials credentials =
+                CredentialsMatchers.firstOrNull(standardCredentials, CredentialsMatchers.withId(credentialsId));
+
+        if (credentials == null)
+            throw new Exception("Failed to get Credentials");
+        return credentials;
+    }
+
+    /**
+     * find Jenkins credentials in the UI configuration
+     * @param credentialsId
+     * @param context
+     * @return
+     * @throws Exception
+     */
+    public static StandardCredentials findCredentials(String credentialsId, ItemGroup context) throws Exception {
+        List<StandardCredentials> standardCredentials = CredentialsProvider.lookupCredentials(
+                StandardCredentials.class,
+                context,
+                ACL.SYSTEM);
+
+        StandardCredentials credentials =
+                CredentialsMatchers.firstOrNull(standardCredentials, CredentialsMatchers.withId(credentialsId));
+
+        if (credentials == null)
+            throw new Exception("Failed to get Credentials");
+        return credentials;
+    }
+
+    /**
+     * get IAM or UAA token based on the credentials id, only used by freestyle job's test connection
      * @param iamAPI
      * @param targetAPI
-     * @param context
+     * @param credentials
      * @return IAM token when user is using apikey, otherwise return UAA token
      * @throws Exception
      */
-    public static String getToken (String credentialsId, String iamAPI, String targetAPI, Job context) throws Exception {
+    public static String getTokenForTestConnection(StandardCredentials credentials, String iamAPI, String targetAPI) throws Exception {
         try {
-            List<StandardUsernamePasswordCredentials> standardCredentials = CredentialsProvider.lookupCredentials(
-                    StandardUsernamePasswordCredentials.class,
-                    context,
-                    ACL.SYSTEM,
-                    URIRequirementBuilder.fromUri(iamAPI).build());
-
-            StandardUsernamePasswordCredentials credentials =
-                    CredentialsMatchers.firstOrNull(standardCredentials, CredentialsMatchers.withId(credentialsId));
-
-            if (credentials == null || credentials.getUsername() == null || credentials.getPassword() == null) {
-                throw new Exception("Failed to get Credentials");
-            } else {
-                if (credentials.getUsername().equals("apikey")) {
+            if (credentials instanceof StandardUsernamePasswordCredentials) {
+                // if it is the Jenkins username/password type
+                StandardUsernamePasswordCredentials c = (StandardUsernamePasswordCredentials) credentials;
+                if (c.getUsername().equals("apikey")) {
                     // user is using apikey, get IAM token
-                    return getIAMToken(Secret.toString(credentials.getPassword()), iamAPI);
+                    return getIAMToken(Secret.toString(c.getPassword()), iamAPI, null);
                 } else {
                     // user is using username/pw, get UAA token
-                    return getBluemixToken(context, credentialsId, targetAPI);
+                    return getBluemixToken(c.getUsername(), c.getPassword().getPlainText(), targetAPI, null);
                 }
+            } else {
+                // if it is the standard type
+                StringCredentialsImpl value = (StringCredentialsImpl) credentials;
+                return getIAMToken(value.getSecret().getPlainText(), iamAPI, null);
             }
-        } catch (MalformedURLException e) {
-            throw e;
-        } catch (CloudFoundryException e) {
+        } catch (MalformedURLException | CloudFoundryException e) {
+            e.printStackTrace();
             throw e;
         }
     }
@@ -493,8 +434,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
      * @return
      * @throws Exception
      */
-    public static String getIAMToken(String apikey, String iamAPI) throws Exception {
-
+    public static String getIAMToken(String apikey, String iamAPI, PrintStream printStream) throws Exception {
         try {
             CloseableHttpClient httpClient = HttpClients.createDefault();
             HttpPost post = new HttpPost(iamAPI);
@@ -517,20 +457,72 @@ public abstract class AbstractDevOpsAction extends Recorder {
                 JsonElement element = parser.parse(res);
                 JsonObject obj = element.getAsJsonObject();
                 if (obj != null && obj.has("access_token")) {
+                    if (printStream != null) {
+                        printStream.println(getMessageWithPrefix(LOGIN_IN_SUCCEED));
+                    }
                     return "Bearer " + obj.get("access_token").toString().replace("\"", "");
                 }
             }
-            throw new Exception("fail to get IAM token");
-
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        } catch (ClientProtocolException e) {
-            e.printStackTrace();
+            throw new Exception("fail to get IAM token, return " + response.getStatusLine());
         } catch (IOException e) {
             e.printStackTrace();
+            throw e;
         }
+    }
 
-        return "";
+    /**
+     * get token for either pipeline or freestyle in the runtime
+     * @param credentialsId
+     * @param apikey
+     * @param username
+     * @param password
+     * @param env
+     * @param context
+     * @return
+     * @throws Exception
+     */
+    public static String getIBMCloudToken(String credentialsId, String apikey, String username, String password, String env, Job context, PrintStream printStream) throws Exception {
+        String bluemixToken = "";
+        String targetAPI = chooseTargetAPI(env);
+        String iamAPI = chooseIAMAPI(env);
+
+        try {
+            if (Util.isNullOrEmpty(credentialsId)) {
+                // pipeline script
+                if (Util.isNullOrEmpty(apikey)) {
+                    // user is still using username/password in the pipeline
+                    bluemixToken = getBluemixToken(username, password, targetAPI, printStream);
+                } else {
+                    bluemixToken = getIAMToken(apikey, iamAPI, printStream);
+                }
+            } else {
+                // freestyle job, find the credential and then get the token
+                StandardCredentials credentials = findCredentials(credentialsId, context);
+                if (credentials instanceof StandardUsernamePasswordCredentials) {
+                    // if it is the Jenkins username/password type
+                    StandardUsernamePasswordCredentials c = (StandardUsernamePasswordCredentials) credentials;
+                    if (c.getUsername().equals("apikey")) {
+                        // user is using apikey, get IAM token
+                        bluemixToken = getIAMToken(Secret.toString(c.getPassword()), iamAPI, printStream);
+                    } else {
+                        // user is using username/pw, get UAA token
+                        bluemixToken = getBluemixToken(c.getUsername(), c.getPassword().getPlainText(), targetAPI, printStream);
+                    }
+                } else {
+                    // if it is the standard type
+                    StringCredentialsImpl value = (StringCredentialsImpl) credentials;
+                    bluemixToken = getIAMToken(value.getSecret().getPlainText(), iamAPI, printStream);
+                }
+            }
+
+            return bluemixToken;
+        } catch (Exception e) {
+            if (printStream != null) {
+                printStream.println(getMessageWithPrefix(LOGIN_IN_FAIL));
+                printStream.println(getPrefix() + e.toString());
+            }
+            throw new Exception();
+        }
     }
 
     /**
@@ -572,6 +564,25 @@ public abstract class AbstractDevOpsAction extends Recorder {
         return getRootProject(build.getParent()).getParent();
     }
 
+    /**
+     * get build number if it is not specified
+     * @param envVars
+     * @param jobName
+     * @param build
+     * @return
+     */
+    public static String getBuildNumber(EnvVars envVars, String jobName, Run build, PrintStream printStream) throws Exception {
+        // locate the build job that triggers current build, for the freestyle job
+        Run triggeredBuild = getTriggeredBuild(build, jobName, envVars, printStream);
+        if (triggeredBuild == null) {
+            //failed to find the build job
+            printStream.print(getMessageWithPrefix(FAILED_TO_FIND_BUILD_JOB));
+            throw new Exception();
+        } else {
+            String buildJobName = Util.isNullOrEmpty(jobName) ? envVars.get("JOB_NAME") : jobName;
+            return constructBuildNumber(buildJobName, triggeredBuild);
+        }
+    }
 
     /**
      * Recursive function to locate the triggered build
@@ -639,7 +650,6 @@ public abstract class AbstractDevOpsAction extends Recorder {
      * locate triggered build
      * @param build - the current running build of this job
      * @param name - the build job name that you are going to locate
-     * @param printStream - logger
      * @return
      */
     public static Run<?,?> getTriggeredBuild(Run build, String name, EnvVars envVars, PrintStream printStream) {
@@ -672,99 +682,15 @@ public abstract class AbstractDevOpsAction extends Recorder {
      * @param build
      * @return
      */
-    public String getBuildNumber(String jobName, Run build) {
-
+    public static String constructBuildNumber(String jobName, Run build) {
         String jName = "";
         Scanner s = new Scanner(jobName).useDelimiter("/");
         while(s.hasNext()){ // this will loop through the string until the last string(job name) is reached.
             jName = s.next();
         }
         s.close();
-
         String buildNumber = jName + ":" + build.getNumber();
         return buildNumber;
-    }
-
-    /**
-     * Get a list of toolchains using given token and organization name.
-     * @param token
-     * @param orgName
-     * @return
-     */
-    public static ListBoxModel getToolchainList(String token, String orgName, String environment, Boolean debug_mode) {
-
-        LOGGER.setLevel(Level.INFO);
-
-        if(debug_mode){
-            LOGGER.info("#######################");
-            LOGGER.info("TOKEN:" + token);
-            LOGGER.info("ORG:" + orgName);
-            LOGGER.info("ENVIRONMENT:" + environment);
-        }
-
-        String orgId = getOrgId(token, orgName, environment, debug_mode);
-        ListBoxModel emptybox = new ListBoxModel();
-        emptybox.add("","empty");
-
-        if(orgId == null) {
-            return emptybox;
-        }
-
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        String toolchains_url = chooseToolchainsUrl(environment);
-        if(debug_mode){
-            LOGGER.info("GET TOOLCHAIN LIST URL:" + toolchains_url + orgId);
-        }
-
-        HttpGet httpGet = new HttpGet(toolchains_url + orgId);
-
-        httpGet = addProxyInformation(httpGet);
-
-        httpGet.setHeader("Authorization", token);
-        CloseableHttpResponse response = null;
-
-        try {
-            response = httpClient.execute(httpGet);
-            String resStr = EntityUtils.toString(response.getEntity());
-
-            if(debug_mode){
-                LOGGER.info("RESPONSE FROM TOOLCHAINS API:" + response.getStatusLine().toString());
-            }
-            if (response.getStatusLine().toString().contains("200")) {
-                // get 200 response
-                JsonParser parser = new JsonParser();
-                JsonElement element = parser.parse(resStr);
-                JsonObject obj = element.getAsJsonObject();
-                JsonArray items = obj.getAsJsonArray("items");
-                ListBoxModel toolchainList = new ListBoxModel();
-
-                for (int i = 0; i < items.size(); i++) {
-                    JsonObject toolchainObj = items.get(i).getAsJsonObject();
-                    String toolchainName = String.valueOf(toolchainObj.get("name")).replaceAll("\"", "");
-                    String toolchainID = String.valueOf(toolchainObj.get("toolchain_guid")).replaceAll("\"", "");
-                    toolchainList.add(toolchainName,toolchainID);
-                }
-                if(debug_mode){
-                    LOGGER.info("TOOLCHAIN LIST:" + toolchainList);
-                    LOGGER.info("#######################");
-                }
-                if(toolchainList.isEmpty()) {
-                    if(debug_mode){
-                        LOGGER.info("RETURNED NO TOOLCHAINS.");
-                    }
-                    return emptybox;
-                }
-                return toolchainList;
-            } else {
-                LOGGER.info("RETURNED STATUS CODE OTHER THAN 200. RESPONSE: " + response.getStatusLine().toString());
-                return emptybox;
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return emptybox;
     }
 
     public static String getOrgId(String token, String orgName, String environment, Boolean debug_mode) {
@@ -823,7 +749,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
         return null;
     }
-    
+
     public static String getSpaceId(String token, String spaceName, String environment, Boolean debug_mode) {
         CloseableHttpClient httpClient = HttpClients.createDefault();
         String spaces_url = chooseSpacesUrl(environment);
@@ -943,23 +869,23 @@ public abstract class AbstractDevOpsAction extends Recorder {
     }
 
     /**
-     * Get a list of policies that belong to an org
+     * Get a list of policies that belong to a toolchain
      * @param token
-     * @param orgName
+     * @param toolchainId
+     * @param environment
+     * @param debug_mode
      * @return
      */
 
-    public static ListBoxModel getPolicyList(String token, String orgName, String toolchainName, String environment, Boolean debug_mode) {
+    public static ListBoxModel getPolicyList(String token, String toolchainId, String environment, Boolean debug_mode) {
 
         // get all jenkins job
         ListBoxModel emptybox = new ListBoxModel();
         emptybox.add("","empty");
-
         String url = choosePoliciesUrl(environment);
 
-
         try {
-            url = url.replace("{toolchain_name}", URLEncoder.encode(toolchainName, "UTF-8").replaceAll("\\+", "%20"));
+            url = url.replace("{toolchain_name}", URLEncoder.encode(toolchainId, "UTF-8").replaceAll("\\+", "%20"));
             if(debug_mode){
                 LOGGER.info("GET POLICIES URL:" + url);
             }
