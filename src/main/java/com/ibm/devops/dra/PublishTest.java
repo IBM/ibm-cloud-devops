@@ -482,7 +482,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                     contentType = CONTENT_TYPE_LCOV;
                     break;
                 default:
-                    throw new Exception(getMessageWithVar(UNSUPPORTED_RESULT_FILE, contents.getName()));
+                    throw new Exception(getMessageWithVar(UNSUPPORTED_RESULT_FILE, contents.toString()));
             }
 
             builder.addTextBody("contents_type", contentType);
@@ -498,7 +498,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             String resStr = EntityUtils.toString(response.getEntity());
             int statusCode = response.getStatusLine().getStatusCode();
             if (statusCode == 200) {
-                printStream.println(getMessageWithVar(UPLOAD_FILE_SUCCESS, contents.getName()));
+                printStream.println(getMessageWithVarAndPrefix(UPLOAD_FILE_SUCCESS, contents.toString()));
             } else if (statusCode == 401 || statusCode == 403) {
                 // if gets 401 or 403, it returns html
                 throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA, String.valueOf(statusCode), toolchainId));
@@ -508,6 +508,8 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                 JsonObject resJson = element.getAsJsonObject();
                 if (resJson != null && resJson.has("message")) {
                     throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA_WITH_REASON, String.valueOf(statusCode), resJson.get("message").getAsString()));
+                } else {
+                    throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA_WITH_REASON, String.valueOf(statusCode), resJson.toString()));
                 }
             }
         } catch (IOException e) {

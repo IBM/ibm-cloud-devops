@@ -22,6 +22,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.ibm.devops.dra.steps.AbstractDevOpsStep;
+import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.model.*;
 import hudson.tasks.Recorder;
@@ -82,7 +83,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
     private static Map<String, String> IAM_API_MAP = ImmutableMap.of(
             "production", "https://iam.bluemix.net/identity/token?",
-            "dev", "https:/iam.stage1.bluemix.net/identity/token?",
+            "dev", "https://iam.stage1.bluemix.net/identity/token?",
             "stage1", "https://iam.stage1.bluemix.net/identity/token?"
     );
 
@@ -737,7 +738,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
      * @throws IOException
      */
     public static JsonObject getDecisionFromDRA(String bluemixToken, String buildId, String applicationName, String toolchainId,
-                                                String environmentName, String draUrl, String policyName, PrintStream printStream) throws IOException {
+                                                String environmentName, String draUrl, String policyName, PrintStream printStream) throws Exception {
         // create http client and post method
         CloseableHttpClient httpClient = HttpClients.createDefault();
 
@@ -767,16 +768,17 @@ public abstract class AbstractDevOpsAction extends Recorder {
             return resJson;
         } else if (statusCode == 401 || statusCode == 403) {
             // if gets 401 or 403, it returns html
-            printStream.println(getMessageWithVar(FAIL_TO_GET_DECISION, String.valueOf(statusCode), toolchainId));
+            throw new Exception(getMessageWithVar(FAIL_TO_GET_DECISION, String.valueOf(statusCode), toolchainId));
         } else {
             JsonParser parser = new JsonParser();
             JsonElement element = parser.parse(resStr);
             JsonObject resJson = element.getAsJsonObject();
             if (resJson != null && resJson.has("message")) {
-                printStream.println(getMessageWithVar(FAIL_TO_GET_DECISION_WITH_REASON, String.valueOf(statusCode), resJson.get("message").getAsString()));
+                throw new Exception(getMessageWithVar(FAIL_TO_GET_DECISION_WITH_REASON, String.valueOf(statusCode), resJson.get("message").getAsString()));
+            } else {
+                throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA, String.valueOf(statusCode)));
             }
         }
-        return null;
     }
 
     /**
@@ -790,7 +792,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
      * @param printStream
      */
     public static void publishDecision(JsonObject obj, Run build, String reportUrl, String ccUrl, String policyName,
-                                       boolean willDisrupt, PrintStream printStream) {
+                                       boolean willDisrupt, PrintStream printStream) throws AbortException {
         // retrieve the decision id to compose the report link
         String decisionId = String.valueOf(obj.get("decision_id"));
         decisionId = decisionId.replace("\"","");
@@ -812,6 +814,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
         if (willDisrupt && decision.equals("Fail")) {
             Result result = Result.FAILURE;
             build.setResult(result);
+            throw new AbortException();
         }
     }
 

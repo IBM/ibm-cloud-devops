@@ -180,7 +180,6 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         root = new File(build.getRootDir(), "DRA_TestResults");
         EnvVars envVars = build.getEnvironment(listener);
         String env = getDescriptor().getEnvironment();
-
         try {
             // Get the project name and build id from environment and expand the vars
             String applicationName = expandVariable(this.applicationName, envVars, true);
@@ -197,7 +196,7 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             // upload build info
             String buildStatus = getJobResult(build, this.result);
             uploadBuildInfo(bluemixToken, build, envVars, buildNumber, buildStatus,applicationName, toolchainId, dlmsUrl);
-            printStream.println(getMessageWithVar(CHECK_BUILD_STATUS, link));
+            printStream.println(getMessageWithVarAndPrefix(CHECK_BUILD_STATUS, link));
             BuildPublisherAction action = new BuildPublisherAction(link);
             build.addAction(action);
         } catch (Exception e) {
@@ -273,6 +272,8 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             JsonObject resJson = element.getAsJsonObject();
             if (resJson != null && resJson.has("message")) {
                 throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA_WITH_REASON, String.valueOf(statusCode), resJson.get("message").getAsString()));
+            } else {
+                throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA_WITH_REASON, String.valueOf(statusCode), resJson.toString()));
             }
         }
     }

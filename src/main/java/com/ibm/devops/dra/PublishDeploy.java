@@ -237,6 +237,8 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 			JsonObject resJson = element.getAsJsonObject();
 			if (resJson != null && resJson.has("message")) {
 				throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA_WITH_REASON, String.valueOf(statusCode), resJson.get("message").getAsString()));
+			} else {
+				throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA_WITH_REASON, String.valueOf(statusCode), resJson.toString()));
 			}
 		}
 	}

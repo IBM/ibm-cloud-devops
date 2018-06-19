@@ -75,17 +75,10 @@ public class EvaluateGateStepExecution extends AbstractSynchronousNonBlockingSte
         // optional build number, if user wants to set their own build number
         String buildNumber = step.getBuildNumber();
         EvaluateGate evaluateGate = new EvaluateGate(requiredEnvVars, policy, step.getEnvironment(), willDisrupt);
-        try {
-            if (!isNullOrEmpty(buildNumber)) {
-                evaluateGate.setBuildNumber(buildNumber);
-            }
-            evaluateGate.perform(build, ws, launcher, listener);
-        } catch (AbortException e) {
-            throw new AbortException("Decision is fail");
+        if (!isNullOrEmpty(buildNumber)) {
+            evaluateGate.setBuildNumber(buildNumber);
         }
-
+        evaluateGate.perform(build, ws, launcher, listener);
         return null;
     }
-
-
 }

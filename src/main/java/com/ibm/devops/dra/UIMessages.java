@@ -82,6 +82,17 @@ public class UIMessages {
             str = str.replace(placeholder, s);
             index++;
         }
+        return str;
+    }
+
+    public static String getMessageWithVarAndPrefix (String key, String... variable) {
+        int index = 1;
+        String str = bundle.getString(key);
+        for (String s : variable) {
+            String placeholder = "$" + index;
+            str = str.replace(placeholder, s);
+            index++;
+        }
         return getPrefix() + str;
     }
 

@@ -208,6 +208,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
             JsonArray urls = createPayloadUrls(SQHostName, SQProjectKey);
             sendPayloadToDLMS(bluemixToken, payload, urls, toolchainId, dlmsUrl);
         } catch (Exception e) {
+            e.printStackTrace();
             printStream.println(getMessageWithPrefix(GOT_ERRORS) + e.getMessage());
             return;
         }
@@ -254,15 +255,16 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
             error.addProperty("message", getMessage(SQ_ISSUE_FAILURE_MESSAGE));
             payload.add("error", error);
             payload.addProperty("issues", "[]");
-        } else
+        } else {
+            payload.add("issues", SQissues.get("issues"));
             printStream.println(getMessageWithPrefix(QUERY_SQ_ISSUE_SUCCESS));
+        }
 
         JsonObject SQratings = sendGETRequest(hostname + SQ_RATING_API_PART + projectKey, hostname, projectKey, authToken);
         JsonParser parser = new JsonParser();
         JsonObject component = (JsonObject)parser.parse(SQratings.get("component").toString());
         payload.add("ratings", component.get("measures"));
         printStream.println(getMessageWithPrefix(QUERY_SQ_METRIC_SUCCESS));
-
         return payload;
     }
 
@@ -380,6 +382,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         body.add("url", urls);
         StringEntity data = new StringEntity(body.toString(), "UTF-8");
         postMethod.setEntity(data);
+
         CloseableHttpResponse response = httpClient.execute(postMethod);
         resStr = EntityUtils.toString(response.getEntity());
 
@@ -395,6 +398,8 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
             JsonObject resJson = element.getAsJsonObject();
             if (resJson != null && resJson.has("message")) {
                 throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA_WITH_REASON, String.valueOf(statusCode), resJson.get("message").getAsString()));
+            } else {
+                throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA_WITH_REASON, String.valueOf(statusCode), resJson.toString()));
             }
         }
     }

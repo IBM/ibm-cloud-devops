@@ -20,10 +20,7 @@ import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.google.gson.JsonObject;
-import hudson.EnvVars;
-import hudson.Extension;
-import hudson.FilePath;
-import hudson.Launcher;
+import hudson.*;
 import hudson.model.*;
 import hudson.security.ACL;
 import hudson.tasks.BuildStepDescriptor;
@@ -189,18 +186,17 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
      * @param build - the current build
      * @param launcher - the launcher
      * @param listener - the build listener
-     * @throws InterruptedException
-     * @throws IOException
+     * @throws AbortException
      */
     @Override
-    public void perform(@Nonnull Run<?, ?> build, @Nonnull FilePath filePath, @Nonnull Launcher launcher, @Nonnull TaskListener listener) throws InterruptedException, IOException {
+    public void perform(@Nonnull Run<?, ?> build, @Nonnull FilePath filePath, @Nonnull Launcher launcher, @Nonnull TaskListener listener) throws AbortException {
         // This is where you 'build' the project.
         printStream = listener.getLogger();
         printPluginVersion(this.getClass().getClassLoader(), printStream);
         String env = getDescriptor().getEnvironment();
-        EnvVars envVars = build.getEnvironment(listener);
 
         try {
+            EnvVars envVars = build.getEnvironment(listener);
             // Get the project name and build id from environment
             String applicationName = expandVariable(this.applicationName, envVars, true);
             String toolchainId = expandVariable(this.toolchainName, envVars, true);
@@ -226,6 +222,9 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             }
             publishDecision(decisionJson, build, reportUrl, link, policyName, willDisrupt, printStream);
         } catch (Exception e) {
+            if (e instanceof AbortException) {
+                throw new AbortException();
+            }
             printStream.println(getMessageWithPrefix(GOT_ERRORS) + e.getMessage());
             return;
         }
