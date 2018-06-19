@@ -20,7 +20,10 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
-import com.google.gson.*;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
@@ -38,7 +41,6 @@ import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import org.apache.http.StatusLine;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -56,7 +58,6 @@ import javax.xml.bind.DatatypeConverter;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -64,6 +65,7 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import static com.ibm.devops.dra.UIMessages.*;
+import static com.ibm.devops.dra.Util.*;
 
 /**
  * Authenticate with Bluemix and then upload the result file to DRA
@@ -72,6 +74,9 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
 
     private final static String API_PART = "/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/results";
     private final static String CONTENT_TYPE_JSON = "application/json";
+    private final static String SQ_QUALITY_API_PART = "/api/qualitygates/project_status?projectKey=";
+    private final static String SQ_RATING_API_PART = "/api/measures/component?metricKeys=reliability_rating,security_rating,sqale_rating&componentKey=";
+    private final static String SQ_ISSUE_API_PART = "/api/issues/search?statuses=OPEN&projectKeys=";
 
     // form fields from UI
     private String applicationName;
@@ -87,7 +92,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
     private String password;
     private String apikey;
 
-    private PrintStream printStream;
+    private static PrintStream printStream;
     private static String bluemixToken;
     private static String preCredentials;
 
@@ -115,15 +120,13 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         }
     }
 
-
     public PublishSQ(HashMap<String, String> envVarsMap, HashMap<String, String> paramsMap) {
         this.SQProjectKey = paramsMap.get("SQProjectKey");
         this.SQHostName = paramsMap.get("SQHostURL");
         this.SQAuthToken = paramsMap.get("SQAuthToken");
-
         this.applicationName = envVarsMap.get(APP_NAME);
         this.toolchainName = envVarsMap.get(TOOLCHAIN_ID);
-        if (Util.isNullOrEmpty(envVarsMap.get(API_KEY))) {
+        if (isNullOrEmpty(envVarsMap.get(API_KEY))) {
             this.username = envVarsMap.get(USERNAME);
             this.password = envVarsMap.get(PASSWORD);
         } else {
@@ -134,7 +137,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
     public void setBuildNumber(String buildNumber) {
         this.buildNumber = buildNumber;
     }
-
     /**
      * We'll use this from the <tt>config.jelly</tt>.
      */
@@ -170,7 +172,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         return buildNumber;
     }
 
-
     public static class OptionalBuildInfo {
         private String buildNumber;
 
@@ -180,66 +181,35 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         }
     }
 
-
     @Override
     public void perform(@Nonnull Run build, @Nonnull FilePath workspace, @Nonnull Launcher launcher, @Nonnull TaskListener listener) throws InterruptedException, IOException {
-
         printStream = listener.getLogger();
         printPluginVersion(this.getClass().getClassLoader(), printStream);
-
-        // Get the project name and build id from environment
         EnvVars envVars = build.getEnvironment(listener);
-        this.applicationName = envVars.expand(this.applicationName);
-        this.toolchainName = envVars.expand(this.toolchainName);
-
-        // Check required parameters
-        if (Util.isNullOrEmpty(applicationName) || Util.isNullOrEmpty(toolchainName)) {
-            printStream.println("[IBM Cloud DevOps] Missing few required configurations");
-            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Build Info.");
-            return;
-        }
-
-        // get IBM cloud environment and token
         String env = getDescriptor().getEnvironment();
-        String bluemixToken, buildNumber;
+
         try {
-            buildNumber = Util.isNullOrEmpty(this.buildNumber) ?
+            // Get the project name and build id from environment
+            String applicationName = expandVariable(this.applicationName, envVars, true);
+            String toolchainId = expandVariable(this.toolchainName, envVars, true);
+            String SQHostName = expandVariable(this.SQHostName, envVars, true);
+            String SQAuthToken = expandVariable(this.SQAuthToken, envVars, true);
+            String SQProjectKey = expandVariable(this.SQProjectKey, envVars, true);
+
+            // get IBM cloud environment and token
+            String buildNumber = isNullOrEmpty(this.buildNumber) ?
                     getBuildNumber(envVars, buildJobName, build, printStream) : envVars.expand(this.buildNumber);
-            bluemixToken = getIBMCloudToken(this.credentialsId, this.apikey, this.username, this.password,
+            String bluemixToken = getIBMCloudToken(this.credentialsId, this.apikey, this.username, this.password,
                     env, build.getParent(), printStream);
+
+            String baseUrl = chooseDLMSUrl(env) + API_PART;
+            String dlmsUrl = setDLMSUrl(baseUrl, toolchainId, applicationName, buildNumber);
+            JsonObject payload = createDLMSPayload(SQHostName, SQProjectKey, SQAuthToken);
+            JsonArray urls = createPayloadUrls(SQHostName, SQProjectKey);
+            sendPayloadToDLMS(bluemixToken, payload, urls, toolchainId, dlmsUrl);
         } catch (Exception e) {
-            // failed to log in, stop here
+            printStream.println(getMessageWithPrefix(GOT_ERRORS) + e.getMessage());
             return;
-        }
-
-        String dlmsUrl = chooseDLMSUrl(env) + API_PART;
-        dlmsUrl = dlmsUrl.replace("{toolchain_id}", URLEncoder.encode(this.toolchainName, "UTF-8").replaceAll("\\+", "%20"));
-        dlmsUrl = dlmsUrl.replace("{build_artifact}", URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20"));
-        dlmsUrl = dlmsUrl.replace("{build_id}", URLEncoder.encode(buildNumber, "UTF-8").replaceAll("\\+", "%20"));
-
-        Map<String, String> headers = new HashMap<String, String>();
-        // ':' needs to be added so the SQ api knows an auth token is being used
-        String SQAuthToken = DatatypeConverter.printBase64Binary((this.SQAuthToken + ":").getBytes("UTF-8"));
-        headers.put("Authorization", "Basic " + SQAuthToken);
-        try {
-            JsonObject SQqualityGate = sendGETRequest(this.SQHostName + "/api/qualitygates/project_status?projectKey=" + this.SQProjectKey, headers);
-            printStream.println("[IBM Cloud DevOps] Successfully queried SonarQube for quality gate information");
-            JsonObject SQissues = getFullResponse(this.SQHostName + "/api/issues/search?statuses=OPEN&projectKeys=" + this.SQProjectKey, headers);
-
-            if (SQissues == null)
-                printStream.println("[IBM Cloud DevOps] Failed to query SonarQube for issue information");
-            else
-                printStream.println("[IBM Cloud DevOps] Successfully queried SonarQube for issue information");
-
-            JsonObject SQratings = sendGETRequest(this.SQHostName + "/api/measures/component?metricKeys=reliability_rating,security_rating,sqale_rating&componentKey=" + this.SQProjectKey, headers);
-            printStream.println("[IBM Cloud DevOps] Successfully queried SonarQube for metric information");
-
-            JsonObject payload = createDLMSPayload(SQqualityGate, SQissues, SQratings);
-            JsonArray urls = createPayloadUrls(this.SQHostName, this.SQProjectKey);
-            sendPayloadToDLMS(bluemixToken, payload, urls, toolchainName, dlmsUrl);
-        } catch (Exception e) {
-            printStream.println("[IBM Cloud DevOps] Error: " + e.getMessage());
-            printStream.println("[IBM Cloud DevOps] Error: Unable to upload SonarQube results. Please make sure all parameters are valid");
         }
     }
 
@@ -259,91 +229,97 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
 
     /**
      * Combines all SQ information into one gson that can be sent to DLMS
-     *
-     * @param qualityGateData information pertaining to SQ gate status
-     * @param issuesData information pertaining to SQ issues raised
-     * @param ratingsData information pertaining to SQ ratings
-     * @return combined gson object
+     * @param hostname
+     * @param projectKey
+     * @param authToken
+     * @return
+     * @throws Exception
      */
-    public JsonObject createDLMSPayload(JsonObject qualityGateData, JsonObject issuesData, JsonObject ratingsData) {
+    public JsonObject createDLMSPayload(String hostname, String projectKey, String authToken) throws Exception {
+        Map<String, String> headers = new HashMap<String, String>();
         JsonObject payload = new JsonObject();
-        payload.add("qualityGate", qualityGateData.get("projectStatus"));
-        JsonParser parser = new JsonParser();
-        JsonObject component = (JsonObject)parser.parse(ratingsData.get("component").toString());
-        payload.add("ratings", component.get("measures"));
-  
-        if (issuesData == null) {
+        // ':' needs to be added so the SQ api knows an auth token is being used
+        String SQAuthToken = DatatypeConverter.printBase64Binary((authToken + ":").getBytes("UTF-8"));
+        headers.put("Authorization", "Basic " + SQAuthToken);
+
+        JsonObject SQqualityGate = sendGETRequest(hostname + SQ_QUALITY_API_PART + projectKey, hostname, projectKey, authToken);
+        payload.add("qualityGate", SQqualityGate.get("projectStatus"));
+        printStream.println(getMessageWithPrefix(QUERY_SQ_QUALITY_SUCCESS));
+
+        JsonObject SQissues = getFullResponse(hostname + SQ_ISSUE_API_PART + projectKey, hostname, projectKey, authToken);
+        if (SQissues == null) {
+            printStream.println(getMessageWithPrefix(FAIL_TO_QUERY_SQ_ISSUE));
             JsonObject error = new JsonObject();
             error.addProperty("errorCode", "overLimit");
-            error.addProperty("message", "SonarQube web service APIs only allow less than 10,000 issues");
+            error.addProperty("message", getMessage(SQ_ISSUE_FAILURE_MESSAGE));
             payload.add("error", error);
             payload.addProperty("issues", "[]");
-        } else {
-            payload.add("issues", issuesData.get("issues"));
-        }
+        } else
+            printStream.println(getMessageWithPrefix(QUERY_SQ_ISSUE_SUCCESS));
+
+        JsonObject SQratings = sendGETRequest(hostname + SQ_RATING_API_PART + projectKey, hostname, projectKey, authToken);
+        JsonParser parser = new JsonParser();
+        JsonObject component = (JsonObject)parser.parse(SQratings.get("component").toString());
+        payload.add("ratings", component.get("measures"));
+        printStream.println(getMessageWithPrefix(QUERY_SQ_METRIC_SUCCESS));
 
         return payload;
     }
 
     /**
-     * Sends a GET request to the provided url
-     *
-     * @param url the endpoint of the request
-     * @param headers a map of headers where key is the header name and the map value is the header value
-     * @return a JSON parsed representation of the payload returneds
+     * get data from the SQ server
+     * @param url
+     * @param hostname
+     * @param projectKey
+     * @param authToken
+     * @return
      * @throws Exception
      */
-    private JsonObject sendGETRequest(String url, Map<String, String> headers) throws Exception {
-
+    private JsonObject sendGETRequest(String url, String hostname, String projectKey, String authToken) throws Exception {
         CloseableHttpClient httpClient = HttpClients.createDefault();
         HttpGet getMethod = new HttpGet(url);
         getMethod = addProxyInformation(getMethod);
-
-        //add request headers
-        for(Map.Entry<String, String> entry: headers.entrySet()) {
-            getMethod.setHeader(entry.getKey(), entry.getValue());
-        }
+        String SQAuthToken = DatatypeConverter.printBase64Binary((authToken + ":").getBytes("UTF-8"));
+        getMethod.setHeader("Authorization", "Basic " + SQAuthToken);
 
         CloseableHttpResponse response = httpClient.execute(getMethod);
-        StatusLine statusLine = response.getStatusLine();
+        int statusCode = response.getStatusLine().getStatusCode();
         String resStr = EntityUtils.toString(response.getEntity());
         JsonParser parser = new JsonParser();
 
-        if (statusLine.getStatusCode() == 200) {
+        if (statusCode == 200) {
             JsonElement element = parser.parse(resStr);
             JsonObject resJson = element.getAsJsonObject();
             return resJson;
-        } else if (statusLine.getStatusCode() == 401){
-            throw new Exception(statusLine.getStatusCode() + " Failed to authenticate with this token, please make sure the token is valid");
-        } else if (statusLine.getStatusCode() == 400){
-            printStream.println("[IBM Cloud DevOps] Warning: You have more than 10,000 issues, which is over the SonarQube Web Service API limit");
+        } else if (statusCode == 401){
+            throw new Exception(getMessage(FAIL_TO_AUTH_SQ) + response.getStatusLine());
+        } else if (statusCode == 400){
+            printStream.println(getMessageWithPrefix(SQ_ISSUE_OVER_LIMIT));
             return null;
-        } else if (statusLine.getStatusCode() == 404) {
-            throw new Exception("SonarQube project key " + SQProjectKey + " was not found at " + SQHostName);
+        } else if (statusCode == 404) {
+            throw new Exception(getMessageWithVar(SO_PROJECT_KEY_NOT_FOUND, projectKey, hostname));
         } else {
-            throw new Exception("Get " + statusLine.getStatusCode() + " response from SonarQube, " + resStr);
+            throw new Exception(getMessageWithVar(SQ_OTHER_EXCEPTION, String.valueOf(statusCode), resStr));
         }
     }
-    
     /**
-     * Get all the pages of response, a call to the api returns a single page response, this function will iterate thru all the 
+     * Get all the pages of response, a call to the api returns a single page response, this function will iterate thru all the
      * pages to get a full response. Gets 250 records per page at a time.
-     * 
-     * @param url the endpoint of the request
-     * @param headers a map of headers where key is the header name and the map value is the header value
-     * @return a JSON parsed representation of the payload returned
-     * @throws Exception
+     * @param url
+     * @param hostname
+     * @param projectKey
+     * @param authToken
+     * @return
      */
-    private JsonObject getFullResponse(String url, Map<String, String> headers)  {
+    private JsonObject getFullResponse(String url, String hostname, String projectKey, String authToken)  {
     	JsonArray intermediateArray = new JsonArray();
     	int recordCount = 0;
     	int page = 1;
     	try {
             do {
                 String uurl = url + "&ps=250&p=" + page;
-                JsonObject partResponse = sendGETRequest(uurl, headers);
+                JsonObject partResponse = sendGETRequest(uurl, hostname, projectKey, authToken);
                 if (partResponse == null) {
-
                     return null;
                 }
                 JsonArray issues = partResponse.getAsJsonArray("issues");
@@ -382,57 +358,48 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
      * @param urls a json array that holds the urls for a payload
      * @return boolean based on if the request was successful or not
      */
-    private void sendPayloadToDLMS(String bluemixToken, JsonObject payload, JsonArray urls, String toolchainName, String dlmsUrl) throws IOException {
+    private void sendPayloadToDLMS(String bluemixToken, JsonObject payload, JsonArray urls, String toolchainName, String dlmsUrl) throws Exception {
         String resStr = "";
-        printStream.println("[IBM Cloud DevOps] Uploading SonarQube results...");
-        try {
-            CloseableHttpClient httpClient = HttpClients.createDefault();
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+        HttpPost postMethod = new HttpPost(dlmsUrl);
+        postMethod = addProxyInformation(postMethod);
+        postMethod.setHeader("Authorization", bluemixToken);
+        postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);
 
-            HttpPost postMethod = new HttpPost(dlmsUrl);
-            postMethod = addProxyInformation(postMethod);
-            postMethod.setHeader("Authorization", bluemixToken);
-            postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        TimeZone utc = TimeZone.getTimeZone("UTC");
+        dateFormat.setTimeZone(utc);
+        String timestamp = dateFormat.format(System.currentTimeMillis());
 
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-            TimeZone utc = TimeZone.getTimeZone("UTC");
-            dateFormat.setTimeZone(utc);
-            String timestamp = dateFormat.format(System.currentTimeMillis());
+        JsonObject body = new JsonObject();
+        body.addProperty("contents", DatatypeConverter.printBase64Binary(payload.toString().getBytes("UTF-8")));
+        body.addProperty("contents_type", CONTENT_TYPE_JSON);
+        body.addProperty("timestamp", timestamp);
+        body.addProperty("tool_name", "sonarqube");
+        body.addProperty("lifecycle_stage", "sonarqube");
+        body.add("url", urls);
+        StringEntity data = new StringEntity(body.toString(), "UTF-8");
+        postMethod.setEntity(data);
+        CloseableHttpResponse response = httpClient.execute(postMethod);
+        resStr = EntityUtils.toString(response.getEntity());
 
-            JsonObject body = new JsonObject();
-            body.addProperty("contents", DatatypeConverter.printBase64Binary(payload.toString().getBytes("UTF-8")));
-            body.addProperty("contents_type", CONTENT_TYPE_JSON);
-            body.addProperty("timestamp", timestamp);
-            body.addProperty("tool_name", "sonarqube");
-            body.addProperty("lifecycle_stage", "sonarqube");
-            body.add("url", urls);
-            StringEntity data = new StringEntity(body.toString(), "UTF-8");
-            postMethod.setEntity(data);
-            CloseableHttpResponse response = httpClient.execute(postMethod);
-            resStr = EntityUtils.toString(response.getEntity());
-
-            int statusCode = response.getStatusLine().getStatusCode();
-            if (statusCode == 200) {
-                // get 200 response
-                printStream.println("[IBM Cloud DevOps] Upload SonarQube Information successfully");
-            } else if (statusCode == 401 || statusCode == 403) {
-                // if gets 401 or 403, it returns html
-                printStream.println("[IBM Cloud DevOps] Error: Failed to upload data, response status " + statusCode
-                        + ". Please check if you have the access to toolchain " + toolchainName);
-            } else {
-                JsonParser parser = new JsonParser();
-                JsonElement element = parser.parse(resStr);
-                JsonObject resJson = element.getAsJsonObject();
-                if (resJson != null && resJson.has("message")) {
-                    printStream.println("[IBM Cloud DevOps] Response Status:" + statusCode + ", Reason: " + resJson.get("message"));
-                }
+        int statusCode = response.getStatusLine().getStatusCode();
+        if (statusCode == 200) {
+            printStream.println(getMessageWithPrefix(UPLOAD_SQ_SUCCESS));
+        } else if (statusCode == 401 || statusCode == 403) {
+            // if gets 401 or 403, it returns html
+            throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA, String.valueOf(statusCode), toolchainName));
+        } else {
+            JsonParser parser = new JsonParser();
+            JsonElement element = parser.parse(resStr);
+            JsonObject resJson = element.getAsJsonObject();
+            if (resJson != null && resJson.has("message")) {
+                throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA_WITH_REASON, String.valueOf(statusCode), resJson.get("message").getAsString()));
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw e;
         }
     }
 
-        @Override
+    @Override
     public BuildStepMonitor getRequiredMonitorService() {
         return BuildStepMonitor.NONE;
     }
@@ -518,10 +485,10 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
             String targetAPI = chooseTargetAPI(environment);
             String iamAPI = chooseIAMAPI(environment);
             try {
-                if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
+                if (!credentialsId.equals(preCredentials) || isNullOrEmpty(bluemixToken)) {
                     preCredentials = credentialsId;
                     StandardCredentials credentials = findCredentials(credentialsId, context);
-                    bluemixToken = getTokenForTestConnection(credentials, iamAPI, targetAPI);
+                    bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, printStream);
                 }
                 return FormValidation.okWithMarkup(getMessage(TEST_CONNECTION_SUCCEED));
             } catch (Exception e) {
@@ -567,7 +534,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
          * @return The text to be displayed when selecting your build in the project
          */
         public String getDisplayName() {
-            return "Publish SonarQube test result to IBM Cloud DevOps";
+            return getMessage(PUBLISH_SQ_DISPLAY);
         }
 
         public String getEnvironment() {

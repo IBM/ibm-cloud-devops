@@ -41,5 +41,4 @@ public abstract class AbstractGateAction implements Action {
     public String getUrlName() {
         return null;
     }
-
 }

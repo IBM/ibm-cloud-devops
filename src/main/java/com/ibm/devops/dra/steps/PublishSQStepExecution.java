@@ -15,7 +15,6 @@
 package com.ibm.devops.dra.steps;
 
 import com.ibm.devops.dra.PublishSQ;
-import com.ibm.devops.dra.Util;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -29,6 +28,8 @@ import java.io.PrintStream;
 import java.util.HashMap;
 
 import static com.ibm.devops.dra.AbstractDevOpsAction.setRequiredEnvVars;
+import static com.ibm.devops.dra.Util.allNotNullOrEmpty;
+import static com.ibm.devops.dra.Util.isNullOrEmpty;
 
 public class PublishSQStepExecution extends AbstractSynchronousNonBlockingStepExecution<Void> {
     private static final long serialVersionUID = 1L;
@@ -54,7 +55,7 @@ public class PublishSQStepExecution extends AbstractSynchronousNonBlockingStepEx
         HashMap<String, String> requiredEnvVars = setRequiredEnvVars(step, envVars);
 
         //check all the required env vars
-        if (!Util.allNotNullOrEmpty(requiredEnvVars, printStream)) {
+        if (!allNotNullOrEmpty(requiredEnvVars, printStream)) {
             printStream.println("[IBM Cloud DevOps] Error: Failed to upload Test Result.");
             return null;
         }
@@ -65,17 +66,16 @@ public class PublishSQStepExecution extends AbstractSynchronousNonBlockingStepEx
         requiredParams.put("SQHostURL", step.getSQHostURL());
         requiredParams.put("SQAuthToken", step.getSQAuthToken());
 
-        if (!Util.allNotNullOrEmpty(requiredParams, printStream)) {
+        if (!allNotNullOrEmpty(requiredParams, printStream)) {
             printStream.println("[IBM Cloud DevOps] Error: Failed to upload SonarQube Test Result.");
             return null;
         }
 
         // optional build number, if user wants to set their own build number
         String buildNumber = step.getBuildNumber();
-
         PublishSQ publisher = new PublishSQ(requiredEnvVars, requiredParams);
 
-        if (!Util.isNullOrEmpty(buildNumber)) {
+        if (!isNullOrEmpty(buildNumber)) {
             publisher.setBuildNumber(buildNumber);
         }
         publisher.perform(build, ws, launcher, listener);

@@ -30,6 +30,8 @@ import java.io.PrintStream;
 import java.util.HashMap;
 
 import static com.ibm.devops.dra.AbstractDevOpsAction.setRequiredEnvVars;
+import static com.ibm.devops.dra.Util.allNotNullOrEmpty;
+import static com.ibm.devops.dra.Util.isNullOrEmpty;
 
 public class EvaluateGateStepExecution extends AbstractSynchronousNonBlockingStepExecution<Void> {
     private static final long serialVersionUID = 1L;
@@ -55,13 +57,13 @@ public class EvaluateGateStepExecution extends AbstractSynchronousNonBlockingSte
 
 
         //check all the required env vars
-        if (!Util.allNotNullOrEmpty(requiredEnvVars, printStream)) {
+        if (!allNotNullOrEmpty(requiredEnvVars, printStream)) {
             printStream.println("[IBM Cloud DevOps] Error: Failed to get Gate decision.");
             return null;
         }
 
         String policy = step.getPolicy();
-        if (Util.isNullOrEmpty(policy)) {
+        if (isNullOrEmpty(policy)) {
             printStream.println("[IBM Cloud DevOps] evaluateGate is missing required parameters, " +
                     "please make sure you specify \"policy\"");
             printStream.println("[IBM Cloud DevOps] Error: Failed to run evaluate Gate.");
@@ -69,7 +71,7 @@ public class EvaluateGateStepExecution extends AbstractSynchronousNonBlockingSte
         }
 
         Boolean willDisrupt = false;
-        if (!Util.isNullOrEmpty(step.getForceDecision()) && step.getForceDecision().toLowerCase().equals("true")) {
+        if (!isNullOrEmpty(step.getForceDecision()) && step.getForceDecision().toLowerCase().equals("true")) {
             willDisrupt = true;
         }
 
@@ -77,7 +79,7 @@ public class EvaluateGateStepExecution extends AbstractSynchronousNonBlockingSte
         String buildNumber = step.getBuildNumber();
         EvaluateGate evaluateGate = new EvaluateGate(requiredEnvVars, policy, step.getEnvironment(), willDisrupt);
         try {
-            if (!Util.isNullOrEmpty(buildNumber)) {
+            if (!isNullOrEmpty(buildNumber)) {
                 evaluateGate.setBuildNumber(buildNumber);
             }
             evaluateGate.perform(build, ws, launcher, listener);
@@ -87,4 +89,6 @@ public class EvaluateGateStepExecution extends AbstractSynchronousNonBlockingSte
 
         return null;
     }
+
+
 }

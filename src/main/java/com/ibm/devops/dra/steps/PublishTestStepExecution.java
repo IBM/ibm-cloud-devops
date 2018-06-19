@@ -29,6 +29,8 @@ import java.io.PrintStream;
 import java.util.HashMap;
 
 import static com.ibm.devops.dra.AbstractDevOpsAction.setRequiredEnvVars;
+import static com.ibm.devops.dra.Util.allNotNullOrEmpty;
+import static com.ibm.devops.dra.Util.isNullOrEmpty;
 
 public class PublishTestStepExecution extends AbstractSynchronousNonBlockingStepExecution<Void> {
     private static final long serialVersionUID = 1L;
@@ -54,7 +56,7 @@ public class PublishTestStepExecution extends AbstractSynchronousNonBlockingStep
         HashMap<String, String> requiredEnvVars = setRequiredEnvVars(step, envVars);
 
         //check all the required env vars
-        if (!Util.allNotNullOrEmpty(requiredEnvVars, printStream)) {
+        if (!allNotNullOrEmpty(requiredEnvVars, printStream)) {
             printStream.println("[IBM Cloud DevOps] Error: Failed to upload Test Result.");
             return null;
         }
@@ -69,7 +71,7 @@ public class PublishTestStepExecution extends AbstractSynchronousNonBlockingStep
         String buildNumber = step.getBuildNumber();
         String envName = step.getEnvironment();
 
-        if (!Util.allNotNullOrEmpty(requiredParams, printStream)) {
+        if (!allNotNullOrEmpty(requiredParams, printStream)) {
             printStream.println("[IBM Cloud DevOps] Error: Failed to upload Test Result.");
             return null;
         }
@@ -77,8 +79,8 @@ public class PublishTestStepExecution extends AbstractSynchronousNonBlockingStep
 
         PublishTest publishTest = new PublishTest(requiredEnvVars, requiredParams);
 
-        if (!Util.isNullOrEmpty(envName)) publishTest.setEnvName(envName);
-        if (!Util.isNullOrEmpty(buildNumber)) publishTest.setBuildNumber(buildNumber);
+        if (!isNullOrEmpty(envName)) publishTest.setEnvName(envName);
+        if (!isNullOrEmpty(buildNumber)) publishTest.setBuildNumber(buildNumber);
 
         publishTest.perform(build, ws, launcher, listener);
         return null;

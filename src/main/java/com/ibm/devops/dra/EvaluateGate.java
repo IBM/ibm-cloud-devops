@@ -19,11 +19,11 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
-import hudson.*;
+import hudson.EnvVars;
+import hudson.Extension;
+import hudson.FilePath;
+import hudson.Launcher;
 import hudson.model.*;
 import hudson.security.ACL;
 import hudson.tasks.BuildStepDescriptor;
@@ -33,11 +33,6 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -46,20 +41,18 @@ import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.List;
 
 import static com.ibm.devops.dra.UIMessages.*;
-
+import static com.ibm.devops.dra.Util.*;
 
 /**
  * Customized build step to get a gate decision from DRA backend
  */
-
 public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildStep{
-
-    private final static String CONTENT_TYPE = "application/json";
+    private static final String REPORT_URL_PART = "decisionreport?toolchainId=";
+    private static final String CONTROL_CENTER_URL_PART = "deploymentrisk?toolchainId=";
 
     // form fields from UI
     private String policyName;
@@ -116,7 +109,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
 
         this.applicationName = envVarsMap.get(APP_NAME);
         this.toolchainName = envVarsMap.get(TOOLCHAIN_ID);
-        if (Util.isNullOrEmpty(envVarsMap.get(API_KEY))) {
+        if (isNullOrEmpty(envVarsMap.get(API_KEY))) {
             this.username = envVarsMap.get(USERNAME);
             this.password = envVarsMap.get(PASSWORD);
         } else {
@@ -204,92 +197,37 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         // This is where you 'build' the project.
         printStream = listener.getLogger();
         printPluginVersion(this.getClass().getClassLoader(), printStream);
-
-        // Get the project name and build id from environment
-        EnvVars envVars = build.getEnvironment(listener);
-        this.applicationName = envVars.expand(this.applicationName);
-        this.policyName = envVars.expand(this.policyName);
-        this.toolchainName = envVars.expand(this.toolchainName);
-        // Check required parameters
-        if (Util.isNullOrEmpty(applicationName) || Util.isNullOrEmpty(toolchainName)
-                || Util.isNullOrEmpty(policyName)) {
-            printStream.println("[IBM Cloud DevOps] Missing few required configurations");
-            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Build Info.");
-            return;
-        }
-
-        String environmentName = null;
-        if (this.isDeploy || !Util.isNullOrEmpty(this.envName)) {
-            environmentName = envVars.expand(this.envName);
-        }
-
-        // get IBM cloud environment and token
         String env = getDescriptor().getEnvironment();
-        String bluemixToken, buildNumber;
+        EnvVars envVars = build.getEnvironment(listener);
+
         try {
-            buildNumber = Util.isNullOrEmpty(this.buildNumber) ?
+            // Get the project name and build id from environment
+            String applicationName = expandVariable(this.applicationName, envVars, true);
+            String toolchainId = expandVariable(this.toolchainName, envVars, true);
+            String policyName = expandVariable(this.policyName, envVars, true);
+            String environmentName = "";
+            if (this.isDeploy || !isNullOrEmpty(this.envName)) {
+                environmentName = envVars.expand(this.envName);
+            }
+
+            String buildNumber = isNullOrEmpty(this.buildNumber) ?
                     getBuildNumber(envVars, buildJobName, build, printStream) : envVars.expand(this.buildNumber);
-            bluemixToken = getIBMCloudToken(this.credentialsId, this.apikey, this.username, this.password,
+            String bluemixToken = getIBMCloudToken(this.credentialsId, this.apikey, this.username, this.password,
                     env, build.getParent(), printStream);
-        } catch (Exception e) {
-            // failed to log in, stop here
-            return;
-        }
 
-        String draUrl = chooseDRAUrl(env);
-        // get decision response from DRA
-        try {
-            JsonObject decisionJson = getDecisionFromDRA(bluemixToken, buildNumber, applicationName, policyName, environmentName, draUrl);
+            String draUrl = chooseDRAUrl(env);
+            String link = chooseControlCenterUrl(env) + CONTROL_CENTER_URL_PART + toolchainId;
+            String reportUrl =  chooseControlCenterUrl(env) + REPORT_URL_PART + toolchainId + "&reportId=";
+            JsonObject decisionJson = getDecisionFromDRA(bluemixToken, buildNumber, applicationName, toolchainId,
+                    environmentName, draUrl, policyName, printStream);
             if (decisionJson == null) {
-                printStream.println("[IBM Cloud DevOps] get empty decision");
+                printStream.println(getMessageWithPrefix(NO_DECISION_FOUND));
                 return;
             }
-
-            // retrieve the decision id to compose the report link
-            String decisionId = String.valueOf(decisionJson.get("decision_id"));
-            // remove the double quotes
-            decisionId = decisionId.replace("\"","");
-
-            // Show Proceed or Failed based on the decision
-            String decision = String.valueOf(decisionJson.get("contents").getAsJsonObject().get("proceed"));
-            if (decision.equals("true")) {
-                decision = "Succeed";
-            } else {
-                decision = "Failed";
-            }
-
-            String cclink = chooseControlCenterUrl(env) + "deploymentrisk?toolchainId=" + this.toolchainName;
-            String reportUrl = chooseControlCenterUrl(env) + "decisionreport?toolchainId="
-                    + URLEncoder.encode(toolchainName, "UTF-8") + "&reportId=" + decisionId;
-
-            GatePublisherAction action = new GatePublisherAction(reportUrl, cclink, decision, policyName, build);
-            build.addAction(action);
-
-            printStream.println("************************************");
-            printStream.println("Check IBM Cloud DevOps Gate Evaluation report here -" + reportUrl);
-            // console output for a "fail" decision
-            if (decision.equals("Failed")) {
-                printStream.println("IBM Cloud DevOps decision to proceed is:  false");
-                printStream.println("************************************");
-                if (willDisrupt) {
-                    Result result = Result.FAILURE;
-                    build.setResult(result);
-                    throw new AbortException("Decision is fail");
-                }
-                return;
-            }
-
-            // console output for a "proceed" decision
-            printStream.println("IBM Cloud DevOps decision to proceed is:  true");
-            printStream.println("************************************");
+            publishDecision(decisionJson, build, reportUrl, link, policyName, willDisrupt, printStream);
+        } catch (Exception e) {
+            printStream.println(getMessageWithPrefix(GOT_ERRORS) + e.getMessage());
             return;
-
-        } catch (IOException e) {
-            if (e instanceof AbortException) {
-                throw new AbortException("Decision is fail");
-            } else {
-                printStream.print("[IBM Cloud DevOps] Error: " + e.getMessage());
-            }
         }
     }
 
@@ -297,63 +235,6 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
     public BuildStepMonitor getRequiredMonitorService() {
         return BuildStepMonitor.NONE;
     }
-
-    /**
-     * Send a request to DRA backend to get a decision
-     * @param buildId - build ID, get from Jenkins environment
-     * @return - the response decision Json file
-     */
-    private JsonObject getDecisionFromDRA(String bluemixToken, String buildId, String applicationName, String policyName, String environmentName, String draUrl) throws IOException {
-        // create http client and post method
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        String url = draUrl;
-        url = url + "/toolchainids/" + URLEncoder.encode(toolchainName, "UTF-8").replaceAll("\\+", "%20") +
-                "/buildartifacts/" + URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20") +
-                "/builds/" + URLEncoder.encode(buildId, "UTF-8").replaceAll("\\+", "%20") +
-                "/policies/" + URLEncoder.encode(policyName, "UTF-8").replaceAll("\\+", "%20") +
-                "/decisions";
-        if (!Util.isNullOrEmpty(environmentName)) {
-            url = url.concat("?environment_name=" + environmentName);
-        }
-
-        HttpPost postMethod = new HttpPost(url);
-
-        postMethod = addProxyInformation(postMethod);
-        postMethod.setHeader("Authorization", bluemixToken);
-        postMethod.setHeader("Content-Type", CONTENT_TYPE);
-
-        CloseableHttpResponse response = httpClient.execute(postMethod);
-        String resStr = EntityUtils.toString(response.getEntity());
-
-        try {
-            int statusCode = response.getStatusLine().getStatusCode();
-            if (statusCode == 200) {
-                // get 200 response
-                JsonParser parser = new JsonParser();
-                JsonElement element = parser.parse(resStr);
-                JsonObject resJson = element.getAsJsonObject();
-                printStream.println("[IBM Cloud DevOps] Get decision successfully");
-                return resJson;
-            } else if (statusCode == 401 || statusCode == 403) {
-                // if gets 401 or 403, it returns html
-                printStream.println("[IBM Cloud DevOps] Failed to get a decision data, response status " + statusCode
-                        + "Please check if you have the access to toolchain " + toolchainName);
-            } else {
-                JsonParser parser = new JsonParser();
-                JsonElement element = parser.parse(resStr);
-                JsonObject resJson = element.getAsJsonObject();
-                if (resJson != null && resJson.has("message")) {
-                    printStream.println("[IBM Cloud DevOps] Failed to get a decision data, response status " + statusCode
-                            + ", Reason: " + resJson.get("message"));
-                }
-            }
-        } catch (JsonSyntaxException e) {
-            printStream.println("[IBM Cloud DevOps] Invalid Json response, response: " + resStr);
-        }
-
-        return null;
-    }
-
 
     @Override
     public EvaluateGateImpl getDescriptor() {
@@ -391,7 +272,6 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
          *      prevent the form from being saved. It just means that a message
          *      will be displayed to the user.
          */
-
         public FormValidation doCheckApplicationName(@QueryParameter String value)
                 throws IOException, ServletException {
             return FormValidation.validateRequired(value);
@@ -412,8 +292,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
 
         public FormValidation doCheckPolicyName(@QueryParameter String value) {
             if (value == null || value.equals("empty")) {
-                // Todo: optimize the message
-                return FormValidation.errorWithMarkup("Fail to get the policies, please check your username/password or org name and make sure you have created policies for this org and toolchain.");
+                return FormValidation.errorWithMarkup(getMessage(FAIL_TO_GET_POLICY_LIST));
             }
             return FormValidation.ok();
         }
@@ -424,10 +303,10 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             String targetAPI = chooseTargetAPI(environment);
             String iamAPI = chooseIAMAPI(environment);
             try {
-                if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
+                if (!credentialsId.equals(preCredentials) || isNullOrEmpty(bluemixToken)) {
                     preCredentials = credentialsId;
                     StandardCredentials credentials = findCredentials(credentialsId, context);
-                    bluemixToken = getTokenForTestConnection(credentials, iamAPI, targetAPI);
+                    bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, null);
                 }
                 return FormValidation.okWithMarkup(getMessage(TEST_CONNECTION_SUCCEED));
             } catch (Exception e) {
@@ -461,7 +340,6 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
          */
         public AutoCompletionCandidates doAutoCompleteBuildJobName(@QueryParameter String value) {
             AutoCompletionCandidates auto = new AutoCompletionCandidates();
-
             // get all jenkins job
             List<Job> jobs = Jenkins.getInstance().getAllItems(Job.class);
             for (int i = 0; i < jobs.size(); i++) {
@@ -488,9 +366,9 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             String iamAPI = chooseIAMAPI(environment);
             try {
                 // if user changes to a different credential, need to get a new token
-                if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
+                if (!credentialsId.equals(preCredentials) || isNullOrEmpty(bluemixToken)) {
                     StandardCredentials credentials = findCredentials(credentialsId, context);
-                    bluemixToken = getTokenForTestConnection(credentials, iamAPI, targetAPI);
+                    bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, null);
                     preCredentials = credentialsId;
                 }
             } catch (Exception e) {

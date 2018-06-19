@@ -19,7 +19,10 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
-import com.google.gson.*;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import hudson.*;
 import hudson.model.*;
 import hudson.security.ACL;
@@ -50,13 +53,13 @@ import javax.servlet.ServletException;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.TimeZone;
 
 import static com.ibm.devops.dra.UIMessages.*;
+import static com.ibm.devops.dra.Util.*;
 
 /**
  * Authenticate with Bluemix and then upload the result file to DRA
@@ -64,6 +67,8 @@ import static com.ibm.devops.dra.UIMessages.*;
 public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep {
 
     private final static String API_PART = "/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/results_multipart";
+    private static final String CONTROL_CENTER_URL_PART = "deploymentrisk?toolchainId=";
+    private static final String REPORT_URL_PART = "decisionreport?toolchainId=";
     private final static String CONTENT_TYPE_JSON = "application/json";
     private final static String CONTENT_TYPE_XML = "application/xml";
     private final static String CONTENT_TYPE_LCOV = "text/plain";
@@ -85,7 +90,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
     private String envName;
     private boolean isDeploy;
 
-    private PrintStream printStream;
+    private static PrintStream printStream;
     private File root;
     private static String bluemixToken;
     private static String preCredentials;
@@ -146,7 +151,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         this.applicationName = envVarsMap.get(APP_NAME);
         this.toolchainName = envVarsMap.get(TOOLCHAIN_ID);
 
-        if (Util.isNullOrEmpty(envVarsMap.get(API_KEY))) {
+        if (isNullOrEmpty(envVarsMap.get(API_KEY))) {
             this.username = envVarsMap.get(USERNAME);
             this.password = envVarsMap.get(PASSWORD);
         } else {
@@ -268,117 +273,61 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         }
     }
 
-
     @Override
     public void perform(@Nonnull Run build, @Nonnull FilePath workspace, @Nonnull Launcher launcher, @Nonnull TaskListener listener) throws InterruptedException, IOException {
-
         printStream = listener.getLogger();
         printPluginVersion(this.getClass().getClassLoader(), printStream);
 
         // create root dir for storing test result
         root = new File(build.getRootDir(), "DRA_TestResults");
-
-        // Get the project name and build id from environment and expand the vars
         EnvVars envVars = build.getEnvironment(listener);
-        this.applicationName = envVars.expand(this.applicationName);
-        this.toolchainName = envVars.expand(this.toolchainName);
-        this.contents = envVars.expand(this.contents);
-
-        // Check required parameters
-        if (Util.isNullOrEmpty(applicationName) || Util.isNullOrEmpty(toolchainName)
-                || Util.isNullOrEmpty(contents)) {
-            printStream.println("[IBM Cloud DevOps] Missing few required configurations");
-            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Build Info.");
-            return;
-        }
-
-        String environmentName = "";
-        if (this.isDeploy || !Util.isNullOrEmpty(this.envName)) {
-            environmentName = envVars.expand(this.envName);
-        }
-
-        // get IBM cloud environment and token
         String env = getDescriptor().getEnvironment();
-        String bluemixToken, buildNumber;
         try {
-            buildNumber = Util.isNullOrEmpty(this.buildNumber) ?
+            // Get the project name and build id from environment and expand the vars
+            String applicationName = expandVariable(this.applicationName, envVars, true);
+            String toolchainId = expandVariable(this.toolchainName, envVars, true);
+            String contents = expandVariable(this.contents, envVars, true);
+            String environmentName = "";
+            if (this.isDeploy || !isNullOrEmpty(this.envName)) {
+                environmentName = envVars.expand(this.envName);
+            }
+
+            // get IBM cloud environment and token
+            String buildNumber = isNullOrEmpty(this.buildNumber) ?
                     getBuildNumber(envVars, buildJobName, build, printStream) : envVars.expand(this.buildNumber);
-            bluemixToken = getIBMCloudToken(this.credentialsId, this.apikey, this.username, this.password,
+            String bluemixToken = getIBMCloudToken(this.credentialsId, this.apikey, this.username, this.password,
                     env, build.getParent(), printStream);
 
             String dlmsUrl = chooseDLMSUrl(env) + API_PART;
-            dlmsUrl = dlmsUrl.replace("{toolchain_id}", URLEncoder.encode(this.toolchainName, "UTF-8").replaceAll("\\+", "%20"));
-            dlmsUrl = dlmsUrl.replace("{build_artifact}", URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20"));
-            dlmsUrl = dlmsUrl.replace("{build_id}", URLEncoder.encode(buildNumber, "UTF-8").replaceAll("\\+", "%20"));
-            String link = chooseControlCenterUrl(env) + "deploymentrisk?toolchainId=" + this.toolchainName;
-            scanAndUpload(build, workspace, contents, lifecycleStage, bluemixToken, environmentName, dlmsUrl);
+            dlmsUrl = setDLMSUrl(dlmsUrl, toolchainId, applicationName, buildNumber);
+            String link = chooseControlCenterUrl(env) + CONTROL_CENTER_URL_PART + toolchainId;
+            scanAndUpload(build, workspace, contents, lifecycleStage, toolchainId, bluemixToken, environmentName, dlmsUrl);
             // check to see if we need to upload additional result file
-            if (!Util.isNullOrEmpty(additionalContents) && !Util.isNullOrEmpty(additionalLifecycleStage)) {
-                scanAndUpload(build, workspace, additionalContents, additionalLifecycleStage, bluemixToken, environmentName, dlmsUrl);
+            if (!isNullOrEmpty(additionalContents) && !isNullOrEmpty(additionalLifecycleStage)) {
+                String additionalContents = envVars.expand(this.additionalContents);
+                String additionalLifecycleStage = envVars.expand(this.additionalLifecycleStage);
+                scanAndUpload(build, workspace, additionalContents, additionalLifecycleStage, toolchainId, bluemixToken, environmentName, dlmsUrl);
+            }
+            printStream.println(getMessageWithVar(CHECK_TEST_RESULT, link));
+            // verify if user chooses advanced option to input customized DRA, just for freestyle job
+            if (isNullOrEmpty(policyName)) {
+                return;
             }
 
-            printStream.println(getMessageWithVar(GO_TO_CONTROL_CENTER, CHECK_TEST_RESULT, link));
-        } catch (Exception e) {
-            printStream.println(getMessageWithPrefix(GOT_ERRORS) + e.getMessage());
-            return;
-        }
-
-        // Gate
-        // verify if user chooses advanced option to input customized DRA
-        if (Util.isNullOrEmpty(policyName)) {
-            return;
-        }
-
-        String draUrl = chooseDRAUrl(env);
-        // get decision response from DRA
-        try {
-            JsonObject decisionJson = getDecisionFromDRA(bluemixToken, buildNumber, applicationName, environmentName, draUrl);
+            String policyName = envVars.expand(this.policyName);
+            String draUrl = chooseDRAUrl(env);
+            String reportUrl =  chooseControlCenterUrl(env) + REPORT_URL_PART + toolchainId + "&reportId=";
+            JsonObject decisionJson = getDecisionFromDRA(bluemixToken, buildNumber, applicationName, toolchainId,
+                    environmentName, draUrl, policyName, printStream);
             if (decisionJson == null) {
                 printStream.println(getMessageWithPrefix(NO_DECISION_FOUND));
                 return;
             }
-
-            // retrieve the decision id to compose the report link
-            String decisionId = String.valueOf(decisionJson.get("decision_id"));
-            decisionId = decisionId.replace("\"","");
-
-            // Show Proceed or Failed based on the decision
-            String decision = String.valueOf(decisionJson.get("contents").getAsJsonObject().get("proceed"));
-            if (decision.equals("true")) {
-                decision = "Succeed";
-            } else {
-                decision = "Failed";
-            }
-
-            String cclink = chooseControlCenterUrl(env) + "deploymentrisk?toolchainId=" + this.toolchainName;
-            String reportUrl = chooseControlCenterUrl(env) + "decisionreport?toolchainId="
-                    + URLEncoder.encode(toolchainName, "UTF-8") + "&reportId=" + decisionId;
-            GatePublisherAction action = new GatePublisherAction(reportUrl, cclink, decision, this.policyName, build);
-            build.addAction(action);
-
-            // Todo: optimize console output
-            printStream.println("************************************");
-            printStream.println("Check IBM Cloud DevOps Gate Evaluation report here -" + reportUrl);
-            printStream.println("Check IBM Cloud DevOps Deployment Risk Dashboard here -" + cclink);
-            // console output for a "fail" decision
-            if (decision.equals("Failed")) {
-                printStream.println("IBM Cloud DevOps decision to proceed is:  false");
-                printStream.println("************************************");
-                if (willDisrupt) {
-                    Result result = Result.FAILURE;
-                    build.setResult(result);
-                }
-                return;
-            }
-
-            // console output for a "proceed" decision
-            printStream.println("IBM Cloud DevOps decision to proceed is:  true");
-            printStream.println("************************************");
-
-        } catch (IOException e) {
-            printStream.print("[IBM Cloud DevOps] Error: " + e.getMessage());
+            publishDecision(decisionJson, build, reportUrl, link, policyName, willDisrupt, printStream);
+        } catch (Exception e) {
+            printStream.println(getMessageWithPrefix(GOT_ERRORS) + e.getMessage());
+            return;
         }
-
     }
 
     @Override
@@ -397,10 +346,10 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
      * @param dlmsUrl
      * @throws Exception
      */
-    public void scanAndUpload(Run build, FilePath workspace, String path, String lifecycleStage, String bluemixToken, String environmentName, String dlmsUrl) throws Exception {
+    public void scanAndUpload(Run build, FilePath workspace, String path, String lifecycleStage, String toolchainId, String bluemixToken, String environmentName, String dlmsUrl) throws Exception {
         FilePath[] filePaths = null;
 
-        if (Util.isNullOrEmpty(path)) {
+        if (isNullOrEmpty(path)) {
             // if no result file specified, create dummy result based on the build status
             filePaths = new FilePath[]{createDummyFile(build, workspace)};
         } else {
@@ -412,7 +361,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         }
 
         if (filePaths == null || filePaths.length < 1) {
-            throw new Exception(getMessage(FAILED_TO_FIND_FILE));
+            throw new Exception(getMessage(FAIL_TO_FIND_FILE));
         } else {
             for (FilePath fp : filePaths) {
                 // make sure the file path is for file, and copy to the master build folder
@@ -434,7 +383,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                 }
 
                 // upload the result file to DLMS
-                sendFormToDLMS(bluemixToken, fp, lifecycleStage, jobUrl, timestamp, environmentName, dlmsUrl);
+                sendFormToDLMS(bluemixToken, fp, lifecycleStage, toolchainId, jobUrl, timestamp, environmentName, dlmsUrl);
             }
         }
     }
@@ -446,10 +395,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
      * @return simple test result file
      */
     private FilePath createDummyFile(Run build, FilePath workspace) throws Exception {
-
-        // if user did not specify the result file location, upload the dummy json file
         Gson gson = new Gson();
-
         //set the passes and failures based on the test status
         int passes, failures;
         Result result = build.getResult();
@@ -462,7 +408,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                 failures = 0;
             }
         } else {
-            throw new Exception("Failed to get build result");
+            throw new Exception(getMessage(FAIL_TO_GET_JOB_RESULT));
         }
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
@@ -484,9 +430,9 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             filePath.write(gson.toJson(testResultModel), "UTF8");
             return filePath;
         } catch (IOException e) {
-            printStream.println("[IBM Cloud DevOps] Failed to create dummy file in current workspace, Exception: " + e.getMessage());
+            e.printStackTrace();
+            printStream.println(getMessageWithVar(FAIL_TO_CREATE_FILE, e.getMessage()));
         }
-
         return null;
     }
 
@@ -501,7 +447,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
      * @param dlmsUrl
      * @throws Exception
      */
-    public void sendFormToDLMS(String bluemixToken, FilePath contents, String lifecycleStage, String jobUrl, String timestamp, String environmentName, String dlmsUrl) throws Exception {
+    public void sendFormToDLMS(String bluemixToken, FilePath contents, String lifecycleStage, String toolchainId, String jobUrl, String timestamp, String environmentName, String dlmsUrl) throws Exception {
         // create http client and post method
         CloseableHttpClient httpClient = HttpClients.createDefault();
         HttpPost postMethod = new HttpPost(dlmsUrl);
@@ -510,7 +456,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         MultipartEntityBuilder builder = MultipartEntityBuilder.create();
         builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
         if (contents == null) {
-            throw new Exception(getMessage(FAILED_TO_FIND_FILE));
+            throw new Exception(getMessage(FAIL_TO_FIND_FILE));
         } else {
             File file = new File(root, contents.getName());
             FileBody fileBody = new FileBody(file);
@@ -536,7 +482,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                     contentType = CONTENT_TYPE_LCOV;
                     break;
                 default:
-                    throw new Exception("Error: " + contents.getName() + " is an invalid result file type");
+                    throw new Exception(getMessageWithVar(UNSUPPORTED_RESULT_FILE, contents.getName()));
             }
 
             builder.addTextBody("contents_type", contentType);
@@ -552,80 +498,23 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             String resStr = EntityUtils.toString(response.getEntity());
             int statusCode = response.getStatusLine().getStatusCode();
             if (statusCode == 200) {
-                // get 200 response
-                printStream.println("[IBM Cloud DevOps] Upload [" + contents.getName() + "] successfully");
+                printStream.println(getMessageWithVar(UPLOAD_FILE_SUCCESS, contents.getName()));
             } else if (statusCode == 401 || statusCode == 403) {
                 // if gets 401 or 403, it returns html
-                throw new Exception(" Failed to upload data, response status " + statusCode
-                        + " Please check if you have the access to toolchain " + toolchainName);
+                throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA, String.valueOf(statusCode), toolchainId));
             } else {
                 JsonParser parser = new JsonParser();
                 JsonElement element = parser.parse(resStr);
                 JsonObject resJson = element.getAsJsonObject();
                 if (resJson != null && resJson.has("message")) {
-                    throw new Exception(" Response Status:" + statusCode + ", Reason: " + resJson.get("message"));
+                    throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA_WITH_REASON, String.valueOf(statusCode), resJson.get("message").getAsString()));
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
-            throw e;
-        }
-    }
-
-    /**
-     * Send a request to DRA backend to get a decision
-     * @param buildId - build ID, get from Jenkins environment
-     * @return - the response decision Json file
-     */
-    private JsonObject getDecisionFromDRA(String bluemixToken, String buildId, String applicationName, String environmentName, String draUrl) throws IOException {
-        // create http client and post method
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-
-        String url = draUrl;
-        url = url + "/toolchainids/" + toolchainName +
-                "/buildartifacts/" + URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20") +
-                "/builds/" + buildId +
-                "/policies/" + URLEncoder.encode(policyName, "UTF-8").replaceAll("\\+", "%20") +
-                "/decisions";
-        if (this.isDeploy) {
-            url = url.concat("?environment_name=" + environmentName);
+            throw new Exception(e.getMessage());
         }
 
-        HttpPost postMethod = new HttpPost(url);
-
-        postMethod = addProxyInformation(postMethod);
-        postMethod.setHeader("Authorization", bluemixToken);
-        postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);
-
-        CloseableHttpResponse response = httpClient.execute(postMethod);
-        String resStr = EntityUtils.toString(response.getEntity());
-
-        try {
-            int statusCode = response.getStatusLine().getStatusCode();
-            if (statusCode == 200) {
-                // get 200 response
-                JsonParser parser = new JsonParser();
-                JsonElement element = parser.parse(resStr);
-                JsonObject resJson = element.getAsJsonObject();
-                printStream.println("[IBM Cloud DevOps] Get decision successfully");
-                return resJson;
-            } else if (statusCode == 401 || statusCode == 403) {
-                // if gets 401 or 403, it returns html
-                printStream.println("[IBM Cloud DevOps] Failed to get a decision data, response status " + statusCode
-                        + " Please check if you have the access to toolchain " + toolchainName);
-            } else {
-                JsonParser parser = new JsonParser();
-                JsonElement element = parser.parse(resStr);
-                JsonObject resJson = element.getAsJsonObject();
-                if (resJson != null && resJson.has("message")) {
-                    printStream.println("[IBM Cloud DevOps] Failed to get a decision data, response status " + statusCode
-                            + ", Reason: " + resJson.get("message"));
-                }
-            }
-        } catch (JsonSyntaxException e) {
-            printStream.println("[IBM Cloud DevOps] Invalid Json response, response: " + resStr);
-        }
-        return null;
     }
 
     // Overridden for better type safety.
@@ -708,10 +597,10 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             String targetAPI = chooseTargetAPI(environment);
             String iamAPI = chooseIAMAPI(environment);
             try {
-                if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
+                if (!credentialsId.equals(preCredentials) || isNullOrEmpty(bluemixToken)) {
                     preCredentials = credentialsId;
                     StandardCredentials credentials = findCredentials(credentialsId, context);
-                    bluemixToken = getTokenForTestConnection(credentials, iamAPI, targetAPI);
+                    bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, printStream);
                 }
                 return FormValidation.okWithMarkup(getMessage(TEST_CONNECTION_SUCCEED));
             } catch (Exception e) {
@@ -772,9 +661,9 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             String iamAPI = chooseIAMAPI(environment);
             try {
                 // if user changes to a different credential, need to get a new token
-                if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
+                if (!credentialsId.equals(preCredentials) || isNullOrEmpty(bluemixToken)) {
                     StandardCredentials credentials = findCredentials(credentialsId, context);
-                    bluemixToken = getTokenForTestConnection(credentials, iamAPI, targetAPI);
+                    bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, printStream);
                     preCredentials = credentialsId;
                 }
             } catch (Exception e) {
@@ -814,11 +703,11 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
          */
         public ListBoxModel fillTestType() {
             ListBoxModel model = new ListBoxModel();
-            model.add("Unit Test", "unittest");
-            model.add("Functional Verification Test", "fvt");
-            model.add("Code Coverage", "code");
-            model.add("Static Security Scan", "staticsecurityscan");
-            model.add("Dynamic Security Scan", "dynamicsecurityscan");
+            model.add(getMessage(UNIT_TEST), "unittest");
+            model.add(getMessage(FVT), "fvt");
+            model.add(getMessage(CODE_COVERAGE), "code");
+            model.add(getMessage(STATIC_SCAN), "staticsecurityscan");
+            model.add(getMessage(DYNAMIC_SCAN), "dynamicsecurityscan");
             return model;
         }
 

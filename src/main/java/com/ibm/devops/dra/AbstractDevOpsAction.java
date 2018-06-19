@@ -14,8 +14,6 @@
 
 package com.ibm.devops.dra;
 
-import com.cloudbees.plugins.credentials.CredentialsMatchers;
-import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.google.common.collect.ImmutableMap;
@@ -25,17 +23,11 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.ibm.devops.dra.steps.AbstractDevOpsStep;
 import hudson.EnvVars;
-import hudson.ProxyConfiguration;
 import hudson.model.*;
-import hudson.security.ACL;
 import hudson.tasks.Recorder;
 import hudson.util.ListBoxModel;
-import hudson.util.Secret;
-import jenkins.model.Jenkins;
-import org.apache.http.HttpHost;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -58,15 +50,14 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.*;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 import static com.ibm.devops.dra.UIMessages.*;
+import static com.ibm.devops.dra.Util.*;
 
 /**
  * Abstract DRA Builder to share common method between two different post-build actions
  */
 public abstract class AbstractDevOpsAction extends Recorder {
-
     public final static Logger LOGGER = Logger.getLogger(AbstractDevOpsAction.class.getName());
     public final static String APP_NAME = "IBM_CLOUD_DEVOPS_APP_NAME";
     public final static String TOOLCHAIN_ID = "IBM_CLOUD_DEVOPS_TOOLCHAIN_ID";
@@ -75,11 +66,12 @@ public abstract class AbstractDevOpsAction extends Recorder {
     public final static String API_KEY = "IBM_CLOUD_DEVOPS_API_KEY";
     public final static String RESULT_SUCCESS = "SUCCESS";
     public final static String RESULT_FAIL = "FAIL";
-    
+    private final static String CONTENT_TYPE_JSON = "application/json";
     private final static String ORG = "&&organization_guid:";
     private final static String SPACE = "&&space_guid:";
     private final static String IAM_GRANT_TYPE = "urn:ibm:params:oauth:grant-type:apikey";
     private final static String IAM_RESPONSE_TYPE = "cloud_iam";
+    private static final String REPORT_URL_PART = "decisionreport?toolchainId=";
 
 
     private static Map<String, String> TARGET_API_MAP = ImmutableMap.of(
@@ -99,13 +91,13 @@ public abstract class AbstractDevOpsAction extends Recorder {
             "dev", "https://api.stage1.ng.bluemix.net/v2/organizations?q=name:",
             "stage1", "https://api.stage1.ng.bluemix.net/v2/organizations?q=name:"
     );
-    
+
     private static Map<String, String> SPACES_URL_MAP = ImmutableMap.of(
             "production", "https://api.ng.bluemix.net/v2/spaces?q=name:",
             "dev", "https://api.stage1.ng.bluemix.net/v2/spaces?q=name:",
             "stage1", "https://api.stage1.ng.bluemix.net/v2/spaces?q=name:"
     );
-    
+
     private static Map<String, String> APPS_URL_MAP = ImmutableMap.of(
             "production", "https://api.ng.bluemix.net/v2/apps?q=name:",
             "dev", "https://api.stage1.ng.bluemix.net/v2/apps?q=name:",
@@ -136,23 +128,14 @@ public abstract class AbstractDevOpsAction extends Recorder {
             "stage1", "https://console.stage1.ng.bluemix.net/devops/insights/#!/"
     );
 
-    public static void printPluginVersion(ClassLoader loader, PrintStream printStream) {
-        final Properties properties = new Properties();
-        try {
-            properties.load(loader.getResourceAsStream("plugin.properties"));
-            printStream.println("[IBM Cloud DevOps] version: " + properties.getProperty("version"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+
 
     /**
      * get the environment based on the console
      * @param consoleUrl
      */
     public static String getEnv(String consoleUrl) {
-
-        if (Util.isNullOrEmpty(consoleUrl)) {
+        if (isNullOrEmpty(consoleUrl)) {
             return "production";
         } else if (consoleUrl.contains("dev-console.stage1.bluemix.net") || consoleUrl.contains("dev-console.stage1.ng.bluemix.net")) {
             return "dev";
@@ -176,10 +159,10 @@ public abstract class AbstractDevOpsAction extends Recorder {
      */
     public static HashMap<String, String> setRequiredEnvVars(AbstractDevOpsStep step, EnvVars envVars) {
         HashMap<String, String> requiredEnvVars = new HashMap<>();
-        requiredEnvVars.put(APP_NAME, Util.isNullOrEmpty(step.getApplicationName()) ? envVars.get(APP_NAME) : step.getApplicationName());
-        requiredEnvVars.put(TOOLCHAIN_ID, Util.isNullOrEmpty(step.getToolchainId()) ? envVars.get(TOOLCHAIN_ID) : step.getToolchainId());
+        requiredEnvVars.put(APP_NAME, isNullOrEmpty(step.getApplicationName()) ? envVars.get(APP_NAME) : step.getApplicationName());
+        requiredEnvVars.put(TOOLCHAIN_ID, isNullOrEmpty(step.getToolchainId()) ? envVars.get(TOOLCHAIN_ID) : step.getToolchainId());
 
-        if (Util.isNullOrEmpty(envVars.get(API_KEY))) {
+        if (isNullOrEmpty(envVars.get(API_KEY))) {
             requiredEnvVars.put(USERNAME, envVars.get(USERNAME));
             requiredEnvVars.put(PASSWORD, envVars.get(PASSWORD));
         } else {
@@ -189,7 +172,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
     }
 
     public static String chooseTargetAPI(String environment) {
-        if (!Util.isNullOrEmpty(environment)) {
+        if (!isNullOrEmpty(environment)) {
             if (TARGET_API_MAP.keySet().contains(environment)) {
                 return TARGET_API_MAP.get(environment);
             } else {
@@ -201,7 +184,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
     }
 
     public static String chooseIAMAPI(String environment) {
-        if (!Util.isNullOrEmpty(environment)) {
+        if (!isNullOrEmpty(environment)) {
             if (IAM_API_MAP.keySet().contains(environment)) {
                 return IAM_API_MAP.get(environment);
             } else {
@@ -213,7 +196,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
     }
 
     public static String chooseOrganizationsUrl(String environment) {
-        if (!Util.isNullOrEmpty(environment)) {
+        if (!isNullOrEmpty(environment)) {
             if (ORGANIZATIONS_URL_MAP.keySet().contains(environment)) {
                 return ORGANIZATIONS_URL_MAP.get(environment);
             } else {
@@ -223,9 +206,9 @@ public abstract class AbstractDevOpsAction extends Recorder {
         }
         return ORGANIZATIONS_URL_MAP.get("production");
     }
-    
+
     public static String chooseSpacesUrl(String environment) {
-        if (!Util.isNullOrEmpty(environment)) {
+        if (!isNullOrEmpty(environment)) {
             if (SPACES_URL_MAP.keySet().contains(environment)) {
                 return SPACES_URL_MAP.get(environment);
             } else {
@@ -236,9 +219,9 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
         return SPACES_URL_MAP.get("production");
     }
-    
+
     public static String chooseAppsUrl(String environment) {
-        if (!Util.isNullOrEmpty(environment)) {
+        if (!isNullOrEmpty(environment)) {
             if (APPS_URL_MAP.keySet().contains(environment)) {
                 return APPS_URL_MAP.get(environment);
             } else {
@@ -250,7 +233,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
     }
 
     public static String choosePoliciesUrl(String environment) {
-        if (!Util.isNullOrEmpty(environment)) {
+        if (!isNullOrEmpty(environment)) {
             if (POLICIES_URL_MAP.keySet().contains(environment)) {
                 return POLICIES_URL_MAP.get(environment);
             } else {
@@ -261,14 +244,13 @@ public abstract class AbstractDevOpsAction extends Recorder {
         return POLICIES_URL_MAP.get("production");
     }
 
-
     /**
      * choose DLMS Url for different environment (production, stage1, new, dev)
      * @param environment
      * @return
      */
     public static String chooseDLMSUrl(String environment) {
-        if (!Util.isNullOrEmpty(environment)) {
+        if (!isNullOrEmpty(environment)) {
             if (DLMS_ENV_MAP.keySet().contains(environment)) {
                 return DLMS_ENV_MAP.get(environment);
             } else {
@@ -285,7 +267,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
      * @return
      */
     public static String chooseDRAUrl(String environment) {
-        if (!Util.isNullOrEmpty(environment)) {
+        if (!isNullOrEmpty(environment)) {
             if (GATE_DECISION_ENV_MAP.keySet().contains(environment)) {
                 return GATE_DECISION_ENV_MAP.get(environment);
             } else {
@@ -302,7 +284,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
      * @return
      */
     public static String chooseControlCenterUrl(String environment) {
-        if (!Util.isNullOrEmpty(environment)) {
+        if (!isNullOrEmpty(environment)) {
             if (CONTROL_CENTER_ENV_MAP.keySet().contains(environment)) {
                 return CONTROL_CENTER_ENV_MAP.get(environment);
             } else {
@@ -314,89 +296,6 @@ public abstract class AbstractDevOpsAction extends Recorder {
     }
 
     /**
-     * check if the root url in the jenkins is set correctly
-     * @param printStream
-     * @return
-     */
-    public static boolean checkRootUrl(PrintStream printStream) {
-        if (Util.isNullOrEmpty(Jenkins.getInstance().getRootUrl())) {
-            printStream.println(getMessage(PROJECT_URL_MISSED));
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * given the username and password, get the UAA token
-     * @param username
-     * @param password
-     * @param targetAPI
-     * @return
-     * @throws MalformedURLException
-     * @throws CloudFoundryException
-     */
-    public static String getBluemixToken(String username, String password, String targetAPI, PrintStream printStream) throws MalformedURLException, CloudFoundryException {
-        try {
-            CloudCredentials cloudCredentials = new CloudCredentials(username, password);
-            URL url = new URL(targetAPI);
-            HttpProxyConfiguration configuration = buildProxyConfiguration(url);
-
-            CloudFoundryClient client = new CloudFoundryClient(cloudCredentials, url, configuration, true);
-            if (printStream != null) {
-                printStream.println(getMessageWithPrefix(USERNAME_PASSWORD_DEPRECATED));
-                printStream.println(getMessageWithPrefix(LOGIN_IN_SUCCEED));
-            }
-            return "bearer " + client.login().toString();
-        } catch (MalformedURLException e) {
-            throw e;
-        } catch (CloudFoundryException e) {
-            throw e;
-        }
-    }
-
-    /**
-     * find Jenkins credential in the runtime
-     * @param credentialsId
-     * @param context
-     * @return
-     * @throws Exception
-     */
-    public static StandardCredentials findCredentials(String credentialsId, Job context) throws Exception {
-        List<StandardCredentials> standardCredentials = CredentialsProvider.lookupCredentials(
-                StandardCredentials.class,
-                context,
-                ACL.SYSTEM);
-
-        StandardCredentials credentials =
-                CredentialsMatchers.firstOrNull(standardCredentials, CredentialsMatchers.withId(credentialsId));
-
-        if (credentials == null)
-            throw new Exception("Failed to get Credentials");
-        return credentials;
-    }
-
-    /**
-     * find Jenkins credentials in the UI configuration
-     * @param credentialsId
-     * @param context
-     * @return
-     * @throws Exception
-     */
-    public static StandardCredentials findCredentials(String credentialsId, ItemGroup context) throws Exception {
-        List<StandardCredentials> standardCredentials = CredentialsProvider.lookupCredentials(
-                StandardCredentials.class,
-                context,
-                ACL.SYSTEM);
-
-        StandardCredentials credentials =
-                CredentialsMatchers.firstOrNull(standardCredentials, CredentialsMatchers.withId(credentialsId));
-
-        if (credentials == null)
-            throw new Exception("Failed to get Credentials");
-        return credentials;
-    }
-
-    /**
      * get IAM or UAA token based on the credentials id, only used by freestyle job's test connection
      * @param iamAPI
      * @param targetAPI
@@ -404,69 +303,25 @@ public abstract class AbstractDevOpsAction extends Recorder {
      * @return IAM token when user is using apikey, otherwise return UAA token
      * @throws Exception
      */
-    public static String getTokenForTestConnection(StandardCredentials credentials, String iamAPI, String targetAPI) throws Exception {
+    public static String getTokenForFreeStyleJob(StandardCredentials credentials, String iamAPI, String targetAPI, PrintStream printStream) throws Exception {
         try {
             if (credentials instanceof StandardUsernamePasswordCredentials) {
                 // if it is the Jenkins username/password type
                 StandardUsernamePasswordCredentials c = (StandardUsernamePasswordCredentials) credentials;
                 if (c.getUsername().equals("apikey")) {
                     // user is using apikey, get IAM token
-                    return getIAMToken(Secret.toString(c.getPassword()), iamAPI, null);
+                    return getIAMToken(c.getPassword().getPlainText(), iamAPI, printStream);
                 } else {
                     // user is using username/pw, get UAA token
-                    return getBluemixToken(c.getUsername(), c.getPassword().getPlainText(), targetAPI, null);
+                    return getBluemixToken(c.getUsername(), c.getPassword().getPlainText(), targetAPI, printStream);
                 }
             } else {
                 // if it is the standard type
                 StringCredentialsImpl value = (StringCredentialsImpl) credentials;
-                return getIAMToken(value.getSecret().getPlainText(), iamAPI, null);
+                return getIAMToken(value.getSecret().getPlainText(), iamAPI, printStream);
             }
-        } catch (MalformedURLException | CloudFoundryException e) {
-            e.printStackTrace();
-            throw e;
-        }
-    }
-
-    /**
-     * get IAM token using API key
-     * @param apikey
-     * @param iamAPI
-     * @return
-     * @throws Exception
-     */
-    public static String getIAMToken(String apikey, String iamAPI, PrintStream printStream) throws Exception {
-        try {
-            CloseableHttpClient httpClient = HttpClients.createDefault();
-            HttpPost post = new HttpPost(iamAPI);
-            post = addProxyInformation(post);
-            post.addHeader("Content-Type", "application/x-www-form-urlencoded");
-            post.addHeader("Accept", "application/json");
-
-            List<NameValuePair> params = new ArrayList<>();
-            params.add(new BasicNameValuePair("grant_type", IAM_GRANT_TYPE));
-            params.add(new BasicNameValuePair("response_type", IAM_RESPONSE_TYPE));
-            params.add(new BasicNameValuePair("apikey", apikey));
-            post.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
-
-            CloseableHttpResponse response = httpClient.execute(post);
-            String res = EntityUtils.toString(response.getEntity());
-
-            if (response.getStatusLine().toString().contains("200")) {
-                //get 200 response
-                JsonParser parser = new JsonParser();
-                JsonElement element = parser.parse(res);
-                JsonObject obj = element.getAsJsonObject();
-                if (obj != null && obj.has("access_token")) {
-                    if (printStream != null) {
-                        printStream.println(getMessageWithPrefix(LOGIN_IN_SUCCEED));
-                    }
-                    return "Bearer " + obj.get("access_token").toString().replace("\"", "");
-                }
-            }
-            throw new Exception("fail to get IAM token, return " + response.getStatusLine());
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw e;
+        } catch (Exception e) {
+            throw new Exception(getMessage(LOGIN_IN_FAIL) + e.getMessage());
         }
     }
 
@@ -482,14 +337,14 @@ public abstract class AbstractDevOpsAction extends Recorder {
      * @throws Exception
      */
     public static String getIBMCloudToken(String credentialsId, String apikey, String username, String password, String env, Job context, PrintStream printStream) throws Exception {
-        String bluemixToken = "";
+        String bluemixToken;
         String targetAPI = chooseTargetAPI(env);
         String iamAPI = chooseIAMAPI(env);
 
         try {
-            if (Util.isNullOrEmpty(credentialsId)) {
+            if (isNullOrEmpty(credentialsId)) {
                 // pipeline script
-                if (Util.isNullOrEmpty(apikey)) {
+                if (isNullOrEmpty(apikey)) {
                     // user is still using username/password in the pipeline
                     bluemixToken = getBluemixToken(username, password, targetAPI, printStream);
                 } else {
@@ -498,70 +353,92 @@ public abstract class AbstractDevOpsAction extends Recorder {
             } else {
                 // freestyle job, find the credential and then get the token
                 StandardCredentials credentials = findCredentials(credentialsId, context);
-                if (credentials instanceof StandardUsernamePasswordCredentials) {
-                    // if it is the Jenkins username/password type
-                    StandardUsernamePasswordCredentials c = (StandardUsernamePasswordCredentials) credentials;
-                    if (c.getUsername().equals("apikey")) {
-                        // user is using apikey, get IAM token
-                        bluemixToken = getIAMToken(Secret.toString(c.getPassword()), iamAPI, printStream);
-                    } else {
-                        // user is using username/pw, get UAA token
-                        bluemixToken = getBluemixToken(c.getUsername(), c.getPassword().getPlainText(), targetAPI, printStream);
-                    }
-                } else {
-                    // if it is the standard type
-                    StringCredentialsImpl value = (StringCredentialsImpl) credentials;
-                    bluemixToken = getIAMToken(value.getSecret().getPlainText(), iamAPI, printStream);
-                }
+                bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, printStream);
             }
-
             return bluemixToken;
         } catch (Exception e) {
-            if (printStream != null) {
-                printStream.println(getMessageWithPrefix(LOGIN_IN_FAIL));
-                printStream.println(getPrefix() + e.toString());
-            }
-            throw new Exception();
+            throw new Exception(getMessage(LOGIN_IN_FAIL) + e.getMessage());
         }
     }
 
     /**
-     * build proxy for cloud foundry http connection
-     * @param targetURL - target API URL
-     * @return the full target URL
+     * given the username and password, get the UAA token
+     * @param username
+     * @param password
+     * @param targetAPI
+     * @return
+     * @throws MalformedURLException
+     * @throws CloudFoundryException
      */
-    private static HttpProxyConfiguration buildProxyConfiguration(URL targetURL) {
-        ProxyConfiguration proxyConfig = Jenkins.getInstance().proxy;
-        if (proxyConfig == null) {
-            return null;
-        }
+    public static String getBluemixToken(String username, String password, String targetAPI, PrintStream printStream) throws MalformedURLException, CloudFoundryException {
+        CloudCredentials cloudCredentials = new CloudCredentials(username, password);
+        URL url = new URL(targetAPI);
+        HttpProxyConfiguration configuration = buildProxyConfiguration(url);
 
-        String host = targetURL.getHost();
-        for (Pattern p : proxyConfig.getNoProxyHostPatterns()) {
-            if (p.matcher(host).matches()) {
-                return null;
-            }
+        CloudFoundryClient client = new CloudFoundryClient(cloudCredentials, url, configuration, true);
+        if (printStream != null) {
+            printStream.println(getMessageWithPrefix(USERNAME_PASSWORD_DEPRECATED));
+            printStream.println(getMessageWithPrefix(LOGIN_IN_SUCCEED));
         }
-
-        return new HttpProxyConfiguration(proxyConfig.name, proxyConfig.port);
+        return "bearer " + client.login().toString();
     }
 
     /**
-     * get the root project
-     * @param job - the source job
-     * @return the root project
+     * get IAM token using API key
+     * @param apikey
+     * @param iamAPI
+     * @return
+     * @throws Exception
      */
-    private static Job<?, ?> getRootProject(Job<?, ?> job) {
-        if (job instanceof AbstractProject) {
-            return ((AbstractProject<?,?>)job).getRootProject();
-        } else {
-            return job;
+    public static String getIAMToken(String apikey, String iamAPI, PrintStream printStream) throws Exception {
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+        HttpPost post = new HttpPost(iamAPI);
+        post = addProxyInformation(post);
+        post.addHeader("Content-Type", "application/x-www-form-urlencoded");
+        post.addHeader("Accept", "application/json");
+
+        List<NameValuePair> params = new ArrayList<>();
+        params.add(new BasicNameValuePair("grant_type", IAM_GRANT_TYPE));
+        params.add(new BasicNameValuePair("response_type", IAM_RESPONSE_TYPE));
+        params.add(new BasicNameValuePair("apikey", apikey));
+        post.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
+
+        CloseableHttpResponse response = httpClient.execute(post);
+        String res = EntityUtils.toString(response.getEntity());
+
+        if (response.getStatusLine().toString().contains("200")) {
+            //get 200 response
+            JsonParser parser = new JsonParser();
+            JsonElement element = parser.parse(res);
+            JsonObject obj = element.getAsJsonObject();
+            if (obj != null && obj.has("access_token")) {
+                if (printStream != null) {
+                    printStream.println(getMessageWithPrefix(LOGIN_IN_SUCCEED));
+                }
+                return "Bearer " + obj.get("access_token").toString().replace("\"", "");
+            }
         }
+        throw new Exception(getMessage(FAIL_TO_GET_API_TOKEN) + response.getStatusLine());
     }
 
-    // retrieve the "folder" (jenkins root if no folder used) for this build
-    private static ItemGroup getItemGroup(Run<?, ?> build) {
-        return getRootProject(build.getParent()).getParent();
+    /**
+     * set DLMS endpoint url to upload data to DLMS
+     * @param baseUrl
+     * @param toolchainId
+     * @param appName
+     * @param buildId
+     * @return
+     * @throws UnsupportedEncodingException
+     */
+    public static String setDLMSUrl(String baseUrl, String toolchainId, String appName, String buildId) throws UnsupportedEncodingException {
+        String url = baseUrl;
+        url = url.replace("{toolchain_id}", URLEncoder.encode(toolchainId, "UTF-8").replaceAll("\\+", "%20"));
+        url = url.replace("{build_artifact}", URLEncoder.encode(appName, "UTF-8").replaceAll("\\+", "%20"));
+        if (!isNullOrEmpty(buildId)) {
+            url = url.replace("{build_id}", URLEncoder.encode(buildId, "UTF-8").replaceAll("\\+", "%20"));
+        }
+
+        return url;
     }
 
     /**
@@ -576,109 +453,15 @@ public abstract class AbstractDevOpsAction extends Recorder {
         Run triggeredBuild = getTriggeredBuild(build, jobName, envVars, printStream);
         if (triggeredBuild == null) {
             //failed to find the build job
-            printStream.print(getMessageWithPrefix(FAILED_TO_FIND_BUILD_JOB));
-            throw new Exception();
+            throw new Exception(getMessage(FAIL_TO_FIND_BUILD_JOB));
         } else {
-            String buildJobName = Util.isNullOrEmpty(jobName) ? envVars.get("JOB_NAME") : jobName;
+            String buildJobName = isNullOrEmpty(jobName) ? envVars.get("JOB_NAME") : jobName;
             return constructBuildNumber(buildJobName, triggeredBuild);
         }
     }
 
     /**
-     * Recursive function to locate the triggered build
-     * @param job - the target job
-     * @param parent - the current job
-     * @return the specific build of the target job
-     */
-    private static Run<?,?> getBuild(Job<?,?> job, Run<?,?> parent) {
-        Run<?,?> result = null;
-
-        // Upstream job for matrix will be parent project, not only individual configuration:
-        List<String> jobNames = new ArrayList<>();
-        jobNames.add(job.getFullName());
-        if ((job instanceof AbstractProject<?,?>) && ((AbstractProject<?,?>)job).getRootProject() != job) {
-            jobNames.add(((AbstractProject<?,?>)job).getRootProject().getFullName());
-        }
-
-        List<Run<?, ?>> upstreamBuilds = new ArrayList<>();
-
-        for (Cause cause: parent.getCauses()) {
-            if (cause instanceof Cause.UpstreamCause) {
-                Cause.UpstreamCause upstream = (Cause.UpstreamCause) cause;
-                Run<?, ?> upstreamRun = upstream.getUpstreamRun();
-                if (upstreamRun != null) {
-                    upstreamBuilds.add(upstreamRun);
-                }
-            }
-        }
-
-        if (parent instanceof AbstractBuild) {
-            AbstractBuild<?, ?> parentBuild = (AbstractBuild<?,?>)parent;
-
-            Map<AbstractProject, Integer> parentUpstreamBuilds = parentBuild.getUpstreamBuilds();
-            for (Map.Entry<AbstractProject, Integer> buildEntry : parentUpstreamBuilds.entrySet()) {
-                upstreamBuilds.add(buildEntry.getKey().getBuildByNumber(buildEntry.getValue()));
-            }
-        }
-
-        for (Run<?, ?> upstreamBuild : upstreamBuilds) {
-            Run<?,?> run;
-
-            if(upstreamBuild == null) {
-                continue;
-            }
-            if (jobNames.contains(upstreamBuild.getParent().getFullName())) {
-                // Use the 'job' parameter instead of directly the 'upstreamBuild', because of Matrix jobs.
-                run = job.getBuildByNumber(upstreamBuild.getNumber());
-            } else {
-                // Figure out the parent job and do a recursive call to getBuild
-                run = getBuild(job, upstreamBuild);
-            }
-
-            if (run != null){
-                if ((result == null) || (result.getNumber() > run.getNumber())) {
-                    result = run;
-                }
-            }
-
-        }
-
-        return result;
-    }
-
-    /**
-     * locate triggered build
-     * @param build - the current running build of this job
-     * @param name - the build job name that you are going to locate
-     * @return
-     */
-    public static Run<?,?> getTriggeredBuild(Run build, String name, EnvVars envVars, PrintStream printStream) {
-        // if user specify the build job as current job or leave it empty
-        if (name == null || name.isEmpty() || name.equals(build.getParent().getName())) {
-            printStream.println("[IBM Cloud DevOps] Current job is the build job");
-            return build;
-        } else {
-            name = envVars.expand(name);
-            Job<?, ?> job = Jenkins.getInstance().getItem(name, getItemGroup(build), Job.class);
-            if (job != null) {
-                Run src = getBuild(job, build);
-                if (src == null) {
-                    // if user runs the test job independently
-                    printStream.println("[IBM Cloud DevOps] Are you running the test job independently? Use the last successful build of the build job");
-                    src = job.getLastSuccessfulBuild();
-                }
-
-                return src;
-            } else {
-                // if user does not specify the build job or can not find the build job that user specifies
-                printStream.println("[IBM Cloud DevOps] ERROR: Failed to find the build job, please check the build job name");
-                return null;
-            }
-        }
-    }
-
-    /**
-     * Get the build number
+     * construct the build number, format will be the jobName:buildNumber
      * @param build
      * @return
      */
@@ -691,6 +474,22 @@ public abstract class AbstractDevOpsAction extends Recorder {
         s.close();
         String buildNumber = jName + ":" + build.getNumber();
         return buildNumber;
+    }
+
+    /**
+     * expand the env var and check if it is a required var
+     * @param key
+     * @param envVars
+     * @param isRequired
+     * @return
+     * @throws Exception
+     */
+    public static String expandVariable(String key, EnvVars envVars, boolean isRequired) throws Exception {
+        String val = envVars.expand(key);
+        if (isRequired && isNullOrEmpty(val)) {
+            throw new Exception(getMessage(MISS_CONFIGURATIONS));
+        }
+        return val;
     }
 
     public static String getOrgId(String token, String orgName, String environment, Boolean debug_mode) {
@@ -715,7 +514,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
                 LOGGER.info("RESPONSE FROM ORGANIZATIONS API:" + response.getStatusLine().toString());
             }
             if (response.getStatusLine().toString().contains("200")) {
-                // get 200 response
+
                 JsonParser parser = new JsonParser();
                 JsonElement element = parser.parse(resStr);
                 JsonObject obj = element.getAsJsonObject();
@@ -772,7 +571,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
                 LOGGER.info("RESPONSE FROM SPACES API:" + response.getStatusLine().toString());
             }
             if (response.getStatusLine().toString().contains("200")) {
-                // get 200 response
+
                 JsonParser parser = new JsonParser();
                 JsonElement element = parser.parse(resStr);
                 JsonObject obj = element.getAsJsonObject();
@@ -806,7 +605,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
         return null;
     }
-    
+
     public static String getAppId(String token, String appName, String orgName, String spaceName, String environment, Boolean debug_mode) {
         CloseableHttpClient httpClient = HttpClients.createDefault();
         String apps_url = chooseAppsUrl(environment);
@@ -829,7 +628,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
                 LOGGER.info("RESPONSE FROM APPS API:" + response.getStatusLine().toString());
             }
             if (response.getStatusLine().toString().contains("200")) {
-                // get 200 response
+
                 JsonParser parser = new JsonParser();
                 JsonElement element = parser.parse(resStr);
                 JsonObject obj = element.getAsJsonObject();
@@ -876,9 +675,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
      * @param debug_mode
      * @return
      */
-
     public static ListBoxModel getPolicyList(String token, String toolchainId, String environment, Boolean debug_mode) {
-
         // get all jenkins job
         ListBoxModel emptybox = new ListBoxModel();
         emptybox.add("","empty");
@@ -886,29 +683,22 @@ public abstract class AbstractDevOpsAction extends Recorder {
 
         try {
             url = url.replace("{toolchain_name}", URLEncoder.encode(toolchainId, "UTF-8").replaceAll("\\+", "%20"));
-            if(debug_mode){
-                LOGGER.info("GET POLICIES URL:" + url);
-            }
-
             CloseableHttpClient httpClient = HttpClients.createDefault();
             HttpGet httpGet = new HttpGet(url);
-
             httpGet = addProxyInformation(httpGet);
-
             httpGet.setHeader("Authorization", token);
-            CloseableHttpResponse response = null;
-            response = httpClient.execute(httpGet);
+            CloseableHttpResponse response = httpClient.execute(httpGet);
             String resStr = EntityUtils.toString(response.getEntity());
 
             if(debug_mode){
+                LOGGER.info("GET POLICIES URL:" + url);
                 LOGGER.info("RESPONSE FROM GET POLICIES URL:" + response.getStatusLine().toString());
             }
-            if (response.getStatusLine().toString().contains("200")) {
-                // get 200 response
+            if (response.getStatusLine().getStatusCode() == 200) {
+
                 JsonParser parser = new JsonParser();
                 JsonElement element = parser.parse(resStr);
                 JsonArray jsonArray = element.getAsJsonArray();
-
                 ListBoxModel model = new ListBoxModel();
 
                 for (int i = 0; i < jsonArray.size(); i++) {
@@ -927,15 +717,102 @@ public abstract class AbstractDevOpsAction extends Recorder {
                 }
                 return emptybox;
             }
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        } catch (ClientProtocolException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
-
         return emptybox;
+    }
+
+    /**
+     * Get gate decision from DevOps Insights
+     * @param bluemixToken
+     * @param buildId
+     * @param applicationName
+     * @param toolchainId
+     * @param environmentName
+     * @param draUrl
+     * @param policyName
+     * @param printStream
+     * @return
+     * @throws IOException
+     */
+    public static JsonObject getDecisionFromDRA(String bluemixToken, String buildId, String applicationName, String toolchainId,
+                                                String environmentName, String draUrl, String policyName, PrintStream printStream) throws IOException {
+        // create http client and post method
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+
+        String url = draUrl;
+        url = url + "/toolchainids/" + toolchainId +
+                "/buildartifacts/" + URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20") +
+                "/builds/" + buildId +
+                "/policies/" + URLEncoder.encode(policyName, "UTF-8").replaceAll("\\+", "%20") +
+                "/decisions";
+        if (!Util.isNullOrEmpty(environmentName)) {
+            url = url.concat("?environment_name=" + environmentName);
+        }
+
+        HttpPost postMethod = new HttpPost(url);
+        postMethod = addProxyInformation(postMethod);
+        postMethod.setHeader("Authorization", bluemixToken);
+        postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);
+        CloseableHttpResponse response = httpClient.execute(postMethod);
+        String resStr = EntityUtils.toString(response.getEntity());
+
+        int statusCode = response.getStatusLine().getStatusCode();
+        if (statusCode == 200) {
+            JsonParser parser = new JsonParser();
+            JsonElement element = parser.parse(resStr);
+            JsonObject resJson = element.getAsJsonObject();
+            printStream.println(getMessageWithPrefix(GET_DECISION_SUCCESS));
+            return resJson;
+        } else if (statusCode == 401 || statusCode == 403) {
+            // if gets 401 or 403, it returns html
+            printStream.println(getMessageWithVar(FAIL_TO_GET_DECISION, String.valueOf(statusCode), toolchainId));
+        } else {
+            JsonParser parser = new JsonParser();
+            JsonElement element = parser.parse(resStr);
+            JsonObject resJson = element.getAsJsonObject();
+            if (resJson != null && resJson.has("message")) {
+                printStream.println(getMessageWithVar(FAIL_TO_GET_DECISION_WITH_REASON, String.valueOf(statusCode), resJson.get("message").getAsString()));
+            }
+        }
+        return null;
+    }
+
+    /**
+     * publish the decision to Jenkins UI and fail the build/job/pipeline if needed
+     * @param obj
+     * @param build
+     * @param reportUrl
+     * @param ccUrl
+     * @param policyName
+     * @param willDisrupt
+     * @param printStream
+     */
+    public static void publishDecision(JsonObject obj, Run build, String reportUrl, String ccUrl, String policyName,
+                                       boolean willDisrupt, PrintStream printStream) {
+        // retrieve the decision id to compose the report link
+        String decisionId = String.valueOf(obj.get("decision_id"));
+        decisionId = decisionId.replace("\"","");
+
+        // Show Proceed or Failed based on the decision
+        String decision = String.valueOf(obj.get("contents").getAsJsonObject().get("proceed"));
+        if (decision.equals("true")) {
+            decision = "Pass";
+        } else {
+            decision = "Fail";
+        }
+
+        String url = reportUrl + decisionId;
+        GatePublisherAction action = new GatePublisherAction(url, ccUrl, decision, policyName, build);
+        build.addAction(action);
+        printStream.println(getMessageWithVar(DECISION_REPORT, reportUrl, ccUrl, decision));
+
+        // Stop the build
+        if (willDisrupt && decision.equals("Fail")) {
+            Result result = Result.FAILURE;
+            build.setResult(result);
+        }
     }
 
     /**
@@ -945,62 +822,34 @@ public abstract class AbstractDevOpsAction extends Recorder {
      * @param buildId - the build number of the build job in the Jenkins
      */
     public static void passEnvToNextBuildStep (Run build, final String bluemixToken, final String buildId) {
-
         build.addAction(new EnvironmentContributingAction() {
-                            @Override
-                            public String getIconFileName() {
-                                return null;
-                            }
+                @Override
+                public String getIconFileName() {
+                    return null;
+                }
 
-                            @Override
-                            public String getDisplayName() {
-                                return null;
-                            }
+                @Override
+                public String getDisplayName() {
+                    return null;
+                }
 
-                            @Override
-                            public String getUrlName() {
-                                return null;
-                            }
+                @Override
+                public String getUrlName() {
+                    return null;
+                }
 
-                            public void buildEnvVars(AbstractBuild<?, ?> build, EnvVars envVars) {
-                                if (envVars != null) {
-                                    if (!Util.isNullOrEmpty(bluemixToken)) {
-                                        envVars.put("DI_BM_TOKEN", bluemixToken);
-                                    }
-
-                                    if (!Util.isNullOrEmpty(buildId)) {
-                                        envVars.put("DI_BUILD_ID", buildId);
-                                    }
-                                }
-                            }
+                public void buildEnvVars(AbstractBuild<?, ?> build, EnvVars envVars) {
+                    if (envVars != null) {
+                        if (!isNullOrEmpty(bluemixToken)) {
+                            envVars.put("DI_BM_TOKEN", bluemixToken);
                         }
+
+                        if (!isNullOrEmpty(buildId)) {
+                            envVars.put("DI_BUILD_ID", buildId);
+                        }
+                    }
+                }
+            }
         );
     }
-
-    public static HttpGet addProxyInformation (HttpGet instance) {
-        /* Add proxy to request if proxy settings in Jenkins UI are set. */
-        ProxyConfiguration proxyConfig = Jenkins.getInstance().proxy;
-        if(proxyConfig != null){
-            if((!Util.isNullOrEmpty(proxyConfig.name)) && proxyConfig.port != 0) {
-                HttpHost proxy = new HttpHost(proxyConfig.name, proxyConfig.port, "http");
-                RequestConfig config = RequestConfig.custom().setProxy(proxy).build();
-                instance.setConfig(config);
-            }
-        }
-        return instance;
-    }
-
-    public static HttpPost addProxyInformation (HttpPost instance) {
-        /* Add proxy to request if proxy settings in Jenkins UI are set. */
-        ProxyConfiguration proxyConfig = Jenkins.getInstance().proxy;
-        if(proxyConfig != null){
-            if((!Util.isNullOrEmpty(proxyConfig.name)) && proxyConfig.port != 0) {
-                HttpHost proxy = new HttpHost(proxyConfig.name, proxyConfig.port, "http");
-                RequestConfig config = RequestConfig.custom().setProxy(proxy).build();
-                instance.setConfig(config);
-            }
-        }
-        return instance;
-    }
-
 }

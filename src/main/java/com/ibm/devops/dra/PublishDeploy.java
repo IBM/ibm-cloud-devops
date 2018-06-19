@@ -19,7 +19,10 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
-import com.google.gson.*;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
@@ -33,7 +36,6 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
@@ -43,25 +45,23 @@ import org.apache.http.util.EntityUtils;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
+
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.TimeZone;
-
+import static com.ibm.devops.dra.Util.*;
 import static com.ibm.devops.dra.UIMessages.*;
 
 public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildStep {
-
-	private static String DEPLOYMENT_API_URL = "/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/deployments";
+	private static final String DEPLOYMENT_API_URL = "/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/deployments";
+	private static final String CONTROL_CENTER_URL_PART = "deploymentrisk?toolchainId=";
 	private final static String CONTENT_TYPE_JSON = "application/json";
-
-	private PrintStream printStream;
+	private static PrintStream printStream;
 
 	// form fields from UI
 	private String applicationName;
@@ -108,7 +108,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		this.applicationName = envVarsMap.get(APP_NAME);
 		this.toolchainName = envVarsMap.get(TOOLCHAIN_ID);
 
-		if (Util.isNullOrEmpty(envVarsMap.get(API_KEY))) {
+		if (isNullOrEmpty(envVarsMap.get(API_KEY))) {
 			this.username = envVarsMap.get(USERNAME);
 			this.password = envVarsMap.get(PASSWORD);
 		} else {
@@ -171,103 +171,73 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 	@Override
 	public void perform(@Nonnull Run build, @Nonnull FilePath workspace, @Nonnull Launcher launcher,
 			@Nonnull TaskListener listener) throws InterruptedException, IOException {
-
 		printStream = listener.getLogger();
 		printPluginVersion(this.getClass().getClassLoader(), printStream);
-
-		// Get the project name and build id from environment and expand the vars
 		EnvVars envVars = build.getEnvironment(listener);
-		String applicationName = envVars.expand(this.applicationName);
-		String environmentName = envVars.expand(this.environmentName);
-		String applicationUrl = envVars.expand(this.applicationUrl);
-		this.toolchainName = envVars.expand(this.toolchainName);
-
-		if (Util.isNullOrEmpty(applicationName) || Util.isNullOrEmpty(environmentName) || Util.isNullOrEmpty(this.toolchainName)) {
-			printStream.println(getMessageWithPrefix(MISS_CONFIGURATIONS));
-			return;
-		}
-
-		// get IBM cloud environment and token
 		String env = getDescriptor().getEnvironment();
-		String bluemixToken, buildNumber;
 		try {
-			buildNumber = Util.isNullOrEmpty(this.buildNumber) ?
+			// Get the project name and build id from environment and expand the vars
+			String applicationName = expandVariable(this.applicationName, envVars, true);
+			String environmentName = expandVariable(this.environmentName, envVars, true);
+			String toolchainId = expandVariable(this.toolchainName, envVars, true);
+			String applicationUrl = expandVariable(this.applicationUrl, envVars, false);
+
+			// get IBM cloud environment and token
+			String buildNumber = isNullOrEmpty(this.buildNumber) ?
 					getBuildNumber(envVars, buildJobName, build, printStream) : envVars.expand(this.buildNumber);
-			bluemixToken = getIBMCloudToken(this.credentialsId, this.apikey, this.username, this.password,
+			String bluemixToken = getIBMCloudToken(this.credentialsId, this.apikey, this.username, this.password,
 					env, build.getParent(), printStream);
 
-			String dlmsUrl = chooseDLMSUrl(env) + DEPLOYMENT_API_URL;
-			dlmsUrl = dlmsUrl.replace("{toolchain_id}", URLEncoder.encode(this.toolchainName, "UTF-8").replaceAll("\\+", "%20"));
-			dlmsUrl = dlmsUrl.replace("{build_artifact}", URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20"));
-			dlmsUrl = dlmsUrl.replace("{build_id}", URLEncoder.encode(buildNumber, "UTF-8").replaceAll("\\+", "%20"));
-			String link = chooseControlCenterUrl(env) + "deploymentrisk?toolchainId=" + this.toolchainName;
-			String jobUrl;
-			if (checkRootUrl(printStream)) {
-				jobUrl = Jenkins.getInstance().getRootUrl() + build.getUrl();
-			} else {
-				jobUrl = build.getAbsoluteUrl();
-			}
+			String baseUrl = chooseDLMSUrl(env) + DEPLOYMENT_API_URL;
+			String dlmsUrl = setDLMSUrl(baseUrl, toolchainId, applicationName, buildNumber);
+			String link = chooseControlCenterUrl(env) + CONTROL_CENTER_URL_PART + this.toolchainName;
 
-			uploadDeploymentInfo(bluemixToken, dlmsUrl, build, jobUrl, applicationUrl, environmentName, toolchainName);
-			printStream.println(getMessageWithVar(GO_TO_CONTROL_CENTER, CHECK_DEPLOY_STATUS, link));
+			String deployStatus = getJobResult(build, this.result);
+			uploadDeploymentInfo(bluemixToken, dlmsUrl, build, applicationUrl, environmentName, toolchainId, deployStatus);
+			printStream.println(getMessageWithVar(CHECK_DEPLOY_STATUS, link));
 		} catch (Exception e) {
 			printStream.println(getMessageWithPrefix(GOT_ERRORS) + e.getMessage());
 		}
 	}
 
-	private void uploadDeploymentInfo(String token, String dlmsUrl, Run build, String jobUrl, String applicationUrl, String environmentName, String toolchainName) throws Exception {
-		String resStr = "";
+	private void uploadDeploymentInfo(String token, String dlmsUrl, Run build, String applicationUrl,
+									  String environmentName, String toolchainName, String deployStatsus) throws Exception {
+		String resStr;
+		CloseableHttpClient httpClient = HttpClients.createDefault();
+		HttpPost postMethod = new HttpPost(dlmsUrl);
+		postMethod = addProxyInformation(postMethod);
+		postMethod.setHeader("Authorization", token);
+		postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);
 
-		try {
-			CloseableHttpClient httpClient = HttpClients.createDefault();
-			HttpPost postMethod = new HttpPost(dlmsUrl);
-			postMethod = addProxyInformation(postMethod);
-			postMethod.setHeader("Authorization", token);
-			postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);
-			String buildStatus;
-			Result result = build.getResult();
-			if ((result != null && result.equals(Result.SUCCESS))
-					|| (this.result != null && this.result.equals(RESULT_SUCCESS))) {
-				buildStatus = "pass";
-			} else {
-				buildStatus = "fail";
+		String jobUrl = getJobUrl(build, printStream);
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+		TimeZone utc = TimeZone.getTimeZone("UTC");
+		dateFormat.setTimeZone(utc);
+		String timestamp = dateFormat.format(System.currentTimeMillis());
+
+		// build up the json body
+		Gson gson = new Gson();
+		DeploymentInfoModel deploymentInfo = new DeploymentInfoModel(applicationUrl, environmentName, jobUrl, deployStatsus,
+				timestamp);
+		String json = gson.toJson(deploymentInfo);
+		StringEntity data = new StringEntity(json, "UTF-8");
+		postMethod.setEntity(data);
+		CloseableHttpResponse response = httpClient.execute(postMethod);
+		resStr = EntityUtils.toString(response.getEntity());
+
+		int statusCode = response.getStatusLine().getStatusCode();
+		if (statusCode == 200) {
+			printStream.println(getMessageWithPrefix(UPLOAD_DEPLOY_SUCCESS));
+		} else if (statusCode == 401 || statusCode == 403) {
+			// if gets 401 or 403, it returns html
+			throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA, String.valueOf(statusCode), toolchainName));
+		} else {
+			JsonParser parser = new JsonParser();
+			JsonElement element = parser.parse(resStr);
+			JsonObject resJson = element.getAsJsonObject();
+			if (resJson != null && resJson.has("message")) {
+				throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA_WITH_REASON, String.valueOf(statusCode), resJson.get("message").getAsString()));
 			}
-
-			SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-			TimeZone utc = TimeZone.getTimeZone("UTC");
-			dateFormat.setTimeZone(utc);
-			String timestamp = dateFormat.format(System.currentTimeMillis());
-
-			// build up the json body
-			Gson gson = new Gson();
-			DeploymentInfoModel deploymentInfo = new DeploymentInfoModel(applicationUrl, environmentName, jobUrl, buildStatus,
-					timestamp);
-
-			String json = gson.toJson(deploymentInfo);
-			StringEntity data = new StringEntity(json, "UTF-8");
-			postMethod.setEntity(data);
-			CloseableHttpResponse response = httpClient.execute(postMethod);
-			resStr = EntityUtils.toString(response.getEntity());
-
-			int statusCode = response.getStatusLine().getStatusCode();
-			if (statusCode == 200) {
-				// get 200 response
-				printStream.println("[IBM Cloud DevOps] Deployment Information is uploaded successfully");
-			} else if (statusCode == 401 || statusCode == 403) {
-				// if gets 401 or 403, it returns html
-				throw new Exception(" Failed to upload data, response status " + statusCode
-						+ " Please check if you have the access to toolchain " + toolchainName);
-			} else {
-				JsonParser parser = new JsonParser();
-				JsonElement element = parser.parse(resStr);
-				JsonObject resJson = element.getAsJsonObject();
-				if (resJson != null && resJson.has("message")) {
-					throw new Exception(" Response Status:" + statusCode + ", Reason: " + resJson.get("message"));
-				}
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw e;
 		}
 	}
 
@@ -325,7 +295,6 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		 *         not prevent the form from being saved. It just means that a
 		 *         message will be displayed to the user.
 		 */
-
 		public FormValidation doCheckApplicationName(@QueryParameter String value)
 				throws IOException, ServletException {
 			return FormValidation.validateRequired(value);
@@ -350,10 +319,10 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 			String targetAPI = chooseTargetAPI(environment);
 			String iamAPI = chooseIAMAPI(environment);
 			try {
-				if (!credentialsId.equals(preCredentials) || Util.isNullOrEmpty(bluemixToken)) {
+				if (!credentialsId.equals(preCredentials) || isNullOrEmpty(bluemixToken)) {
 					preCredentials = credentialsId;
 					StandardCredentials credentials = findCredentials(credentialsId, context);
-					bluemixToken = getTokenForTestConnection(credentials, iamAPI, targetAPI);
+					bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, printStream);
 				}
 				return FormValidation.okWithMarkup(getMessage(TEST_CONNECTION_SUCCEED));
 			} catch (Exception e) {
@@ -369,12 +338,10 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		 */
 		public AutoCompletionCandidates doAutoCompleteBuildJobName(@QueryParameter String value) {
 			AutoCompletionCandidates auto = new AutoCompletionCandidates();
-
 			// get all jenkins job
 			List<Job> jobs = Jenkins.getInstance().getAllItems(Job.class);
 			for (int i = 0; i < jobs.size(); i++) {
 				String jobName = jobs.get(i).getName();
-
 				if (jobName.toLowerCase().startsWith(value.toLowerCase())) {
 					auto.add(jobName);
 				}
@@ -421,7 +388,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		 *         project
 		 */
 		public String getDisplayName() {
-			return "Publish deployment information to IBM Cloud DevOps";
+			return getMessage(PUBLISH_DEPLOY_DISPLAY);
 		}
 
 		public String getEnvironment() {

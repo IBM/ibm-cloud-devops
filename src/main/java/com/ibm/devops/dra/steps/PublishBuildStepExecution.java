@@ -29,6 +29,8 @@ import java.io.PrintStream;
 import java.util.HashMap;
 
 import static com.ibm.devops.dra.AbstractDevOpsAction.*;
+import static com.ibm.devops.dra.Util.allNotNullOrEmpty;
+import static com.ibm.devops.dra.Util.isNullOrEmpty;
 
 public class PublishBuildStepExecution extends AbstractSynchronousNonBlockingStepExecution<Void> {
     private static final long serialVersionUID = 1L;
@@ -48,12 +50,11 @@ public class PublishBuildStepExecution extends AbstractSynchronousNonBlockingSte
 
     @Override
     protected Void run() throws Exception {
-
         PrintStream printStream = listener.getLogger();
         HashMap<String, String> requiredEnvVars = setRequiredEnvVars(step, envVars);
 
         //check all the required env vars
-        if (!Util.allNotNullOrEmpty(requiredEnvVars, printStream)) {
+        if (!allNotNullOrEmpty(requiredEnvVars, printStream)) {
             printStream.println("[IBM Cloud DevOps] Error: Failed to upload Build Record.");
             return null;
         }
@@ -69,7 +70,7 @@ public class PublishBuildStepExecution extends AbstractSynchronousNonBlockingSte
         // optional build number, if user wants to set their own build number
         String buildNumber = step.getBuildNumber();
 
-        if (!Util.allNotNullOrEmpty(requiredEnvVars, printStream)) {
+        if (!allNotNullOrEmpty(requiredEnvVars, printStream)) {
             printStream.println("[IBM Cloud DevOps] Error: Failed to upload Build Record.");
             return null;
         }
@@ -77,7 +78,7 @@ public class PublishBuildStepExecution extends AbstractSynchronousNonBlockingSte
         if (result.equals(RESULT_SUCCESS) || result.equals(RESULT_FAIL)) {
             PublishBuild publishBuild = new PublishBuild(requiredEnvVars, requiredParams);
 
-            if (!Util.isNullOrEmpty(buildNumber)) {
+            if (!isNullOrEmpty(buildNumber)) {
                 publishBuild.setBuildNumber(buildNumber);
             }
             publishBuild.perform(build, ws, launcher, listener);
