@@ -30,6 +30,7 @@ import java.io.PrintStream;
 import java.util.HashMap;
 
 import static com.ibm.devops.dra.AbstractDevOpsAction.setRequiredEnvVars;
+import static com.ibm.devops.dra.UIMessages.*;
 import static com.ibm.devops.dra.Util.allNotNullOrEmpty;
 import static com.ibm.devops.dra.Util.isNullOrEmpty;
 
@@ -51,22 +52,18 @@ public class EvaluateGateStepExecution extends AbstractSynchronousNonBlockingSte
 
     @Override
     protected Void run() throws Exception {
-
         PrintStream printStream = listener.getLogger();
         HashMap<String, String> requiredEnvVars = setRequiredEnvVars(step, envVars);
 
-
         //check all the required env vars
         if (!allNotNullOrEmpty(requiredEnvVars, printStream)) {
-            printStream.println("[IBM Cloud DevOps] Error: Failed to get Gate decision.");
+            printStream.println(getMessageWithPrefix(MISS_REQUIRED_ENV_VAR));
             return null;
         }
 
         String policy = step.getPolicy();
         if (isNullOrEmpty(policy)) {
-            printStream.println("[IBM Cloud DevOps] evaluateGate is missing required parameters, " +
-                    "please make sure you specify \"policy\"");
-            printStream.println("[IBM Cloud DevOps] Error: Failed to run evaluate Gate.");
+            printStream.println(getMessageWithVar(MISS_REQUIRED_STEP_PARAMS, "evaluateGate", "policy"));
             return null;
         }
 

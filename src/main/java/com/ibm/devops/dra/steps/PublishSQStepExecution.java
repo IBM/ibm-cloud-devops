@@ -28,6 +28,7 @@ import java.io.PrintStream;
 import java.util.HashMap;
 
 import static com.ibm.devops.dra.AbstractDevOpsAction.setRequiredEnvVars;
+import static com.ibm.devops.dra.UIMessages.*;
 import static com.ibm.devops.dra.Util.allNotNullOrEmpty;
 import static com.ibm.devops.dra.Util.isNullOrEmpty;
 
@@ -49,14 +50,12 @@ public class PublishSQStepExecution extends AbstractSynchronousNonBlockingStepEx
 
     @Override
     protected Void run() throws Exception {
-
         PrintStream printStream = listener.getLogger();
-
         HashMap<String, String> requiredEnvVars = setRequiredEnvVars(step, envVars);
 
         //check all the required env vars
         if (!allNotNullOrEmpty(requiredEnvVars, printStream)) {
-            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Test Result.");
+            printStream.println(getMessageWithPrefix(MISS_REQUIRED_ENV_VAR));
             return null;
         }
 
@@ -67,19 +66,17 @@ public class PublishSQStepExecution extends AbstractSynchronousNonBlockingStepEx
         requiredParams.put("SQAuthToken", step.getSQAuthToken());
 
         if (!allNotNullOrEmpty(requiredParams, printStream)) {
-            printStream.println("[IBM Cloud DevOps] Error: Failed to upload SonarQube Test Result.");
+            printStream.println(getMessageWithVar(MISS_REQUIRED_STEP_PARAMS, "publishSQResults"));
             return null;
         }
 
         // optional build number, if user wants to set their own build number
         String buildNumber = step.getBuildNumber();
         PublishSQ publisher = new PublishSQ(requiredEnvVars, requiredParams);
-
         if (!isNullOrEmpty(buildNumber)) {
             publisher.setBuildNumber(buildNumber);
         }
         publisher.perform(build, ws, launcher, listener);
-
         return null;
     }
 }

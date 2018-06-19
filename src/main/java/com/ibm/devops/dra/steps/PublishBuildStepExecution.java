@@ -15,7 +15,6 @@
 package com.ibm.devops.dra.steps;
 
 import com.ibm.devops.dra.PublishBuild;
-import com.ibm.devops.dra.Util;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -29,6 +28,7 @@ import java.io.PrintStream;
 import java.util.HashMap;
 
 import static com.ibm.devops.dra.AbstractDevOpsAction.*;
+import static com.ibm.devops.dra.UIMessages.*;
 import static com.ibm.devops.dra.Util.allNotNullOrEmpty;
 import static com.ibm.devops.dra.Util.isNullOrEmpty;
 
@@ -55,7 +55,7 @@ public class PublishBuildStepExecution extends AbstractSynchronousNonBlockingSte
 
         //check all the required env vars
         if (!allNotNullOrEmpty(requiredEnvVars, printStream)) {
-            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Build Record.");
+            printStream.println(getMessageWithPrefix(MISS_REQUIRED_ENV_VAR));
             return null;
         }
 
@@ -71,21 +71,18 @@ public class PublishBuildStepExecution extends AbstractSynchronousNonBlockingSte
         String buildNumber = step.getBuildNumber();
 
         if (!allNotNullOrEmpty(requiredEnvVars, printStream)) {
-            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Build Record.");
+            printStream.println(getMessageWithVar(MISS_REQUIRED_STEP_PARAMS, "publishBuildRecord"));
             return null;
         }
 
         if (result.equals(RESULT_SUCCESS) || result.equals(RESULT_FAIL)) {
             PublishBuild publishBuild = new PublishBuild(requiredEnvVars, requiredParams);
-
             if (!isNullOrEmpty(buildNumber)) {
                 publishBuild.setBuildNumber(buildNumber);
             }
             publishBuild.perform(build, ws, launcher, listener);
         } else {
-            printStream.println("[IBM Cloud DevOps] the \"result\" in the publishBuildRecord should be either \""
-                    + RESULT_SUCCESS + "\" or \"" + RESULT_FAIL + "\"");
-            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Build Record.");
+            printStream.println(getMessageWithVar(RESULT_NEEDED, "publishBuildRecord"));
         }
 
         return null;

@@ -15,7 +15,6 @@
 package com.ibm.devops.dra.steps;
 
 import com.ibm.devops.dra.PublishDeploy;
-import com.ibm.devops.dra.Util;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -23,14 +22,12 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousNonBlockingStepExecution;
 import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
-
 import javax.inject.Inject;
 import java.io.PrintStream;
 import java.util.HashMap;
 
-import static com.ibm.devops.dra.AbstractDevOpsAction.RESULT_FAIL;
-import static com.ibm.devops.dra.AbstractDevOpsAction.RESULT_SUCCESS;
-import static com.ibm.devops.dra.AbstractDevOpsAction.setRequiredEnvVars;
+import static com.ibm.devops.dra.AbstractDevOpsAction.*;
+import static com.ibm.devops.dra.UIMessages.*;
 import static com.ibm.devops.dra.Util.allNotNullOrEmpty;
 import static com.ibm.devops.dra.Util.isNullOrEmpty;
 
@@ -38,7 +35,6 @@ public class PublishDeployStepExecution extends AbstractSynchronousNonBlockingSt
     private static final long serialVersionUID = 1L;
     @Inject
     private transient PublishDeployStep step;
-
     @StepContextParameter
     private transient TaskListener listener;
     @StepContextParameter
@@ -50,7 +46,6 @@ public class PublishDeployStepExecution extends AbstractSynchronousNonBlockingSt
     @StepContextParameter
     private transient EnvVars envVars;
 
-
     @Override
     protected Void run() throws Exception {
 
@@ -59,7 +54,7 @@ public class PublishDeployStepExecution extends AbstractSynchronousNonBlockingSt
 
         //check all the required env vars
         if (!allNotNullOrEmpty(requiredEnvVars, printStream)) {
-            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Test Result.");
+            printStream.println(getMessageWithPrefix(MISS_REQUIRED_ENV_VAR));
             return null;
         }
 
@@ -73,7 +68,7 @@ public class PublishDeployStepExecution extends AbstractSynchronousNonBlockingSt
         String buildNumber = step.getBuildNumber();
         String appUrl = step.getAppUrl();
         if (!allNotNullOrEmpty(requiredParams, printStream)) {
-            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Deploy Record.");
+            printStream.println(getMessageWithVar(MISS_REQUIRED_STEP_PARAMS, "publishDeployRecord"));
             return null;
         }
 
@@ -81,16 +76,12 @@ public class PublishDeployStepExecution extends AbstractSynchronousNonBlockingSt
             PublishDeploy publishDeploy = new PublishDeploy(requiredEnvVars, requiredParams);
             if (!isNullOrEmpty(buildNumber))
                 publishDeploy.setBuildNumber(buildNumber);
-
-
             if (!isNullOrEmpty(appUrl))
                 publishDeploy.setApplicationUrl(appUrl);
 
             publishDeploy.perform(build, ws, launcher, listener);
         } else {
-            printStream.println("[IBM Cloud DevOps] the \"result\" in the publishDeployRecord should be either \""
-                    + RESULT_SUCCESS + "\" or \"" + RESULT_FAIL + "\"");
-            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Deploy Record.");
+            printStream.println(getMessageWithVar(RESULT_NEEDED, "publishDeployRecord"));
         }
         return null;
     }
