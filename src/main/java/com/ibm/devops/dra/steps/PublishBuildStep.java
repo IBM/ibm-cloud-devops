@@ -16,14 +16,12 @@ package com.ibm.devops.dra.steps;
 
 import hudson.Extension;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
-import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
 import javax.annotation.Nonnull;
 
 public class PublishBuildStep extends AbstractDevOpsStep {
-
     // required parameters to support pipeline script
     private String result;
     private String gitRepo;
@@ -69,7 +67,9 @@ public class PublishBuildStep extends AbstractDevOpsStep {
     @Extension
     public static class DescriptorImpl extends AbstractStepDescriptorImpl {
 
-        public DescriptorImpl() { super(PublishBuildStepExecution.class); }
+        public DescriptorImpl() {
+            super(PublishBuildStepExecution.class);
+        }
 
         @Override
         public String getFunctionName() {

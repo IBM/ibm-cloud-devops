@@ -29,6 +29,9 @@ import java.io.PrintStream;
 import java.util.HashMap;
 
 import static com.ibm.devops.dra.AbstractDevOpsAction.setRequiredEnvVars;
+import static com.ibm.devops.dra.UIMessages.*;
+import static com.ibm.devops.dra.Util.allNotNullOrEmpty;
+import static com.ibm.devops.dra.Util.isNullOrEmpty;
 
 public class PublishTestStepExecution extends AbstractSynchronousNonBlockingStepExecution<Void> {
     private static final long serialVersionUID = 1L;
@@ -48,14 +51,12 @@ public class PublishTestStepExecution extends AbstractSynchronousNonBlockingStep
 
     @Override
     protected Void run() throws Exception {
-
         PrintStream printStream = listener.getLogger();
-
         HashMap<String, String> requiredEnvVars = setRequiredEnvVars(step, envVars);
 
         //check all the required env vars
-        if (!Util.allNotNullOrEmpty(requiredEnvVars, printStream)) {
-            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Test Result.");
+        if (!allNotNullOrEmpty(requiredEnvVars, printStream)) {
+            printStream.println(getMessageWithPrefix(MISS_REQUIRED_ENV_VAR));
             return null;
         }
 
@@ -69,17 +70,14 @@ public class PublishTestStepExecution extends AbstractSynchronousNonBlockingStep
         String buildNumber = step.getBuildNumber();
         String envName = step.getEnvironment();
 
-        if (!Util.allNotNullOrEmpty(requiredParams, printStream)) {
-            printStream.println("[IBM Cloud DevOps] Error: Failed to upload Test Result.");
+        if (!allNotNullOrEmpty(requiredParams, printStream)) {
+            printStream.println(getMessageWithVar(MISS_REQUIRED_STEP_PARAMS, "publishTestResult"));
             return null;
         }
 
-
         PublishTest publishTest = new PublishTest(requiredEnvVars, requiredParams);
-
-        if (!Util.isNullOrEmpty(envName)) publishTest.setEnvName(envName);
-        if (!Util.isNullOrEmpty(buildNumber)) publishTest.setBuildNumber(buildNumber);
-
+        if (!isNullOrEmpty(envName)) publishTest.setEnvName(envName);
+        if (!isNullOrEmpty(buildNumber)) publishTest.setBuildNumber(buildNumber);
         publishTest.perform(build, ws, launcher, listener);
         return null;
     }

@@ -17,18 +17,14 @@
       This jelly script is used for per-project configuration.
     -->
 
-    <f:entry title="Bluemix credentials" field="credentialsId">
+    <f:entry title="IBM Cloud API Key" field="credentialsId">
         <c:select/>
     </f:entry>
 
     <f:validateButton title="Test Connection" progress="Testing..." method="testConnection" with="credentialsId,orgName" />
 
-    <f:entry title="Org name" field="orgName">
-        <f:textbox />
-    </f:entry>
-
-    <f:entry title="Toolchain name" field="toolchainName">
-        <f:select/>
+    <f:entry title="Toolchain Id" field="toolchainName">
+        <f:textbox/>
     </f:entry>
 
     <f:entry title="Build job name" field="buildJobName">

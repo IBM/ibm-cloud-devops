@@ -176,7 +176,7 @@ public final class MessageHandler {
         	String userId= Util.getUser(envVars);
         	String pwd= Util.getPassword(envVars);
         	
-    		String bluemixToken = AbstractDevOpsAction.getBluemixToken(userId, pwd, apiUrl);
+    		String bluemixToken = AbstractDevOpsAction.getBluemixToken(userId, pwd, apiUrl, printStream);
             
             // org details
     		JSONObject org = new JSONObject();

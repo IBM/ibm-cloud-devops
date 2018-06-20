@@ -13,18 +13,292 @@
  */
 
 package com.ibm.devops.dra;
-
-
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import hudson.EnvVars;
+import hudson.ProxyConfiguration;
+import hudson.model.*;
+import hudson.security.ACL;
+import jenkins.model.Jenkins;
+import org.apache.http.HttpHost;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.cloudfoundry.client.lib.HttpProxyConfiguration;
+
+import java.io.IOException;
 import java.io.PrintStream;
-import java.util.HashMap;
-import java.util.Map;
+import java.net.URL;
+import java.util.*;
+import java.util.regex.Pattern;
+
+import static com.ibm.devops.dra.AbstractDevOpsAction.RESULT_SUCCESS;
+import static com.ibm.devops.dra.UIMessages.*;
 
 /**
  * Utilities functions
  */
 
 public class Util {
+
+	/**
+	 * Print the plugin version
+	 * @param loader
+	 * @param printStream
+	 */
+	public static void printPluginVersion(ClassLoader loader, PrintStream printStream) {
+		final Properties properties = new Properties();
+		try {
+			properties.load(loader.getResourceAsStream("plugin.properties"));
+			printStream.println(getMessageWithPrefix(VERSION) + properties.getProperty("version"));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * find Jenkins credential in the runtime
+	 * @param credentialsId
+	 * @param context
+	 * @return
+	 * @throws Exception
+	 */
+	public static StandardCredentials findCredentials(String credentialsId, Job context) throws Exception {
+		List<StandardCredentials> standardCredentials = CredentialsProvider.lookupCredentials(
+				StandardCredentials.class,
+				context,
+				ACL.SYSTEM);
+		StandardCredentials credentials =
+				CredentialsMatchers.firstOrNull(standardCredentials, CredentialsMatchers.withId(credentialsId));
+		if (credentials == null)
+			throw new Exception(getMessage(FAIL_TO_GET_CREDENTIAL));
+		return credentials;
+	}
+
+	/**
+	 * find Jenkins credentials in the UI configuration
+	 * @param credentialsId
+	 * @param context
+	 * @return
+	 * @throws Exception
+	 */
+	public static StandardCredentials findCredentials(String credentialsId, ItemGroup context) throws Exception {
+		List<StandardCredentials> standardCredentials = CredentialsProvider.lookupCredentials(
+				StandardCredentials.class,
+				context,
+				ACL.SYSTEM);
+		StandardCredentials credentials =
+				CredentialsMatchers.firstOrNull(standardCredentials, CredentialsMatchers.withId(credentialsId));
+		if (credentials == null)
+			throw new Exception(getMessage(FAIL_TO_GET_CREDENTIAL));
+		return credentials;
+	}
+
+	/**
+	 * check if the root url in the jenkins is set correctly
+	 * @param printStream
+	 * @return
+	 */
+	public static boolean checkRootUrl(PrintStream printStream) {
+		if (isNullOrEmpty(Jenkins.getInstance().getRootUrl())) {
+			printStream.println(getMessage(PROJECT_URL_MISSED));
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Get the current Jenkins job url
+	 * @param build
+	 * @param printStream
+	 * @return
+	 */
+	public static String getJobUrl(Run build, PrintStream printStream) {
+		String jobUrl;
+		if (checkRootUrl(printStream)) {
+			jobUrl = Jenkins.getInstance().getRootUrl() + build.getUrl();
+		} else {
+			jobUrl = build.getAbsoluteUrl();
+		}
+		return jobUrl;
+	}
+
+	/**
+	 * Get the current Jenkins job result
+	 * @param build
+	 * @param result
+     * @return
+     */
+	public static String getJobResult(Run build, String result) {
+		String buildStatus;
+		Result res = build.getResult();
+		if ((res != null && res.equals(Result.SUCCESS))
+				|| (result != null && result.equals(RESULT_SUCCESS))) {
+			buildStatus = "pass";
+		} else {
+			buildStatus = "fail";
+		}
+		return buildStatus;
+	}
+
+
+	/**
+	 * get the root project
+	 * @param job - the source job
+	 * @return the root project
+	 */
+	private static Job<?, ?> getRootProject(Job<?, ?> job) {
+		if (job instanceof AbstractProject) {
+			return ((AbstractProject<?,?>)job).getRootProject();
+		} else {
+			return job;
+		}
+	}
+
+	// retrieve the "folder" (jenkins root if no folder used) for this build
+	private static ItemGroup getItemGroup(Run<?, ?> build) {
+		return getRootProject(build.getParent()).getParent();
+	}
+
+
+	/**
+	 * Recursive function to locate the triggered build
+	 * @param job - the target job
+	 * @param parent - the current job
+	 * @return the specific build of the target job
+	 */
+	private static Run<?,?> getBuild(Job<?,?> job, Run<?,?> parent) {
+		Run<?,?> result = null;
+
+		// Upstream job for matrix will be parent project, not only individual configuration:
+		List<String> jobNames = new ArrayList<>();
+		jobNames.add(job.getFullName());
+		if ((job instanceof AbstractProject<?,?>) && ((AbstractProject<?,?>)job).getRootProject() != job) {
+			jobNames.add(((AbstractProject<?,?>)job).getRootProject().getFullName());
+		}
+
+		List<Run<?, ?>> upstreamBuilds = new ArrayList<>();
+
+		for (Cause cause: parent.getCauses()) {
+			if (cause instanceof Cause.UpstreamCause) {
+				Cause.UpstreamCause upstream = (Cause.UpstreamCause) cause;
+				Run<?, ?> upstreamRun = upstream.getUpstreamRun();
+				if (upstreamRun != null) {
+					upstreamBuilds.add(upstreamRun);
+				}
+			}
+		}
+
+		if (parent instanceof AbstractBuild) {
+			AbstractBuild<?, ?> parentBuild = (AbstractBuild<?,?>)parent;
+
+			Map<AbstractProject, Integer> parentUpstreamBuilds = parentBuild.getUpstreamBuilds();
+			for (Map.Entry<AbstractProject, Integer> buildEntry : parentUpstreamBuilds.entrySet()) {
+				upstreamBuilds.add(buildEntry.getKey().getBuildByNumber(buildEntry.getValue()));
+			}
+		}
+
+		for (Run<?, ?> upstreamBuild : upstreamBuilds) {
+			Run<?,?> run;
+
+			if(upstreamBuild == null) {
+				continue;
+			}
+			if (jobNames.contains(upstreamBuild.getParent().getFullName())) {
+				// Use the 'job' parameter instead of directly the 'upstreamBuild', because of Matrix jobs.
+				run = job.getBuildByNumber(upstreamBuild.getNumber());
+			} else {
+				// Figure out the parent job and do a recursive call to getBuild
+				run = getBuild(job, upstreamBuild);
+			}
+
+			if (run != null){
+				if ((result == null) || (result.getNumber() > run.getNumber())) {
+					result = run;
+				}
+			}
+
+		}
+
+		return result;
+	}
+
+	/**
+	 * locate triggered build
+	 * @param build - the current running build of this job
+	 * @param name - the build job name that you are going to locate
+	 * @return
+	 */
+	public static Run<?,?> getTriggeredBuild(Run build, String name, EnvVars envVars, PrintStream printStream) {
+		// if user specify the build job as current job or leave it empty
+		if (name == null || name.isEmpty() || name.equals(build.getParent().getName())) {
+			printStream.println(getMessageWithPrefix(BUILD_JOB_IS_CURRENT_JOB));
+			return build;
+		} else {
+			name = envVars.expand(name);
+			Job<?, ?> job = Jenkins.getInstance().getItem(name, getItemGroup(build), Job.class);
+			if (job != null) {
+				Run src = getBuild(job, build);
+				if (src == null) {
+					// if user runs the test job independently
+					printStream.println(getMessageWithPrefix(RUN_JOB_INDEPENDENTLY));
+					src = job.getLastSuccessfulBuild();
+				}
+
+				return src;
+			}
+		}
+		// cannot find the build job
+		return null;
+	}
+
+	public static HttpGet addProxyInformation (HttpGet instance) {
+            /* Add proxy to request if proxy settings in Jenkins UI are set. */
+		ProxyConfiguration proxyConfig = Jenkins.getInstance().proxy;
+		if(proxyConfig != null){
+			if((!isNullOrEmpty(proxyConfig.name)) && proxyConfig.port != 0) {
+				HttpHost proxy = new HttpHost(proxyConfig.name, proxyConfig.port, "http");
+				RequestConfig config = RequestConfig.custom().setProxy(proxy).build();
+				instance.setConfig(config);
+			}
+		}
+		return instance;
+	}
+
+	public static HttpPost addProxyInformation (HttpPost instance) {
+            /* Add proxy to request if proxy settings in Jenkins UI are set. */
+		ProxyConfiguration proxyConfig = Jenkins.getInstance().proxy;
+		if(proxyConfig != null){
+			if((!isNullOrEmpty(proxyConfig.name)) && proxyConfig.port != 0) {
+				HttpHost proxy = new HttpHost(proxyConfig.name, proxyConfig.port, "http");
+				RequestConfig config = RequestConfig.custom().setProxy(proxy).build();
+				instance.setConfig(config);
+			}
+		}
+		return instance;
+	}
+
+	/**
+	 * build proxy for cloud foundry http connection
+	 * @param targetURL - target API URL
+	 * @return the full target URL
+	 */
+	public static HttpProxyConfiguration buildProxyConfiguration(URL targetURL) {
+		ProxyConfiguration proxyConfig = Jenkins.getInstance().proxy;
+		if (proxyConfig == null) {
+			return null;
+		}
+
+		String host = targetURL.getHost();
+		for (Pattern p : proxyConfig.getNoProxyHostPatterns()) {
+			if (p.matcher(host).matches()) {
+				return null;
+			}
+		}
+		return new HttpProxyConfiguration(proxyConfig.name, proxyConfig.port);
+	}
+
     /**
      * check if the str is null or empty
      * @param str

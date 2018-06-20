@@ -30,6 +30,9 @@ import java.io.PrintStream;
 import java.util.HashMap;
 
 import static com.ibm.devops.dra.AbstractDevOpsAction.setRequiredEnvVars;
+import static com.ibm.devops.dra.UIMessages.*;
+import static com.ibm.devops.dra.Util.allNotNullOrEmpty;
+import static com.ibm.devops.dra.Util.isNullOrEmpty;
 
 public class EvaluateGateStepExecution extends AbstractSynchronousNonBlockingStepExecution<Void> {
     private static final long serialVersionUID = 1L;
@@ -49,42 +52,33 @@ public class EvaluateGateStepExecution extends AbstractSynchronousNonBlockingSte
 
     @Override
     protected Void run() throws Exception {
-
         PrintStream printStream = listener.getLogger();
         HashMap<String, String> requiredEnvVars = setRequiredEnvVars(step, envVars);
 
-
         //check all the required env vars
-        if (!Util.allNotNullOrEmpty(requiredEnvVars, printStream)) {
-            printStream.println("[IBM Cloud DevOps] Error: Failed to get Gate decision.");
+        if (!allNotNullOrEmpty(requiredEnvVars, printStream)) {
+            printStream.println(getMessageWithPrefix(MISS_REQUIRED_ENV_VAR));
             return null;
         }
 
         String policy = step.getPolicy();
-        if (Util.isNullOrEmpty(policy)) {
-            printStream.println("[IBM Cloud DevOps] evaluateGate is missing required parameters, " +
-                    "please make sure you specify \"policy\"");
-            printStream.println("[IBM Cloud DevOps] Error: Failed to run evaluate Gate.");
+        if (isNullOrEmpty(policy)) {
+            printStream.println(getMessageWithVar(MISS_REQUIRED_STEP_PARAMS, "evaluateGate", "policy"));
             return null;
         }
 
         Boolean willDisrupt = false;
-        if (!Util.isNullOrEmpty(step.getForceDecision()) && step.getForceDecision().toLowerCase().equals("true")) {
+        if (!isNullOrEmpty(step.getForceDecision()) && step.getForceDecision().toLowerCase().equals("true")) {
             willDisrupt = true;
         }
 
         // optional build number, if user wants to set their own build number
         String buildNumber = step.getBuildNumber();
         EvaluateGate evaluateGate = new EvaluateGate(requiredEnvVars, policy, step.getEnvironment(), willDisrupt);
-        try {
-            if (!Util.isNullOrEmpty(buildNumber)) {
-                evaluateGate.setBuildNumber(buildNumber);
-            }
-            evaluateGate.perform(build, ws, launcher, listener);
-        } catch (AbortException e) {
-            throw new AbortException("Decision is fail");
+        if (!isNullOrEmpty(buildNumber)) {
+            evaluateGate.setBuildNumber(buildNumber);
         }
-
+        evaluateGate.perform(build, ws, launcher, listener);
         return null;
     }
 }
