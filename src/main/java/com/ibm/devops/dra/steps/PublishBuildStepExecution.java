@@ -82,7 +82,7 @@ public class PublishBuildStepExecution extends AbstractSynchronousNonBlockingSte
             }
             publishBuild.perform(build, ws, launcher, listener);
         } else {
-            printStream.println(getMessageWithVar(RESULT_NEEDED, "publishBuildRecord"));
+            printStream.println(getMessageWithVarAndPrefix(RESULT_NEEDED, "publishBuildRecord"));
         }
 
         return null;

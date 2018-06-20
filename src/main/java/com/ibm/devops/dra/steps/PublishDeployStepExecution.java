@@ -81,7 +81,7 @@ public class PublishDeployStepExecution extends AbstractSynchronousNonBlockingSt
 
             publishDeploy.perform(build, ws, launcher, listener);
         } else {
-            printStream.println(getMessageWithVar(RESULT_NEEDED, "publishDeployRecord"));
+            printStream.println(getMessageWithVarAndPrefix(RESULT_NEEDED, "publishDeployRecord"));
         }
         return null;
     }

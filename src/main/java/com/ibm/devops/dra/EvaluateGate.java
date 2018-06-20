@@ -286,7 +286,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             if (value == null || value.equals("empty")) {
                 return FormValidation.errorWithMarkup(getMessageWithPrefix(TOOLCHAIN_ID_IS_REQUIRED));
             }
-            return FormValidation.ok();
+            return FormValidation.validateRequired(value);
         }
 
         public FormValidation doCheckPolicyName(@QueryParameter String value) {

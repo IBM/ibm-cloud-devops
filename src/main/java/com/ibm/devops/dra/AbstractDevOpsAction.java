@@ -189,7 +189,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
             if (IAM_API_MAP.keySet().contains(environment)) {
                 return IAM_API_MAP.get(environment);
             } else {
-                String api = IAM_API_MAP.get(environment).replace("ng", environment);
+                String api = IAM_API_MAP.get("production").replace("ng", environment);
                 return api;
             }
         }
@@ -297,7 +297,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
     }
 
     /**
-     * get IAM or UAA token based on the credentials id, only used by freestyle job's test connection
+     * get IAM or UAA token based on the credentials id, only used by freestyle job's test connection or get the policy list
      * @param iamAPI
      * @param targetAPI
      * @param credentials
@@ -322,7 +322,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
                 return getIAMToken(value.getSecret().getPlainText(), iamAPI, printStream);
             }
         } catch (Exception e) {
-            throw new Exception(getMessage(LOGIN_IN_FAIL) + e.getMessage());
+            throw new Exception(getMessage(LOGIN_IN_FAIL) + "\n" + e.getMessage());
         }
     }
 
@@ -358,7 +358,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
             }
             return bluemixToken;
         } catch (Exception e) {
-            throw new Exception(getMessage(LOGIN_IN_FAIL) + e.getMessage());
+            throw new Exception(getMessage(LOGIN_IN_FAIL) + "\n" + e.getMessage());
         }
     }
 
@@ -419,7 +419,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
                 return "Bearer " + obj.get("access_token").toString().replace("\"", "");
             }
         }
-        throw new Exception(getMessage(FAIL_TO_GET_API_TOKEN) + response.getStatusLine());
+        throw new Exception(getMessage(FAIL_TO_GET_API_TOKEN) + response.getStatusLine().getStatusCode() + response.getStatusLine().getReasonPhrase());
     }
 
     /**
@@ -808,7 +808,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
         String url = reportUrl + decisionId;
         GatePublisherAction action = new GatePublisherAction(url, ccUrl, decision, policyName, build);
         build.addAction(action);
-        printStream.println(getMessageWithVar(DECISION_REPORT, reportUrl, ccUrl, decision));
+        printStream.println(getMessageWithVar(DECISION_REPORT, url, ccUrl, decision));
 
         // Stop the build
         if (willDisrupt && decision.equals("Fail")) {

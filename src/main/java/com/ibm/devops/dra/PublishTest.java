@@ -308,7 +308,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                 String additionalLifecycleStage = envVars.expand(this.additionalLifecycleStage);
                 scanAndUpload(build, workspace, additionalContents, additionalLifecycleStage, toolchainId, bluemixToken, environmentName, dlmsUrl);
             }
-            printStream.println(getMessageWithVar(CHECK_TEST_RESULT, link));
+            printStream.println(getMessageWithVarAndPrefix(CHECK_TEST_RESULT, link));
             // verify if user chooses advanced option to input customized DRA, just for freestyle job
             if (isNullOrEmpty(policyName)) {
                 return;
@@ -361,7 +361,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         }
 
         if (filePaths == null || filePaths.length < 1) {
-            throw new Exception(getMessage(FAIL_TO_FIND_FILE));
+            throw new Exception(getMessageWithVar(FAIL_TO_FIND_FILE));
         } else {
             for (FilePath fp : filePaths) {
                 // make sure the file path is for file, and copy to the master build folder
@@ -577,7 +577,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             if (value == null || value.equals("empty")) {
                 return FormValidation.errorWithMarkup(getMessageWithPrefix(TOOLCHAIN_ID_IS_REQUIRED));
             }
-            return FormValidation.ok();
+            return FormValidation.validateRequired(value);
         }
 
         public FormValidation doCheckEnvironmentName(@QueryParameter String value)
