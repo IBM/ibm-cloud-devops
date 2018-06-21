@@ -7,7 +7,7 @@ import java.util.ResourceBundle;
  * Created by lix on 6/13/18.
  */
 public class UIMessages {
-    public static ResourceBundle bundle = ResourceBundle.getBundle("messages", Locale.ENGLISH);
+    public static final ResourceBundle bundle = ResourceBundle.getBundle("messages", Locale.ENGLISH);
     public static final String PLUGIN_PREFIX = "PLUGIN_PREFIX";
     public static final String PUBLISH_BUILD_DISPLAY = "PUBLISH_BUILD_DISPLAY";
     public static final String PUBLISH_DEPLOY_DISPLAY = "PUBLISH_DEPLOY_DISPLAY";
@@ -28,6 +28,7 @@ public class UIMessages {
     public static final String FAIL_TO_FIND_BUILD_JOB = "FAIL_TO_FIND_BUILD_JOB";
     public static final String FAIL_TO_FIND_FILE = "FAIL_TO_FIND_FILE";
     public static final String FAIL_TO_GET_API_TOKEN = "FAIL_TO_GET_API_TOKEN";
+    public static final String FAIL_TO_GET_RESPONSE = "FAIL_TO_GET_RESPONSE";
     public static final String GOT_EXCEPTION = "GOT_EXCEPTION";
     public static final String GOT_ERRORS = "GOT_ERRORS";
     public static final String FAIL_TO_GET_CREDENTIAL = "FAIL_TO_GET_CREDENTIAL";

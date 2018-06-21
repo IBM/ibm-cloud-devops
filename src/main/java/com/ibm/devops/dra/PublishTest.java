@@ -90,7 +90,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
     private String envName;
     private boolean isDeploy;
 
-    private static PrintStream printStream;
+    private PrintStream printStream;
     private File root;
     private static String bluemixToken;
     private static String preCredentials;
@@ -509,7 +509,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                 if (resJson != null && resJson.has("message")) {
                     throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA_WITH_REASON, String.valueOf(statusCode), resJson.get("message").getAsString()));
                 } else {
-                    throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA_WITH_REASON, String.valueOf(statusCode), resJson.toString()));
+                    throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA_WITH_REASON, String.valueOf(statusCode), resJson == null ? getMessage(FAIL_TO_GET_RESPONSE) : resJson.toString()));
                 }
             }
         } catch (IOException e) {
@@ -602,7 +602,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                 if (!credentialsId.equals(preCredentials) || isNullOrEmpty(bluemixToken)) {
                     preCredentials = credentialsId;
                     StandardCredentials credentials = findCredentials(credentialsId, context);
-                    bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, printStream);
+                    bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, null);
                 }
                 return FormValidation.okWithMarkup(getMessage(TEST_CONNECTION_SUCCEED));
             } catch (Exception e) {
@@ -665,7 +665,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                 // if user changes to a different credential, need to get a new token
                 if (!credentialsId.equals(preCredentials) || isNullOrEmpty(bluemixToken)) {
                     StandardCredentials credentials = findCredentials(credentialsId, context);
-                    bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, printStream);
+                    bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, null);
                     preCredentials = credentialsId;
                 }
             } catch (Exception e) {

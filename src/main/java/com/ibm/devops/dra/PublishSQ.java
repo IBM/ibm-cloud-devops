@@ -92,7 +92,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
     private String password;
     private String apikey;
 
-    private static PrintStream printStream;
+    private PrintStream printStream;
     private static String bluemixToken;
     private static String preCredentials;
 
@@ -237,12 +237,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
      * @throws Exception
      */
     public JsonObject createDLMSPayload(String hostname, String projectKey, String authToken) throws Exception {
-        Map<String, String> headers = new HashMap<String, String>();
         JsonObject payload = new JsonObject();
-        // ':' needs to be added so the SQ api knows an auth token is being used
-        String SQAuthToken = DatatypeConverter.printBase64Binary((authToken + ":").getBytes("UTF-8"));
-        headers.put("Authorization", "Basic " + SQAuthToken);
-
         JsonObject SQqualityGate = sendGETRequest(hostname + SQ_QUALITY_API_PART + projectKey, hostname, projectKey, authToken);
         payload.add("qualityGate", SQqualityGate.get("projectStatus"));
         printStream.println(getMessageWithPrefix(QUERY_SQ_QUALITY_SUCCESS));
@@ -399,7 +394,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
             if (resJson != null && resJson.has("message")) {
                 throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA_WITH_REASON, String.valueOf(statusCode), resJson.get("message").getAsString()));
             } else {
-                throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA_WITH_REASON, String.valueOf(statusCode), resJson.toString()));
+                throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA_WITH_REASON, String.valueOf(statusCode), resJson == null ? getMessage(FAIL_TO_GET_RESPONSE) : resJson.toString()));
             }
         }
     }
@@ -493,7 +488,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
                 if (!credentialsId.equals(preCredentials) || isNullOrEmpty(bluemixToken)) {
                     preCredentials = credentialsId;
                     StandardCredentials credentials = findCredentials(credentialsId, context);
-                    bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, printStream);
+                    bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, null);
                 }
                 return FormValidation.okWithMarkup(getMessage(TEST_CONNECTION_SUCCEED));
             } catch (Exception e) {

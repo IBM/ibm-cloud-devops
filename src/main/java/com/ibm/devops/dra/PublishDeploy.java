@@ -61,7 +61,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 	private static final String DEPLOYMENT_API_URL = "/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/deployments";
 	private static final String CONTROL_CENTER_URL_PART = "deploymentrisk?toolchainId=";
 	private final static String CONTENT_TYPE_JSON = "application/json";
-	private static PrintStream printStream;
+	private PrintStream printStream;
 
 	// form fields from UI
 	private String applicationName;
@@ -238,7 +238,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 			if (resJson != null && resJson.has("message")) {
 				throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA_WITH_REASON, String.valueOf(statusCode), resJson.get("message").getAsString()));
 			} else {
-				throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA_WITH_REASON, String.valueOf(statusCode), resJson.toString()));
+				throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA_WITH_REASON, String.valueOf(statusCode), resJson == null ? getMessage(FAIL_TO_GET_RESPONSE) : resJson.toString()));
 			}
 		}
 	}
@@ -324,7 +324,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 				if (!credentialsId.equals(preCredentials) || isNullOrEmpty(bluemixToken)) {
 					preCredentials = credentialsId;
 					StandardCredentials credentials = findCredentials(credentialsId, context);
-					bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, printStream);
+					bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, null);
 				}
 				return FormValidation.okWithMarkup(getMessage(TEST_CONNECTION_SUCCEED));
 			} catch (Exception e) {

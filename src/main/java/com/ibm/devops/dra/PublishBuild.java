@@ -82,7 +82,7 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
     private String password;
     private String apikey;
 
-    private static PrintStream printStream;
+    private PrintStream printStream;
     private File root;
     private static String bluemixToken;
     private static String preCredentials;
@@ -273,7 +273,7 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             if (resJson != null && resJson.has("message")) {
                 throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA_WITH_REASON, String.valueOf(statusCode), resJson.get("message").getAsString()));
             } else {
-                throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA_WITH_REASON, String.valueOf(statusCode), resJson.toString()));
+                throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA_WITH_REASON, String.valueOf(statusCode), resJson == null ? getMessage(FAIL_TO_GET_RESPONSE) : resJson.toString()));
             }
         }
     }
@@ -352,7 +352,7 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
                 if (!credentialsId.equals(preCredentials) || isNullOrEmpty(bluemixToken)) {
                     preCredentials = credentialsId;
                     StandardCredentials credentials = findCredentials(credentialsId, context);
-                    bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, printStream);
+                    bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, null);
                 }
                 return FormValidation.okWithMarkup(getMessage(TEST_CONNECTION_SUCCEED));
             } catch (Exception e) {
