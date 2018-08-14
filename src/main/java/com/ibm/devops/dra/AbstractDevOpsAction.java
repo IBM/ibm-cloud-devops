@@ -113,20 +113,6 @@ public abstract class AbstractDevOpsAction extends Recorder {
     );
 
     /**
-     * get the environment based on the region id
-     * @param region
-     */
-    public static String getEnv(String region) {
-        if (region.contains("dev")) {
-            return "dev";
-        } else if (region.contains("staging")) {
-            return "staging";
-        } else {
-            return "prod";
-        }
-    }
-
-    /**
      * get the OTC broker server endpoint
      * @param env
      * @return

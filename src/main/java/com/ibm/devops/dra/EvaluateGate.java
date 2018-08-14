@@ -201,6 +201,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
 
         try {
             EnvVars envVars = build.getEnvironment(listener);
+            String env = isNullOrEmpty(this.env) ? DEFAULT_ENV : this.env;
             // Get the project name and build id from environment
             String applicationName = expandVariable(this.applicationName, envVars, true);
             String toolchainId = expandVariable(this.toolchainName, envVars, true);
@@ -215,7 +216,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             String bluemixToken = getIBMCloudToken(this.credentialsId, this.apikey, this.username, this.password,
                     env, build.getParent(), printStream);
 
-            String OTCbrokerUrl = getOTCBrokerServer(this.env);
+            String OTCbrokerUrl = getOTCBrokerServer(env);
             Map<String, String> endpoints = getAllEndpoints(OTCbrokerUrl, bluemixToken, toolchainId);;
             String draUrl = endpoints.get(GATE_SERVICE) + DECISION_API_PART;
             draUrl = setGateServiceUrl(draUrl, toolchainId, applicationName, buildNumber, policyName, environmentName);
