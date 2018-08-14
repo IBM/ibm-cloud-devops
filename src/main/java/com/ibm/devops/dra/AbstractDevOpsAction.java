@@ -205,9 +205,6 @@ public abstract class AbstractDevOpsAction extends Recorder {
         if (!isNullOrEmpty(environment)) {
             if (IAM_API_MAP.keySet().contains(environment)) {
                 return IAM_API_MAP.get(environment);
-            } else {
-                String api = IAM_API_MAP.get("prod").replace("ng", environment);
-                return api;
             }
         }
         return IAM_API_MAP.get("prod");
