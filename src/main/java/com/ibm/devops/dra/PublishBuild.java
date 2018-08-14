@@ -211,7 +211,6 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             BuildPublisherAction action = new BuildPublisherAction(ccUrl);
             build.addAction(action);
         } catch (Exception e) {
-            e.printStackTrace();
             printStream.println(getMessageWithPrefix(GOT_ERRORS) + e.getMessage());
         }
     }
