@@ -72,7 +72,7 @@ import static com.ibm.devops.dra.Util.*;
  */
 public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
 
-    private final static String API_PART = "/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/results";
+    private final static String API_PART = "/v3/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/results";
     private final static String CONTENT_TYPE_JSON = "application/json";
     private final static String SQ_QUALITY_API_PART = "/api/qualitygates/project_status?projectKey=";
     private final static String SQ_RATING_API_PART = "/api/measures/component?metricKeys=reliability_rating,security_rating,sqale_rating&componentKey=";
@@ -91,6 +91,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
     private String username;
     private String password;
     private String apikey;
+    private String env;
 
     private PrintStream printStream;
     private static String bluemixToken;
@@ -126,6 +127,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         this.SQAuthToken = paramsMap.get("SQAuthToken");
         this.applicationName = envVarsMap.get(APP_NAME);
         this.toolchainName = envVarsMap.get(TOOLCHAIN_ID);
+        this.env = envVarsMap.get(ENV);
         if (isNullOrEmpty(envVarsMap.get(API_KEY))) {
             this.username = envVarsMap.get(USERNAME);
             this.password = envVarsMap.get(PASSWORD);
@@ -186,7 +188,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         printStream = listener.getLogger();
         printPluginVersion(this.getClass().getClassLoader(), printStream);
         EnvVars envVars = build.getEnvironment(listener);
-        String env = getDescriptor().getEnvironment();
+        String env = isNullOrEmpty(this.env) ? DEFAULT_ENV : this.env;
 
         try {
             // Get the project name and build id from environment
@@ -202,8 +204,11 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
             String bluemixToken = getIBMCloudToken(this.credentialsId, this.apikey, this.username, this.password,
                     env, build.getParent(), printStream);
 
-            String baseUrl = chooseDLMSUrl(env) + API_PART;
-            String dlmsUrl = setDLMSUrl(baseUrl, toolchainId, applicationName, buildNumber);
+            String OTCbrokerUrl = getOTCBrokerServer(env);
+            Map<String, String> endpoints = getAllEndpoints(OTCbrokerUrl, bluemixToken, toolchainId);;
+            String dlmsUrl = endpoints.get(DLMS) + API_PART;
+            dlmsUrl = setDLMSUrl(dlmsUrl, toolchainId, applicationName, buildNumber);
+
             JsonObject payload = createDLMSPayload(SQHostName, SQProjectKey, SQAuthToken);
             JsonArray urls = createPayloadUrls(SQHostName, SQProjectKey);
             sendPayloadToDLMS(bluemixToken, payload, urls, toolchainId, dlmsUrl);
@@ -481,7 +486,7 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
 
         public FormValidation doTestConnection(@AncestorInPath ItemGroup context,
                                                @QueryParameter("credentialsId") final String credentialsId) {
-            String environment = getEnvironment();
+            String environment = "prod";
             String targetAPI = chooseTargetAPI(environment);
             String iamAPI = chooseIAMAPI(environment);
             try {
@@ -535,14 +540,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
          */
         public String getDisplayName() {
             return getMessage(PUBLISH_SQ_DISPLAY);
-        }
-
-        public String getEnvironment() {
-            return getEnv(Jenkins.getInstance().getDescriptorByType(DevOpsGlobalConfiguration.class).getConsoleUrl());
-        }
-
-        public boolean isDebug_mode() {
-            return Jenkins.getInstance().getDescriptorByType(DevOpsGlobalConfiguration.class).isDebug_mode();
         }
     }
 }

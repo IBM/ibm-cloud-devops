@@ -65,6 +65,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
     public final static String USERNAME = "IBM_CLOUD_DEVOPS_CREDS_USR";
     public final static String PASSWORD = "IBM_CLOUD_DEVOPS_CREDS_PSW";
     public final static String API_KEY = "IBM_CLOUD_DEVOPS_API_KEY";
+    public final static String ENV = "IBM_CLOUD_DEVOPS_ENV";
     public final static String RESULT_SUCCESS = "SUCCESS";
     public final static String RESULT_FAIL = "FAIL";
     private final static String CONTENT_TYPE_JSON = "application/json";
@@ -72,83 +73,80 @@ public abstract class AbstractDevOpsAction extends Recorder {
     private final static String SPACE = "&&space_guid:";
     private final static String IAM_GRANT_TYPE = "urn:ibm:params:oauth:grant-type:apikey";
     private final static String IAM_RESPONSE_TYPE = "cloud_iam";
-    private static final String REPORT_URL_PART = "decisionreport?toolchainId=";
-
+    public static final String DEFAULT_ENV = "prod";
+    private static final String OTC_BROKER_ENDPOINT_ENV = "https://otcbroker-%(env).us-south.devopsinsights.cloud.ibm.com";
+    private static final String OTC_BROKER_ENDPOINT = "https://otcbroker.us-south.devopsinsights.cloud.ibm.com";
+    private static final String OTC_BROKER_PART = "/globalauth/toolchainids/";
+    private static final String POLICY_PART = "/api/v5/toolchainids/{toolchain_name}/policies";
+    public static final String DLMS = "dlms";
+    public static final String GATE_SERVICE = "gateservice";
+    public static final String CONTROL_CENTER = "controlcenter";
 
     private static Map<String, String> TARGET_API_MAP = ImmutableMap.of(
-            "production", "https://api.ng.bluemix.net",
+            "prod", "https://api.ng.bluemix.net",
             "dev", "https://api.stage1.ng.bluemix.net",
-            "stage1", "https://api.stage1.ng.bluemix.net"
+            "staging", "https://api.stage1.ng.bluemix.net"
     );
 
     private static Map<String, String> IAM_API_MAP = ImmutableMap.of(
-            "production", "https://iam.bluemix.net/identity/token?",
+            "prod", "https://iam.bluemix.net/identity/token?",
             "dev", "https://iam.stage1.bluemix.net/identity/token?",
-            "stage1", "https://iam.stage1.bluemix.net/identity/token?"
+            "staging", "https://iam.stage1.bluemix.net/identity/token?"
     );
 
     private static Map<String, String> ORGANIZATIONS_URL_MAP = ImmutableMap.of(
-            "production", "https://api.ng.bluemix.net/v2/organizations?q=name:",
+            "prod", "https://api.ng.bluemix.net/v2/organizations?q=name:",
             "dev", "https://api.stage1.ng.bluemix.net/v2/organizations?q=name:",
-            "stage1", "https://api.stage1.ng.bluemix.net/v2/organizations?q=name:"
+            "staging", "https://api.stage1.ng.bluemix.net/v2/organizations?q=name:"
     );
 
     private static Map<String, String> SPACES_URL_MAP = ImmutableMap.of(
-            "production", "https://api.ng.bluemix.net/v2/spaces?q=name:",
+            "prod", "https://api.ng.bluemix.net/v2/spaces?q=name:",
             "dev", "https://api.stage1.ng.bluemix.net/v2/spaces?q=name:",
-            "stage1", "https://api.stage1.ng.bluemix.net/v2/spaces?q=name:"
+            "staging", "https://api.stage1.ng.bluemix.net/v2/spaces?q=name:"
     );
 
     private static Map<String, String> APPS_URL_MAP = ImmutableMap.of(
-            "production", "https://api.ng.bluemix.net/v2/apps?q=name:",
+            "prod", "https://api.ng.bluemix.net/v2/apps?q=name:",
             "dev", "https://api.stage1.ng.bluemix.net/v2/apps?q=name:",
-            "stage1", "https://api.stage1.ng.bluemix.net/v2/apps?q=name:"
+            "staging", "https://api.stage1.ng.bluemix.net/v2/apps?q=name:"
     );
-
-    private static Map<String, String> POLICIES_URL_MAP = ImmutableMap.of(
-            "production", "https://dra.ng.bluemix.net/api/v5/toolchainids/{toolchain_name}/policies",
-            "dev", "https://dev-dra.stage1.ng.bluemix.net/api/v5/toolchainids/{toolchain_name}/policies",
-            "stage1", "https://dra.stage1.ng.bluemix.net/api/v5/toolchainids/{toolchain_name}/policies"
-    );
-
-    private static Map<String, String> DLMS_ENV_MAP = ImmutableMap.of(
-            "production", "https://dlms.ng.bluemix.net/v3",
-            "dev", "https://dev-dlms.stage1.ng.bluemix.net/v3",
-            "stage1", "https://dlms.stage1.ng.bluemix.net/v3"
-    );
-
-    private static Map<String, String> GATE_DECISION_ENV_MAP = ImmutableMap.of(
-            "production", "https://dra.ng.bluemix.net/api/v5",
-            "dev", "https://dev-dra.stage1.ng.bluemix.net/api/v5",
-            "stage1", "https://dra.stage1.ng.bluemix.net/api/v5"
-    );
-
-    private static Map<String, String> CONTROL_CENTER_ENV_MAP = ImmutableMap.of(
-            "production", "https://console.ng.bluemix.net/devops/insights?env_id=ibm:yp:us-south#!/",
-            "dev", "https://dev-console.stage1.ng.bluemix.net/devops/insights/#!/",
-            "stage1", "https://console.stage1.ng.bluemix.net/devops/insights/#!/"
-    );
-
-
 
     /**
-     * get the environment based on the console
-     * @param consoleUrl
+     * get the OTC broker server endpoint
+     * @param env
+     * @return
      */
-    public static String getEnv(String consoleUrl) {
-        if (isNullOrEmpty(consoleUrl)) {
-            return "production";
-        } else if (consoleUrl.contains("dev-console.stage1.bluemix.net") || consoleUrl.contains("dev-console.stage1.ng.bluemix.net")) {
-            return "dev";
-        } else if (consoleUrl.contains("console.stage1.bluemix.net") || consoleUrl.contains("console.stage1.ng.bluemix.net")) {
-            return "stage1";
-        } else if (consoleUrl.contains("console.bluemix.net") || consoleUrl.contains("console.ng.bluemix.net")){
-            return "production";
+    public static String getOTCBrokerServer(String env) {
+        if ("prod".equals(env)) {
+            return OTC_BROKER_ENDPOINT;
         } else {
-            int start = consoleUrl.indexOf("console") + 8;
-            int end = consoleUrl.indexOf("bluemix.net") - 1;
-            String local = consoleUrl.substring(start, end);
-            return local;
+            return OTC_BROKER_ENDPOINT_ENV.replace("%(env)", env);
+        }
+    }
+
+    public static Map<String, String> getAllEndpoints(String OTCBrokerServer, String token, String toolchainId) throws Exception {
+        Map<String, String> endpoints = new HashMap<>();
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+        String url = OTCBrokerServer + OTC_BROKER_PART + toolchainId;
+        HttpGet getMethod = new HttpGet(url);
+        getMethod = addProxyInformation(getMethod);
+        getMethod.setHeader("Authorization", token);
+
+        CloseableHttpResponse response = httpClient.execute(getMethod);
+        int statusCode = response.getStatusLine().getStatusCode();
+        JsonParser parser = new JsonParser();
+        JsonElement element = parser.parse(EntityUtils.toString(response.getEntity()));
+        JsonObject resJson = element.getAsJsonObject();
+        if (statusCode == 200) {
+            JsonObject serviceUrls = resJson.get("service_urls").getAsJsonObject();
+            endpoints.put(DLMS, serviceUrls.get(DLMS).getAsString());
+            endpoints.put(GATE_SERVICE, serviceUrls.get(GATE_SERVICE).getAsString());
+            endpoints.put(CONTROL_CENTER, serviceUrls.get(CONTROL_CENTER).getAsString());
+            return endpoints;
+        } else {
+            throw new Exception(getMessageWithVar(FAIL_TO_TALK_TO_OTC_BROKER, String.valueOf(statusCode),
+            resJson == null ? "": resJson.toString()));
         }
     }
 
@@ -169,31 +167,33 @@ public abstract class AbstractDevOpsAction extends Recorder {
         } else {
             requiredEnvVars.put(API_KEY, envVars.get(API_KEY).trim());
         }
+
+        if (isNullOrEmpty(envVars.get(ENV))) {
+            requiredEnvVars.put(ENV, DEFAULT_ENV);
+        } else {
+            requiredEnvVars.put(ENV, envVars.get(ENV));
+        }
+
         return requiredEnvVars;
     }
+
 
     public static String chooseTargetAPI(String environment) {
         if (!isNullOrEmpty(environment)) {
             if (TARGET_API_MAP.keySet().contains(environment)) {
                 return TARGET_API_MAP.get(environment);
-            } else {
-                String api = TARGET_API_MAP.get("production").replace("ng", environment);
-                return api;
             }
         }
-        return TARGET_API_MAP.get("production");
+        return TARGET_API_MAP.get("prod");
     }
 
     public static String chooseIAMAPI(String environment) {
         if (!isNullOrEmpty(environment)) {
             if (IAM_API_MAP.keySet().contains(environment)) {
                 return IAM_API_MAP.get(environment);
-            } else {
-                String api = IAM_API_MAP.get("production").replace("ng", environment);
-                return api;
             }
         }
-        return IAM_API_MAP.get("production");
+        return IAM_API_MAP.get("prod");
     }
 
     public static String chooseOrganizationsUrl(String environment) {
@@ -201,11 +201,11 @@ public abstract class AbstractDevOpsAction extends Recorder {
             if (ORGANIZATIONS_URL_MAP.keySet().contains(environment)) {
                 return ORGANIZATIONS_URL_MAP.get(environment);
             } else {
-                String api = ORGANIZATIONS_URL_MAP.get("production").replace("ng", environment);
+                String api = ORGANIZATIONS_URL_MAP.get("prod").replace("ng", environment);
                 return api;
             }
         }
-        return ORGANIZATIONS_URL_MAP.get("production");
+        return ORGANIZATIONS_URL_MAP.get("prod");
     }
 
     public static String chooseSpacesUrl(String environment) {
@@ -213,12 +213,12 @@ public abstract class AbstractDevOpsAction extends Recorder {
             if (SPACES_URL_MAP.keySet().contains(environment)) {
                 return SPACES_URL_MAP.get(environment);
             } else {
-                String api = SPACES_URL_MAP.get("production").replace("ng", environment);
+                String api = SPACES_URL_MAP.get("prod").replace("ng", environment);
                 return api;
             }
         }
 
-        return SPACES_URL_MAP.get("production");
+        return SPACES_URL_MAP.get("prod");
     }
 
     public static String chooseAppsUrl(String environment) {
@@ -226,74 +226,11 @@ public abstract class AbstractDevOpsAction extends Recorder {
             if (APPS_URL_MAP.keySet().contains(environment)) {
                 return APPS_URL_MAP.get(environment);
             } else {
-                String api = APPS_URL_MAP.get("production").replace("ng", environment);
+                String api = APPS_URL_MAP.get("prod").replace("ng", environment);
                 return api;
             }
         }
-        return APPS_URL_MAP.get("production");
-    }
-
-    public static String choosePoliciesUrl(String environment) {
-        if (!isNullOrEmpty(environment)) {
-            if (POLICIES_URL_MAP.keySet().contains(environment)) {
-                return POLICIES_URL_MAP.get(environment);
-            } else {
-                String api = POLICIES_URL_MAP.get("production").replace("ng", environment);
-                return api;
-            }
-        }
-        return POLICIES_URL_MAP.get("production");
-    }
-
-    /**
-     * choose DLMS Url for different environment (production, stage1, new, dev)
-     * @param environment
-     * @return
-     */
-    public static String chooseDLMSUrl(String environment) {
-        if (!isNullOrEmpty(environment)) {
-            if (DLMS_ENV_MAP.keySet().contains(environment)) {
-                return DLMS_ENV_MAP.get(environment);
-            } else {
-                String api = DLMS_ENV_MAP.get("production").replace("ng", environment);
-                return api;
-            }
-        }
-        return DLMS_ENV_MAP.get("production");
-    }
-
-    /**
-     * choose DRA Url for different environment (production, stage1, new, dev)
-     * @param environment
-     * @return
-     */
-    public static String chooseDRAUrl(String environment) {
-        if (!isNullOrEmpty(environment)) {
-            if (GATE_DECISION_ENV_MAP.keySet().contains(environment)) {
-                return GATE_DECISION_ENV_MAP.get(environment);
-            } else {
-                String api = GATE_DECISION_ENV_MAP.get("production").replace("ng", environment);
-                return api;
-            }
-        }
-        return GATE_DECISION_ENV_MAP.get("production");
-    }
-
-    /**
-     * choose control center Url for different environment (production, stage1, new, dev)
-     * @param environment
-     * @return
-     */
-    public static String chooseControlCenterUrl(String environment) {
-        if (!isNullOrEmpty(environment)) {
-            if (CONTROL_CENTER_ENV_MAP.keySet().contains(environment)) {
-                return CONTROL_CENTER_ENV_MAP.get(environment);
-            } else {
-                String api = CONTROL_CENTER_ENV_MAP.get("production").replace("ng", environment);
-                return api;
-            }
-        }
-        return CONTROL_CENTER_ENV_MAP.get("production");
+        return APPS_URL_MAP.get("prod");
     }
 
     /**
@@ -325,6 +262,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
             throw new Exception(getMessage(LOGIN_IN_FAIL) + "\n" + e.getMessage());
         }
     }
+
 
     /**
      * get token for either pipeline or freestyle in the runtime
@@ -435,10 +373,22 @@ public abstract class AbstractDevOpsAction extends Recorder {
         String url = baseUrl;
         url = url.replace("{toolchain_id}", URLEncoder.encode(toolchainId, "UTF-8").replaceAll("\\+", "%20"));
         url = url.replace("{build_artifact}", URLEncoder.encode(appName, "UTF-8").replaceAll("\\+", "%20"));
-        if (!isNullOrEmpty(buildId)) {
+        if (!Util.isNullOrEmpty(buildId)) {
             url = url.replace("{build_id}", URLEncoder.encode(buildId, "UTF-8").replaceAll("\\+", "%20"));
         }
+        return url;
+    }
 
+    public static String setGateServiceUrl(String baseUrl, String toolchainId, String applicationName,
+                                           String buildId, String policyName, String environmentName) throws UnsupportedEncodingException {
+        String url = baseUrl;
+        url = url.replace("{toolchain_id}", URLEncoder.encode(toolchainId, "UTF-8").replaceAll("\\+", "%20"));
+        url = url.replace("{build_artifact}", URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20"));
+        url = url.replace("{policy_name}", URLEncoder.encode(policyName, "UTF-8").replaceAll("\\+", "%20"));
+        url = url.replace("{build_id}", URLEncoder.encode(buildId, "UTF-8").replaceAll("\\+", "%20"));
+        if (!Util.isNullOrEmpty(environmentName)) {
+            url = url.concat("?environment_name=" + environmentName);
+        }
         return url;
     }
 
@@ -673,16 +623,17 @@ public abstract class AbstractDevOpsAction extends Recorder {
      * @param token
      * @param toolchainId
      * @param environment
-     * @param debug_mode
      * @return
      */
-    public static ListBoxModel getPolicyList(String token, String toolchainId, String environment, Boolean debug_mode) {
+    public static ListBoxModel getPolicyList(String token, String toolchainId, String environment) {
         // get all jenkins job
         ListBoxModel emptybox = new ListBoxModel();
         emptybox.add("","empty");
-        String url = choosePoliciesUrl(environment);
+        String OTCbrokerUrl = getOTCBrokerServer(environment);
 
         try {
+            Map<String, String> endpoints = getAllEndpoints(OTCbrokerUrl, token, toolchainId);
+            String url = endpoints.get(GATE_SERVICE) + POLICY_PART;
             url = url.replace("{toolchain_name}", URLEncoder.encode(toolchainId, "UTF-8").replaceAll("\\+", "%20"));
             CloseableHttpClient httpClient = HttpClients.createDefault();
             HttpGet httpGet = new HttpGet(url);
@@ -691,10 +642,6 @@ public abstract class AbstractDevOpsAction extends Recorder {
             CloseableHttpResponse response = httpClient.execute(httpGet);
             String resStr = EntityUtils.toString(response.getEntity());
 
-            if(debug_mode){
-                LOGGER.info("GET POLICIES URL:" + url);
-                LOGGER.info("RESPONSE FROM GET POLICIES URL:" + response.getStatusLine().toString());
-            }
             if (response.getStatusLine().getStatusCode() == 200) {
 
                 JsonParser parser = new JsonParser();
@@ -707,18 +654,12 @@ public abstract class AbstractDevOpsAction extends Recorder {
                     String name = String.valueOf(obj.get("name")).replaceAll("\"", "");
                     model.add(name, name);
                 }
-                if(debug_mode){
-                    LOGGER.info("POLICY LIST:" + model);
-                    LOGGER.info("#######################");
-                }
+
                 return model;
             } else {
-                if(debug_mode){
-                    LOGGER.info("RETURNED STATUS CODE OTHER THAN 200. RESPONSE: " + response.getStatusLine().toString());
-                }
                 return emptybox;
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return emptybox;
@@ -727,32 +668,18 @@ public abstract class AbstractDevOpsAction extends Recorder {
     /**
      * Get gate decision from DevOps Insights
      * @param bluemixToken
-     * @param buildId
-     * @param applicationName
      * @param toolchainId
-     * @param environmentName
      * @param draUrl
-     * @param policyName
      * @param printStream
      * @return
      * @throws IOException
      */
-    public static JsonObject getDecisionFromDRA(String bluemixToken, String buildId, String applicationName, String toolchainId,
-                                                String environmentName, String draUrl, String policyName, PrintStream printStream) throws Exception {
+    public static JsonObject getDecisionFromDRA(String bluemixToken, String toolchainId,
+                                                String draUrl, PrintStream printStream) throws Exception {
         // create http client and post method
         CloseableHttpClient httpClient = HttpClients.createDefault();
 
-        String url = draUrl;
-        url = url + "/toolchainids/" + toolchainId +
-                "/buildartifacts/" + URLEncoder.encode(applicationName, "UTF-8").replaceAll("\\+", "%20") +
-                "/builds/" + buildId +
-                "/policies/" + URLEncoder.encode(policyName, "UTF-8").replaceAll("\\+", "%20") +
-                "/decisions";
-        if (!Util.isNullOrEmpty(environmentName)) {
-            url = url.concat("?environment_name=" + environmentName);
-        }
-
-        HttpPost postMethod = new HttpPost(url);
+        HttpPost postMethod = new HttpPost(draUrl);
         postMethod = addProxyInformation(postMethod);
         postMethod.setHeader("Authorization", bluemixToken);
         postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);

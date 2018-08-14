@@ -56,6 +56,7 @@ import java.io.PrintStream;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 
 import static com.ibm.devops.dra.UIMessages.*;
@@ -66,12 +67,15 @@ import static com.ibm.devops.dra.Util.*;
  */
 public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep {
 
-    private final static String API_PART = "/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/results_multipart";
-    private static final String CONTROL_CENTER_URL_PART = "deploymentrisk?toolchainId=";
+    private final static String DLMS_API_PART = "/v3/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/results_multipart";
+    private static final String CONTROL_CENTER_URL_PART = "deploymentrisk";
+    private final static String TOOLCHAIN_PART = "&toolchainId=";
     private static final String REPORT_URL_PART = "decisionreport?toolchainId=";
     private final static String CONTENT_TYPE_JSON = "application/json";
     private final static String CONTENT_TYPE_XML = "application/xml";
     private final static String CONTENT_TYPE_LCOV = "text/plain";
+    private static final String DECISION_API_PART = "/api/v5/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/policies/{policy_name}/decisions";
+
 
     // form fields from UI
     private final String lifecycleStage;
@@ -99,6 +103,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
     private String username;
     private String password;
     private String apikey;
+    private String env;
 
     @DataBoundConstructor
     public PublishTest(String lifecycleStage,
@@ -150,6 +155,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
 
         this.applicationName = envVarsMap.get(APP_NAME);
         this.toolchainName = envVarsMap.get(TOOLCHAIN_ID);
+        this.env = envVarsMap.get(ENV);
 
         if (isNullOrEmpty(envVarsMap.get(API_KEY))) {
             this.username = envVarsMap.get(USERNAME);
@@ -281,7 +287,8 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         // create root dir for storing test result
         root = new File(build.getRootDir(), "DRA_TestResults");
         EnvVars envVars = build.getEnvironment(listener);
-        String env = getDescriptor().getEnvironment();
+        String env = isNullOrEmpty(this.env) ? DEFAULT_ENV : this.env;
+
         try {
             // Get the project name and build id from environment and expand the vars
             String applicationName = expandVariable(this.applicationName, envVars, true);
@@ -298,10 +305,14 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             String bluemixToken = getIBMCloudToken(this.credentialsId, this.apikey, this.username, this.password,
                     env, build.getParent(), printStream);
 
-            String dlmsUrl = chooseDLMSUrl(env) + API_PART;
+            String OTCbrokerUrl = getOTCBrokerServer(env);
+            Map<String, String> endpoints = getAllEndpoints(OTCbrokerUrl, bluemixToken, toolchainId);;
+            String dlmsUrl = endpoints.get(DLMS) + DLMS_API_PART;
             dlmsUrl = setDLMSUrl(dlmsUrl, toolchainId, applicationName, buildNumber);
-            String link = chooseControlCenterUrl(env) + CONTROL_CENTER_URL_PART + toolchainId;
+            String ccUrl = endpoints.get(CONTROL_CENTER);
+            String link = ccUrl.replace("overview", CONTROL_CENTER_URL_PART) + TOOLCHAIN_PART + toolchainId;
             scanAndUpload(build, workspace, contents, lifecycleStage, toolchainId, bluemixToken, environmentName, dlmsUrl);
+
             // check to see if we need to upload additional result file
             if (!isNullOrEmpty(additionalContents) && !isNullOrEmpty(additionalLifecycleStage)) {
                 String additionalContents = envVars.expand(this.additionalContents);
@@ -315,10 +326,11 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             }
 
             String policyName = envVars.expand(this.policyName);
-            String draUrl = chooseDRAUrl(env);
-            String reportUrl =  chooseControlCenterUrl(env) + REPORT_URL_PART + toolchainId + "&reportId=";
-            JsonObject decisionJson = getDecisionFromDRA(bluemixToken, buildNumber, applicationName, toolchainId,
-                    environmentName, draUrl, policyName, printStream);
+            String draUrl = endpoints.get(GATE_SERVICE) + DECISION_API_PART;
+            draUrl = setGateServiceUrl(draUrl, toolchainId, applicationName, buildNumber, policyName, environmentName);
+            String reportUrl =  ccUrl.replace("overview", REPORT_URL_PART) + TOOLCHAIN_PART + toolchainId + "&reportId=";
+            JsonObject decisionJson = getDecisionFromDRA(bluemixToken, toolchainId,
+                    draUrl, printStream);
             if (decisionJson == null) {
                 printStream.println(getMessageWithPrefix(NO_DECISION_FOUND));
                 return;
@@ -595,7 +607,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
 
         public FormValidation doTestConnection(@AncestorInPath ItemGroup context,
                                                @QueryParameter("credentialsId") final String credentialsId) {
-            String environment = getEnvironment();
+            String environment = "prod";
             String targetAPI = chooseTargetAPI(environment);
             String iamAPI = chooseIAMAPI(environment);
             try {
@@ -658,7 +670,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
         public ListBoxModel doFillPolicyNameItems(@AncestorInPath ItemGroup context,
                                                   @RelativePath("..") @QueryParameter final String toolchainName,
                                                   @RelativePath("..") @QueryParameter final String credentialsId) {
-            String environment = getEnvironment();
+            String environment = "prod";
             String targetAPI = chooseTargetAPI(environment);
             String iamAPI = chooseIAMAPI(environment);
             try {
@@ -671,10 +683,8 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             } catch (Exception e) {
                 return new ListBoxModel();
             }
-            if(isDebug_mode()){
-                LOGGER.info("#######UPLOAD TEST RESULTS : calling getPolicyList#######");
-            }
-            return getPolicyList(bluemixToken, toolchainName, environment, isDebug_mode());
+
+            return getPolicyList(bluemixToken, toolchainName, environment);
         }
 
         /**
@@ -719,14 +729,6 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
          */
         public String getDisplayName() {
             return "Publish test result to IBM Cloud DevOps";
-        }
-
-        public String getEnvironment() {
-            return getEnv(Jenkins.getInstance().getDescriptorByType(DevOpsGlobalConfiguration.class).getConsoleUrl());
-        }
-
-        public boolean isDebug_mode() {
-            return Jenkins.getInstance().getDescriptorByType(DevOpsGlobalConfiguration.class).isDebug_mode();
         }
     }
 }
