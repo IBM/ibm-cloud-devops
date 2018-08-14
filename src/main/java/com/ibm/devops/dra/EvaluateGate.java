@@ -40,6 +40,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.ibm.devops.dra.UIMessages.*;
 import static com.ibm.devops.dra.Util.*;
@@ -48,8 +49,10 @@ import static com.ibm.devops.dra.Util.*;
  * Customized build step to get a gate decision from DRA backend
  */
 public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildStep{
-    private static final String REPORT_URL_PART = "decisionreport?toolchainId=";
+    private static final String REPORT_URL_PART = "decisionreport";
+    private final static String TOOLCHAIN_PART = "&toolchainId=";
     private static final String CONTROL_CENTER_URL_PART = "deploymentrisk?toolchainId=";
+    private static final String DECISION_API_PART = "/api/v5/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/policies/{policy_name}/decisions";
 
     // form fields from UI
     private String policyName;
@@ -70,6 +73,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
     private String username;
     private String password;
     private String apikey;
+    private String env;
     // optional customized build number
     private String buildNumber;
 
@@ -115,6 +119,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         this.envName = environmentName;
         this.willDisrupt = willDisrupt;
         this.policyName = policyName;
+        this.env = envVarsMap.get(ENV);
     }
 
     public void setBuildNumber(String buildNumber) {
@@ -193,7 +198,6 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         // This is where you 'build' the project.
         printStream = listener.getLogger();
         printPluginVersion(this.getClass().getClassLoader(), printStream);
-        String env = getDescriptor().getEnvironment();
 
         try {
             EnvVars envVars = build.getEnvironment(listener);
@@ -211,9 +215,14 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             String bluemixToken = getIBMCloudToken(this.credentialsId, this.apikey, this.username, this.password,
                     env, build.getParent(), printStream);
 
-            String draUrl = chooseDRAUrl(env);
-            String link = chooseControlCenterUrl(env) + CONTROL_CENTER_URL_PART + toolchainId;
-            String reportUrl =  chooseControlCenterUrl(env) + REPORT_URL_PART + toolchainId + "&reportId=";
+            String OTCbrokerUrl = getOTCBrokerServer(this.env);
+            Map<String, String> endpoints = getAllEndpoints(OTCbrokerUrl, bluemixToken, toolchainId);;
+            String draUrl = endpoints.get(GATE_SERVICE) + DECISION_API_PART;
+            draUrl = setGateServiceUrl(draUrl, toolchainId, applicationName, buildNumber, policyName, environmentName);
+            String ccUrl = endpoints.get(CONTROL_CENTER);
+            String reportUrl =  ccUrl.replace("overview", REPORT_URL_PART) + TOOLCHAIN_PART + toolchainId + "&reportId=";
+            String link = ccUrl.replace("overview", CONTROL_CENTER_URL_PART) + TOOLCHAIN_PART + toolchainId;
+
             JsonObject decisionJson = getDecisionFromDRA(bluemixToken, buildNumber, applicationName, toolchainId,
                     environmentName, draUrl, policyName, printStream);
             if (decisionJson == null) {
@@ -298,7 +307,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
 
         public FormValidation doTestConnection(@AncestorInPath ItemGroup context,
                                                @QueryParameter("credentialsId") final String credentialsId) {
-            String environment = getEnvironment();
+            String environment = "prod";
             String targetAPI = chooseTargetAPI(environment);
             String iamAPI = chooseIAMAPI(environment);
             try {
@@ -360,7 +369,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
         public ListBoxModel doFillPolicyNameItems(@AncestorInPath ItemGroup context,
                                                   @QueryParameter final String toolchainName,
                                                   @QueryParameter final String credentialsId) {
-            String environment = getEnvironment();
+            String environment = "prod";
             String targetAPI = chooseTargetAPI(environment);
             String iamAPI = chooseIAMAPI(environment);
             try {
@@ -373,10 +382,8 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             } catch (Exception e) {
                 return new ListBoxModel();
             }
-            if(isDebug_mode()){
-                LOGGER.info("#######UPLOAD TEST RESULTS : calling getPolicyList#######");
-            }
-            return getPolicyList(bluemixToken, toolchainName, environment, isDebug_mode());
+
+            return getPolicyList(bluemixToken, toolchainName, environment);
         }
 
         /**
@@ -399,14 +406,6 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
          */
         public String getDisplayName() {
             return "IBM Cloud DevOps Gate";
-        }
-
-        public String getEnvironment() {
-            return getEnv(Jenkins.getInstance().getDescriptorByType(DevOpsGlobalConfiguration.class).getConsoleUrl());
-        }
-
-        public boolean isDebug_mode() {
-            return Jenkins.getInstance().getDescriptorByType(DevOpsGlobalConfiguration.class).isDebug_mode();
         }
     }
 }

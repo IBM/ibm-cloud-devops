@@ -27,14 +27,16 @@ import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.*;
+import hudson.model.AbstractProject;
+import hudson.model.ItemGroup;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.security.ACL;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Publisher;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -54,16 +56,18 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.TimeZone;
 
 import static com.ibm.devops.dra.UIMessages.*;
 import static com.ibm.devops.dra.Util.*;
 
 public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildStep {
-    private static final String BUILD_API_URL = "/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds";
     private final static String CONTENT_TYPE_JSON = "application/json";
     private final static String CONTENT_TYPE_XML = "application/xml";
-    private final static String BUILD_STATUS_PART = "deploymentrisk?toolchainId=";
+    private final static String BUILD_STATUS_PART = "deploymentrisk";
+    private final static String TOOLCHAIN_PART = "&toolchainId=";
+    private static final String BUILD_API_URL = "/v3/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds";
 
     // form fields from UI
     private String applicationName;
@@ -81,6 +85,7 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
     private String username;
     private String password;
     private String apikey;
+    private String env;
 
     private PrintStream printStream;
     private File root;
@@ -106,6 +111,7 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         this.result = paramsMap.get("result");
         this.applicationName = envVarsMap.get(APP_NAME);
         this.toolchainName = envVarsMap.get(TOOLCHAIN_ID);
+        this.env = envVarsMap.get(ENV);
 
         if (isNullOrEmpty(envVarsMap.get(API_KEY))) {
             this.username = envVarsMap.get(USERNAME);
@@ -179,27 +185,33 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
         // create root dir for storing test result
         root = new File(build.getRootDir(), "DRA_TestResults");
         EnvVars envVars = build.getEnvironment(listener);
-        String env = getDescriptor().getEnvironment();
+        String env = isNullOrEmpty(this.env) ? DEFAULT_ENV : this.env;
+
         try {
             // Get the project name and build id from environment and expand the vars
             String applicationName = expandVariable(this.applicationName, envVars, true);
             String toolchainId = expandVariable(this.toolchainName, envVars, true);
+            String OTCbrokerUrl = getOTCBrokerServer(env);
 
             // get IBM cloud environment and token
             String bluemixToken = getIBMCloudToken(this.credentialsId, this.apikey, this.username, this.password,
                     env, build.getParent(), printStream);
             String buildNumber = isNullOrEmpty(this.buildNumber) ?
                     constructBuildNumber(envVars.get("JOB_NAME"), build) : envVars.expand(this.buildNumber);
-            String dlmsUrl = chooseDLMSUrl(env) + BUILD_API_URL;
-            String link = chooseControlCenterUrl(env) + BUILD_STATUS_PART + toolchainId;
+
+            Map<String, String> endpoints = getAllEndpoints(OTCbrokerUrl, bluemixToken, toolchainId);;
+            String dlmsUrl = endpoints.get(DLMS) + BUILD_API_URL;
+            dlmsUrl = setDLMSUrl(dlmsUrl, toolchainId, applicationName, null);
+            String ccUrl = endpoints.get(CONTROL_CENTER).replace("overview", BUILD_STATUS_PART) + TOOLCHAIN_PART + toolchainId;
 
             // upload build info
             String buildStatus = getJobResult(build, this.result);
-            uploadBuildInfo(bluemixToken, build, envVars, buildNumber, buildStatus,applicationName, toolchainId, dlmsUrl);
-            printStream.println(getMessageWithVarAndPrefix(CHECK_BUILD_STATUS, link));
-            BuildPublisherAction action = new BuildPublisherAction(link);
+            uploadBuildInfo(bluemixToken, build, envVars, buildNumber, buildStatus, dlmsUrl);
+            printStream.println(getMessageWithVarAndPrefix(CHECK_BUILD_STATUS, ccUrl));
+            BuildPublisherAction action = new BuildPublisherAction(ccUrl);
             build.addAction(action);
         } catch (Exception e) {
+            e.printStackTrace();
             printStream.println(getMessageWithPrefix(GOT_ERRORS) + e.getMessage());
         }
     }
@@ -233,14 +245,12 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
      * @param dlmsUrl
      * @throws IOException
      */
-    private void uploadBuildInfo(String bluemixToken, Run build, EnvVars envVars, String buildNumber, String buildStatus,
-                                 String applicationName, String toolchainId, String dlmsUrl) throws Exception {
+    private void uploadBuildInfo(String bluemixToken, Run build, EnvVars envVars, String buildNumber, String buildStatus, String dlmsUrl) throws Exception {
         String resStr;
         CloseableHttpClient httpClient = HttpClients.createDefault();
-        String url = setDLMSUrl(dlmsUrl, toolchainId, applicationName, null);
         String buildUrl = getJobUrl(build, printStream);
 
-        HttpPost postMethod = new HttpPost(url);
+        HttpPost postMethod = new HttpPost(dlmsUrl);
         postMethod = addProxyInformation(postMethod);
         postMethod.setHeader("Authorization", bluemixToken);
         postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);
@@ -267,6 +277,7 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             // if gets 401 or 403, it returns html
             throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA, String.valueOf(statusCode), toolchainName));
         } else {
+            System.out.println(resStr);
             JsonParser parser = new JsonParser();
             JsonElement element = parser.parse(resStr);
             JsonObject resJson = element.getAsJsonObject();
@@ -345,7 +356,7 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
 
         public FormValidation doTestConnection(@AncestorInPath ItemGroup context,
                                                @QueryParameter("credentialsId") final String credentialsId) {
-            String environment = getEnvironment();
+            String environment = "prod";
             String targetAPI = chooseTargetAPI(environment);
             String iamAPI = chooseIAMAPI(environment);
             try {
@@ -399,10 +410,6 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
          */
         public String getDisplayName() {
             return getMessage(PUBLISH_BUILD_DISPLAY);
-        }
-
-        public String getEnvironment() {
-            return getEnv(Jenkins.getInstance().getDescriptorByType(DevOpsGlobalConfiguration.class).getConsoleUrl());
         }
     }
 }

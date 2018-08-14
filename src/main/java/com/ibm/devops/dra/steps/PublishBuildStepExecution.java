@@ -70,7 +70,7 @@ public class PublishBuildStepExecution extends AbstractSynchronousNonBlockingSte
         // optional build number, if user wants to set their own build number
         String buildNumber = step.getBuildNumber();
 
-        if (!allNotNullOrEmpty(requiredEnvVars, printStream)) {
+        if (!allNotNullOrEmpty(requiredParams, printStream)) {
             printStream.println(getMessageWithVar(MISS_REQUIRED_STEP_PARAMS, "publishBuildRecord"));
             return null;
         }

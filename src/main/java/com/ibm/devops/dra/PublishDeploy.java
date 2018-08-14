@@ -53,14 +53,16 @@ import java.io.PrintStream;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 import static com.ibm.devops.dra.Util.*;
 import static com.ibm.devops.dra.UIMessages.*;
 
 public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildStep {
-	private static final String DEPLOYMENT_API_URL = "/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/deployments";
-	private static final String CONTROL_CENTER_URL_PART = "deploymentrisk?toolchainId=";
+	private static final String CONTROL_CENTER_URL_PART = "deploymentrisk";
+	private final static String TOOLCHAIN_PART = "&toolchainId=";
 	private final static String CONTENT_TYPE_JSON = "application/json";
+	private static final String DEPLOYMENT_API_URL = "/v3/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/deployments";
 	private PrintStream printStream;
 
 	// form fields from UI
@@ -79,6 +81,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 	private String username;
 	private String password;
 	private String apikey;
+	private String env;
 
 	@DataBoundConstructor
 	public PublishDeploy(String applicationName,
@@ -107,6 +110,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		this.result = paramsMap.get("result");
 		this.applicationName = envVarsMap.get(APP_NAME);
 		this.toolchainName = envVarsMap.get(TOOLCHAIN_ID);
+		this.env = envVarsMap.get(ENV);
 
 		if (isNullOrEmpty(envVarsMap.get(API_KEY))) {
 			this.username = envVarsMap.get(USERNAME);
@@ -174,13 +178,15 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		printStream = listener.getLogger();
 		printPluginVersion(this.getClass().getClassLoader(), printStream);
 		EnvVars envVars = build.getEnvironment(listener);
-		String env = getDescriptor().getEnvironment();
+		String env = isNullOrEmpty(this.env) ? DEFAULT_ENV : this.env;
+
 		try {
 			// Get the project name and build id from environment and expand the vars
 			String applicationName = expandVariable(this.applicationName, envVars, true);
 			String environmentName = expandVariable(this.environmentName, envVars, true);
 			String toolchainId = expandVariable(this.toolchainName, envVars, true);
 			String applicationUrl = expandVariable(this.applicationUrl, envVars, false);
+			String OTCbrokerUrl = getOTCBrokerServer(env);
 
 			// get IBM cloud environment and token
 			String buildNumber = isNullOrEmpty(this.buildNumber) ?
@@ -188,9 +194,10 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 			String bluemixToken = getIBMCloudToken(this.credentialsId, this.apikey, this.username, this.password,
 					env, build.getParent(), printStream);
 
-			String baseUrl = chooseDLMSUrl(env) + DEPLOYMENT_API_URL;
-			String dlmsUrl = setDLMSUrl(baseUrl, toolchainId, applicationName, buildNumber);
-			String link = chooseControlCenterUrl(env) + CONTROL_CENTER_URL_PART + this.toolchainName;
+			Map<String, String> endpoints = getAllEndpoints(OTCbrokerUrl, bluemixToken, toolchainId);;
+			String dlmsUrl = endpoints.get(DLMS) + DEPLOYMENT_API_URL;
+			dlmsUrl = setDLMSUrl(dlmsUrl, toolchainId, applicationName, buildNumber);
+			String link = endpoints.get(CONTROL_CENTER).replace("overview", CONTROL_CENTER_URL_PART) + TOOLCHAIN_PART + toolchainId;
 
 			String deployStatus = getJobResult(build, this.result);
 			uploadDeploymentInfo(bluemixToken, dlmsUrl, build, applicationUrl, environmentName, toolchainId, deployStatus);
@@ -201,7 +208,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 	}
 
 	private void uploadDeploymentInfo(String token, String dlmsUrl, Run build, String applicationUrl,
-									  String environmentName, String toolchainName, String deployStatsus) throws Exception {
+									  String environmentName, String toolchainId, String deployStatsus) throws Exception {
 		String resStr;
 		CloseableHttpClient httpClient = HttpClients.createDefault();
 		HttpPost postMethod = new HttpPost(dlmsUrl);
@@ -230,7 +237,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 			printStream.println(getMessageWithPrefix(UPLOAD_DEPLOY_SUCCESS));
 		} else if (statusCode == 401 || statusCode == 403) {
 			// if gets 401 or 403, it returns html
-			throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA, String.valueOf(statusCode), toolchainName));
+			throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA, String.valueOf(statusCode), toolchainId));
 		} else {
 			JsonParser parser = new JsonParser();
 			JsonElement element = parser.parse(resStr);
@@ -317,7 +324,7 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 
 		public FormValidation doTestConnection(@AncestorInPath ItemGroup context,
 											   @QueryParameter("credentialsId") final String credentialsId) {
-			String environment = getEnvironment();
+			String environment = "prod";
 			String targetAPI = chooseTargetAPI(environment);
 			String iamAPI = chooseIAMAPI(environment);
 			try {
@@ -391,14 +398,6 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		 */
 		public String getDisplayName() {
 			return getMessage(PUBLISH_DEPLOY_DISPLAY);
-		}
-
-		public String getEnvironment() {
-			return getEnv(Jenkins.getInstance().getDescriptorByType(DevOpsGlobalConfiguration.class).getConsoleUrl());
-		}
-
-		public boolean isDebug_mode() {
-			return Jenkins.getInstance().getDescriptorByType(DevOpsGlobalConfiguration.class).isDebug_mode();
 		}
 	}
 }

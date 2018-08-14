@@ -66,6 +66,7 @@ public class UIMessages {
     public static final String MISS_REQUIRED_ENV_VAR = "MISS_REQUIRED_ENV_VAR";
     public static final String MISS_REQUIRED_STEP_PARAMS = "MISS_REQUIRED_STEP_PARAMS";
     public static final String RESULT_NEEDED = "RESULT_NEEDED";
+    public static final String FAIL_TO_TALK_TO_OTC_BROKER = "FAIL_TO_TALK_TO_OTC_BROKER";
 
     public static String getMessage(String messageKey) {
         return bundle.getString(messageKey);
