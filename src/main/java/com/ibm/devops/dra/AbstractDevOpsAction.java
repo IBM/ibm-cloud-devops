@@ -685,18 +685,14 @@ public abstract class AbstractDevOpsAction extends Recorder {
     /**
      * Get gate decision from DevOps Insights
      * @param bluemixToken
-     * @param buildId
-     * @param applicationName
      * @param toolchainId
-     * @param environmentName
      * @param draUrl
-     * @param policyName
      * @param printStream
      * @return
      * @throws IOException
      */
-    public static JsonObject getDecisionFromDRA(String bluemixToken, String buildId, String applicationName, String toolchainId,
-                                                String environmentName, String draUrl, String policyName, PrintStream printStream) throws Exception {
+    public static JsonObject getDecisionFromDRA(String bluemixToken, String toolchainId,
+                                                String draUrl, PrintStream printStream) throws Exception {
         // create http client and post method
         CloseableHttpClient httpClient = HttpClients.createDefault();
 

@@ -329,8 +329,8 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             String draUrl = endpoints.get(GATE_SERVICE) + DECISION_API_PART;
             draUrl = setGateServiceUrl(draUrl, toolchainId, applicationName, buildNumber, policyName, environmentName);
             String reportUrl =  ccUrl.replace("overview", REPORT_URL_PART) + TOOLCHAIN_PART + toolchainId + "&reportId=";
-            JsonObject decisionJson = getDecisionFromDRA(bluemixToken, buildNumber, applicationName, toolchainId,
-                    environmentName, draUrl, policyName, printStream);
+            JsonObject decisionJson = getDecisionFromDRA(bluemixToken, toolchainId,
+                    draUrl, printStream);
             if (decisionJson == null) {
                 printStream.println(getMessageWithPrefix(NO_DECISION_FOUND));
                 return;

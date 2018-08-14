@@ -223,8 +223,8 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             String reportUrl =  ccUrl.replace("overview", REPORT_URL_PART) + TOOLCHAIN_PART + toolchainId + "&reportId=";
             String link = ccUrl.replace("overview", CONTROL_CENTER_URL_PART) + TOOLCHAIN_PART + toolchainId;
 
-            JsonObject decisionJson = getDecisionFromDRA(bluemixToken, buildNumber, applicationName, toolchainId,
-                    environmentName, draUrl, policyName, printStream);
+            JsonObject decisionJson = getDecisionFromDRA(bluemixToken, toolchainId,
+                    draUrl, printStream);
             if (decisionJson == null) {
                 printStream.println(getMessageWithPrefix(NO_DECISION_FOUND));
                 return;
