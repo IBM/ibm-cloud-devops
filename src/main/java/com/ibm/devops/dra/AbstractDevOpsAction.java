@@ -702,8 +702,10 @@ public abstract class AbstractDevOpsAction extends Recorder {
             JsonObject resJson = element.getAsJsonObject();
             if (resJson != null && resJson.has("message")) {
                 throw new Exception(getMessageWithVar(FAIL_TO_GET_DECISION_WITH_REASON, String.valueOf(statusCode), resJson.get("message").getAsString()));
+            } else if (resJson != null && resJson.has("error")) {
+                throw new Exception(getMessageWithVar(FAIL_TO_GET_DECISION_WITH_REASON, String.valueOf(statusCode), resJson.get("error").getAsString()));
             } else {
-                throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA, String.valueOf(statusCode)));
+                throw new Exception(getMessageWithVar(FAIL_TO_GET_DECISION, String.valueOf(statusCode), toolchainId));
             }
         }
     }
