@@ -51,7 +51,7 @@ import static com.ibm.devops.dra.Util.*;
 public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildStep{
     private static final String REPORT_URL_PART = "decisionreport";
     private final static String TOOLCHAIN_PART = "&toolchainId=";
-    private static final String CONTROL_CENTER_URL_PART = "deploymentrisk?";
+    private static final String CONTROL_CENTER_URL_PART = "deploymentrisk";
     private static final String DECISION_API_PART = "/api/v5/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/policies/{policy_name}/decisions";
 
     // form fields from UI
