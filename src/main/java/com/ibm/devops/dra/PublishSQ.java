@@ -386,6 +386,10 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         CloseableHttpResponse response = httpClient.execute(postMethod);
         resStr = EntityUtils.toString(response.getEntity());
 
+        if (getDescriptor().isDebugMode()) {
+            printDebugLog(printStream, postMethod, response.getStatusLine().toString(), resStr);
+        }
+
         int statusCode = response.getStatusLine().getStatusCode();
         if (statusCode == 200) {
             printStream.println(getMessageWithPrefix(UPLOAD_SQ_SUCCESS));
@@ -540,6 +544,10 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
          */
         public String getDisplayName() {
             return getMessage(PUBLISH_SQ_DISPLAY);
+        }
+
+        public boolean isDebugMode() {
+            return Jenkins.getInstance().getDescriptorByType(DevOpsGlobalConfiguration.class).isDebugMode();
         }
     }
 }

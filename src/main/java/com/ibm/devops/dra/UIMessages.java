@@ -9,6 +9,7 @@ import java.util.ResourceBundle;
 public class UIMessages {
     public static final ResourceBundle bundle = ResourceBundle.getBundle("messages", Locale.ENGLISH);
     public static final String PLUGIN_PREFIX = "PLUGIN_PREFIX";
+    public static final String DEBUG_PREFIX = "DEBUG_PREFIX";
     public static final String PUBLISH_BUILD_DISPLAY = "PUBLISH_BUILD_DISPLAY";
     public static final String PUBLISH_DEPLOY_DISPLAY = "PUBLISH_DEPLOY_DISPLAY";
     public static final String PUBLISH_SQ_DISPLAY = "PUBLISH_SQ_DISPLAY";
@@ -100,5 +101,9 @@ public class UIMessages {
 
     public static String getPrefix() {
         return bundle.getString(PLUGIN_PREFIX) + " ";
+    }
+
+    public static String getDebugLog() {
+        return bundle.getString(DEBUG_PREFIX) + " ";
     }
 }

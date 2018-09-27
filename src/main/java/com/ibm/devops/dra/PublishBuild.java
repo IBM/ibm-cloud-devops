@@ -37,6 +37,7 @@ import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Publisher;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -269,6 +270,11 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
 
         CloseableHttpResponse response = httpClient.execute(postMethod);
         resStr = EntityUtils.toString(response.getEntity());
+
+        if (getDescriptor().isDebugMode()) {
+            printDebugLog(printStream, postMethod, response.getStatusLine().toString(), resStr);
+        }
+
         int statusCode = response.getStatusLine().getStatusCode();
         if (statusCode == 200) {
             printStream.println(getMessageWithPrefix(UPLOAD_BUILD_SUCCESS));
@@ -409,6 +415,10 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
          */
         public String getDisplayName() {
             return getMessage(PUBLISH_BUILD_DISPLAY);
+        }
+
+        public boolean isDebugMode() {
+            return Jenkins.getInstance().getDescriptorByType(DevOpsGlobalConfiguration.class).isDebugMode();
         }
     }
 }
