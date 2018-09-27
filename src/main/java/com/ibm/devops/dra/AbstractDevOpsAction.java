@@ -27,8 +27,6 @@ import hudson.EnvVars;
 import hudson.model.*;
 import hudson.tasks.Recorder;
 import hudson.util.ListBoxModel;
-import org.apache.commons.httpclient.HttpMethod;
-import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -51,7 +49,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.*;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static com.ibm.devops.dra.UIMessages.*;
