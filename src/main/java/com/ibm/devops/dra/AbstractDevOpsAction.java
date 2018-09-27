@@ -31,6 +31,7 @@ import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -43,9 +44,7 @@ import org.cloudfoundry.client.lib.CloudFoundryException;
 import org.cloudfoundry.client.lib.HttpProxyConfiguration;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -136,17 +135,18 @@ public abstract class AbstractDevOpsAction extends Recorder {
         CloseableHttpResponse response = httpClient.execute(getMethod);
         int statusCode = response.getStatusLine().getStatusCode();
         JsonParser parser = new JsonParser();
-        JsonElement element = parser.parse(EntityUtils.toString(response.getEntity()));
-        JsonObject resJson = element.getAsJsonObject();
+        String resStr = EntityUtils.toString(response.getEntity());
+
         if (statusCode == 200) {
+            JsonElement element = parser.parse(resStr);
+            JsonObject resJson = element.getAsJsonObject();
             JsonObject serviceUrls = resJson.get("service_urls").getAsJsonObject();
             endpoints.put(DLMS, serviceUrls.get(DLMS).getAsString());
             endpoints.put(GATE_SERVICE, serviceUrls.get(GATE_SERVICE).getAsString());
             endpoints.put(CONTROL_CENTER, serviceUrls.get(CONTROL_CENTER).getAsString());
             return endpoints;
         } else {
-            throw new Exception(getMessageWithVar(FAIL_TO_TALK_TO_OTC_BROKER, String.valueOf(statusCode),
-            resJson == null ? "": resJson.toString()));
+            throw new Exception(getMessageWithVar(FAIL_TO_TALK_TO_OTC_BROKER, String.valueOf(statusCode), resStr == null ? "": resStr));
         }
     }
 
@@ -623,9 +623,10 @@ public abstract class AbstractDevOpsAction extends Recorder {
      * @param token
      * @param toolchainId
      * @param environment
+     * @param isDebugMode
      * @return
      */
-    public static ListBoxModel getPolicyList(String token, String toolchainId, String environment) {
+    public static ListBoxModel getPolicyList(String token, String toolchainId, String environment, boolean isDebugMode) {
         // get all jenkins job
         ListBoxModel emptybox = new ListBoxModel();
         emptybox.add("","empty");
@@ -642,8 +643,13 @@ public abstract class AbstractDevOpsAction extends Recorder {
             CloseableHttpResponse response = httpClient.execute(httpGet);
             String resStr = EntityUtils.toString(response.getEntity());
 
-            if (response.getStatusLine().getStatusCode() == 200) {
+            if (isDebugMode) {
+                LOGGER.info("Trying to get a list of Policy");
+                LOGGER.info("Request: " + httpGet.getMethod() + " " + httpGet.getURI());
+                LOGGER.info("Response: " + response.getStatusLine() + "\n" + resStr);
+            }
 
+            if (response.getStatusLine().getStatusCode() == 200) {
                 JsonParser parser = new JsonParser();
                 JsonElement element = parser.parse(resStr);
                 JsonArray jsonArray = element.getAsJsonArray();
@@ -660,7 +666,11 @@ public abstract class AbstractDevOpsAction extends Recorder {
                 return emptybox;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            if (isDebugMode) {
+                StringWriter sw = new StringWriter();
+                e.printStackTrace(new PrintWriter(sw));
+                LOGGER.warning(sw.toString());
+            }
         }
         return emptybox;
     }
@@ -675,7 +685,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
      * @throws IOException
      */
     public static JsonObject getDecisionFromDRA(String bluemixToken, String toolchainId,
-                                                String draUrl, PrintStream printStream) throws Exception {
+                                                String draUrl, PrintStream printStream, boolean isDebugMode) throws Exception {
         // create http client and post method
         CloseableHttpClient httpClient = HttpClients.createDefault();
 
@@ -685,6 +695,10 @@ public abstract class AbstractDevOpsAction extends Recorder {
         postMethod.setHeader("Content-Type", CONTENT_TYPE_JSON);
         CloseableHttpResponse response = httpClient.execute(postMethod);
         String resStr = EntityUtils.toString(response.getEntity());
+
+        if (isDebugMode) {
+            printDebugLog(printStream, postMethod, response.getStatusLine().toString(), resStr);
+        }
 
         int statusCode = response.getStatusLine().getStatusCode();
         if (statusCode == 200) {
@@ -745,6 +759,27 @@ public abstract class AbstractDevOpsAction extends Recorder {
             build.setResult(result);
             throw new AbortException();
         }
+    }
+
+    public static void printDebugLog(PrintStream printStream, HttpEntityEnclosingRequestBase method, String status, String resStr) {
+        try {
+            StringBuilder sb = new StringBuilder();
+            sb.append(getDebugLog());
+            sb.append("Request: " + method.getMethod() + " " + method.getURI());
+            if (method.getEntity() != null) {
+                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                method.getEntity().writeTo(bytes);
+                sb.append("Body: " + bytes.toString());
+            }
+            sb.append("\nResponse: " + status + " " + resStr);
+            printStream.println(sb.toString());
+        } catch (IOException e) {
+            e.printStackTrace();
+            printStream.println("Error while print the debug log " + e.getMessage());
+        }
+
+
+
     }
 
     /**

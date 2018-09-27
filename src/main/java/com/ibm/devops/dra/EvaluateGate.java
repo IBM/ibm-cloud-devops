@@ -225,7 +225,7 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             String link = ccUrl.replace("overview", CONTROL_CENTER_URL_PART) + TOOLCHAIN_PART + toolchainId;
 
             JsonObject decisionJson = getDecisionFromDRA(bluemixToken, toolchainId,
-                    draUrl, printStream);
+                    draUrl, printStream, getDescriptor().isDebugMode());
             if (decisionJson == null) {
                 printStream.println(getMessageWithPrefix(NO_DECISION_FOUND));
                 return;
@@ -381,10 +381,14 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
                     preCredentials = credentialsId;
                 }
             } catch (Exception e) {
+                if (isDebugMode()) {
+                    LOGGER.info("Fail to get the Bluemix token");
+                    e.printStackTrace();
+                }
                 return new ListBoxModel();
             }
 
-            return getPolicyList(bluemixToken, toolchainName, environment);
+            return getPolicyList(bluemixToken, toolchainName, environment, isDebugMode());
         }
 
         /**
@@ -407,6 +411,10 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
          */
         public String getDisplayName() {
             return "IBM Cloud DevOps Gate";
+        }
+
+        public boolean isDebugMode() {
+            return Jenkins.getInstance().getDescriptorByType(DevOpsGlobalConfiguration.class).isDebugMode();
         }
     }
 }

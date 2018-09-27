@@ -232,6 +232,10 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		CloseableHttpResponse response = httpClient.execute(postMethod);
 		resStr = EntityUtils.toString(response.getEntity());
 
+		if (getDescriptor().isDebugMode()) {
+			printDebugLog(printStream, postMethod, response.getStatusLine().toString(), resStr);
+		}
+
 		int statusCode = response.getStatusLine().getStatusCode();
 		if (statusCode == 200) {
 			printStream.println(getMessageWithPrefix(UPLOAD_DEPLOY_SUCCESS));
@@ -398,6 +402,10 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 		 */
 		public String getDisplayName() {
 			return getMessage(PUBLISH_DEPLOY_DISPLAY);
+		}
+
+		public boolean isDebugMode() {
+			return Jenkins.getInstance().getDescriptorByType(DevOpsGlobalConfiguration.class).isDebugMode();
 		}
 	}
 }

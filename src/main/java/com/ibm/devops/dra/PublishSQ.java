@@ -40,7 +40,6 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
-import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -57,7 +56,6 @@ import javax.servlet.ServletException;
 import javax.xml.bind.DatatypeConverter;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -386,6 +384,10 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
         CloseableHttpResponse response = httpClient.execute(postMethod);
         resStr = EntityUtils.toString(response.getEntity());
 
+        if (getDescriptor().isDebugMode()) {
+            printDebugLog(printStream, postMethod, response.getStatusLine().toString(), resStr);
+        }
+
         int statusCode = response.getStatusLine().getStatusCode();
         if (statusCode == 200) {
             printStream.println(getMessageWithPrefix(UPLOAD_SQ_SUCCESS));
@@ -540,6 +542,10 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
          */
         public String getDisplayName() {
             return getMessage(PUBLISH_SQ_DISPLAY);
+        }
+
+        public boolean isDebugMode() {
+            return Jenkins.getInstance().getDescriptorByType(DevOpsGlobalConfiguration.class).isDebugMode();
         }
     }
 }

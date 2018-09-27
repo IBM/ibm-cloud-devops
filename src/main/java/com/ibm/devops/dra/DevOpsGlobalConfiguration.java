@@ -27,29 +27,18 @@ import org.kohsuke.stapler.StaplerRequest;
 @Extension(ordinal = 100)
 public class DevOpsGlobalConfiguration extends GlobalConfiguration {
 
-    @CopyOnWrite
-    private volatile String consoleUrl;
-    private volatile boolean debug_mode;
+    private volatile boolean debugMode;
 
     public DevOpsGlobalConfiguration() {
         load();
     }
 
-    public String getConsoleUrl() {
-        return consoleUrl;
+    public boolean isDebugMode() {
+        return debugMode;
     }
 
-    public boolean isDebug_mode() {
-        return debug_mode;
-    }
-
-    public void setDebug_mode(boolean debug_mode) {
-        this.debug_mode = debug_mode;
-        save();
-    }
-
-    public void setConsoleUrl(String consoleUrl) {
-        this.consoleUrl = consoleUrl;
+    public void setDebugMode(boolean debugMode) {
+        this.debugMode = debugMode;
         save();
     }
 
@@ -57,15 +46,9 @@ public class DevOpsGlobalConfiguration extends GlobalConfiguration {
     public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
         // To persist global configuration information,
         // set that to properties and call save().
-        consoleUrl = formData.getString("consoleUrl");
-        debug_mode = Boolean.parseBoolean(formData.getString("debug_mode"));
+        debugMode = Boolean.parseBoolean(formData.getString("debugMode"));
         save();
         return super.configure(req,formData);
     }
 
-    // for the future multi-region use
-    public ListBoxModel doFillRegionItems() {
-        ListBoxModel items = new ListBoxModel();
-        return items;
-    }
 }

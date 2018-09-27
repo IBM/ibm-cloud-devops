@@ -50,9 +50,7 @@ import org.kohsuke.stapler.QueryParameter;
 
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
+import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.List;
@@ -330,7 +328,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             draUrl = setGateServiceUrl(draUrl, toolchainId, applicationName, buildNumber, policyName, environmentName);
             String reportUrl =  ccUrl.replace("overview", REPORT_URL_PART) + TOOLCHAIN_PART + toolchainId + "&reportId=";
             JsonObject decisionJson = getDecisionFromDRA(bluemixToken, toolchainId,
-                    draUrl, printStream);
+                    draUrl, printStream, getDescriptor().isDebugMode());
             if (decisionJson == null) {
                 printStream.println(getMessageWithPrefix(NO_DECISION_FOUND));
                 return;
@@ -509,6 +507,11 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             // parse the response json body to display detailed info
             String resStr = EntityUtils.toString(response.getEntity());
             int statusCode = response.getStatusLine().getStatusCode();
+
+            if (getDescriptor().isDebugMode()) {
+                printDebugLog(printStream, postMethod, response.getStatusLine().toString(), resStr);
+            }
+
             if (statusCode == 200) {
                 printStream.println(getMessageWithVarAndPrefix(UPLOAD_FILE_SUCCESS, contents.toString()));
             } else if (statusCode == 401 || statusCode == 403) {
@@ -518,6 +521,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                 JsonParser parser = new JsonParser();
                 JsonElement element = parser.parse(resStr);
                 JsonObject resJson = element.getAsJsonObject();
+
                 if (resJson != null && resJson.has("message")) {
                     throw new Exception(getMessageWithVar(FAIL_TO_UPLOAD_DATA_WITH_REASON, String.valueOf(statusCode), resJson.get("message").getAsString()));
                 } else {
@@ -525,7 +529,6 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
             throw new Exception(e.getMessage());
         }
 
@@ -681,10 +684,14 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                     preCredentials = credentialsId;
                 }
             } catch (Exception e) {
+                if (isDebugMode()) {
+                    LOGGER.info("Fail to get the Bluemix token");
+                    e.printStackTrace();
+                }
                 return new ListBoxModel();
             }
 
-            return getPolicyList(bluemixToken, toolchainName, environment);
+            return getPolicyList(bluemixToken, toolchainName, environment, isDebugMode());
         }
 
         /**
@@ -729,6 +736,10 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
          */
         public String getDisplayName() {
             return "Publish test result to IBM Cloud DevOps";
+        }
+
+        public boolean isDebugMode() {
+            return Jenkins.getInstance().getDescriptorByType(DevOpsGlobalConfiguration.class).isDebugMode();
         }
     }
 }
