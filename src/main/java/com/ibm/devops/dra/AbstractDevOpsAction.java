@@ -48,6 +48,7 @@ import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -769,7 +770,7 @@ public abstract class AbstractDevOpsAction extends Recorder {
             if (method.getEntity() != null) {
                 ByteArrayOutputStream bytes = new ByteArrayOutputStream();
                 method.getEntity().writeTo(bytes);
-                sb.append("Body: " + bytes.toString());
+                sb.append("Body: " + bytes.toString("UTF-8"));
             }
             sb.append("\nResponse: " + status + " " + resStr);
             printStream.println(sb.toString());
