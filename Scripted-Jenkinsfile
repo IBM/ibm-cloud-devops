@@ -5,7 +5,6 @@ node {
 
     withEnv([
             // You need to specify 3 required environment variables and your bluemix credentials first, they are going to be used for the following IBM Cloud DevOps steps
-            'IBM_CLOUD_DEVOPS_ORG=dlatest',
             'IBM_CLOUD_DEVOPS_APP_NAME=Weather-V1-Scripted',
             'IBM_CLOUD_DEVOPS_TOOLCHAIN_ID=1320cec1-daaa-4b63-bf06-7001364865d2'
     ]) {
