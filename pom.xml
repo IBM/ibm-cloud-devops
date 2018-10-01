@@ -82,9 +82,9 @@
       <email>aggarwav@us.ibm.com</email>
     </developer>
     <developer>
-      <id>imvijay2007</id>
-      <name>Vijay Jegaselvan</name>
-      <email>vjegase@us.ibm.com</email>
+      <id>uparulekar</id>
+      <name>Umesh Parulekar</name>
+      <email>ucparule@us.ibm.com</email>
     </developer>
     <developer>
       <id>ejodet</id>
@@ -92,9 +92,9 @@
       <email>eric_jodet@fr.ibm.com</email>
     </developer>
     <developer>
-      <id>patjoy</id>
-      <name>Patrick Joy</name>
-      <email>patrick.joy1@ibm.com</email>
+      <id>dlaprod</id>
+      <name>DevOps Insights Functional ID</name>
+      <email>dlaprod@us.ibm.com</email>
     </developer>
   </developers>
 
