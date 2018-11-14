@@ -73,8 +73,6 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 	private String credentialsId;
 	private String applicationUrl;
 	private String buildNumber;
-	private static String bluemixToken;
-	private static String preCredentials;
 
 	//fields to support jenkins pipeline
 	private String result;
@@ -332,11 +330,8 @@ public class PublishDeploy extends AbstractDevOpsAction implements SimpleBuildSt
 			String targetAPI = chooseTargetAPI(environment);
 			String iamAPI = chooseIAMAPI(environment);
 			try {
-				if (!credentialsId.equals(preCredentials) || isNullOrEmpty(bluemixToken)) {
-					preCredentials = credentialsId;
-					StandardCredentials credentials = findCredentials(credentialsId, context);
-					bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, null);
-				}
+				StandardCredentials credentials = findCredentials(credentialsId, context);
+				getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, null);
 				return FormValidation.okWithMarkup(getMessage(TEST_CONNECTION_SUCCEED));
 			} catch (Exception e) {
 				e.printStackTrace();

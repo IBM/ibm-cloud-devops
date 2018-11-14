@@ -19,10 +19,7 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import hudson.*;
 import hudson.model.*;
 import hudson.security.ACL;
@@ -36,6 +33,7 @@ import jenkins.tasks.SimpleBuildStep;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
@@ -51,6 +49,7 @@ import org.kohsuke.stapler.QueryParameter;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import java.io.*;
+import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.List;
@@ -73,6 +72,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
     private final static String CONTENT_TYPE_XML = "application/xml";
     private final static String CONTENT_TYPE_LCOV = "text/plain";
     private static final String DECISION_API_PART = "/api/v5/toolchainids/{toolchain_id}/buildartifacts/{build_artifact}/builds/{build_id}/policies/{policy_name}/decisions";
+    private static final String CUSTOM_DATA_SET = "/v3/toolchainids/{toolchain_id}/lifecyclestages";
 
 
     // form fields from UI
@@ -94,8 +94,6 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
 
     private PrintStream printStream;
     private File root;
-    private static String bluemixToken;
-    private static String preCredentials;
 
     //fields to support jenkins pipeline
     private String username;
@@ -304,7 +302,7 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
                     env, build.getParent(), printStream);
 
             String OTCbrokerUrl = getOTCBrokerServer(env);
-            Map<String, String> endpoints = getAllEndpoints(OTCbrokerUrl, bluemixToken, toolchainId);;
+            Map<String, String> endpoints = getAllEndpoints(OTCbrokerUrl, bluemixToken, toolchainId);
             String dlmsUrl = endpoints.get(DLMS) + DLMS_API_PART;
             dlmsUrl = setDLMSUrl(dlmsUrl, toolchainId, applicationName, buildNumber);
             String ccUrl = endpoints.get(CONTROL_CENTER);
@@ -614,11 +612,8 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             String targetAPI = chooseTargetAPI(environment);
             String iamAPI = chooseIAMAPI(environment);
             try {
-                if (!credentialsId.equals(preCredentials) || isNullOrEmpty(bluemixToken)) {
-                    preCredentials = credentialsId;
-                    StandardCredentials credentials = findCredentials(credentialsId, context);
-                    bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, null);
-                }
+                StandardCredentials credentials = findCredentials(credentialsId, context);
+                getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, null);
                 return FormValidation.okWithMarkup(getMessage(TEST_CONNECTION_SUCCEED));
             } catch (Exception e) {
                 e.printStackTrace();
@@ -676,13 +671,10 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             String environment = "prod";
             String targetAPI = chooseTargetAPI(environment);
             String iamAPI = chooseIAMAPI(environment);
+            String bluemixToken = "";
             try {
-                // if user changes to a different credential, need to get a new token
-                if (!credentialsId.equals(preCredentials) || isNullOrEmpty(bluemixToken)) {
-                    StandardCredentials credentials = findCredentials(credentialsId, context);
-                    bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, null);
-                    preCredentials = credentialsId;
-                }
+                StandardCredentials credentials = findCredentials(credentialsId, context);
+                bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, null);
             } catch (Exception e) {
                 if (isDebugMode()) {
                     LOGGER.info("Fail to get the Bluemix token");
@@ -708,26 +700,70 @@ public class PublishTest extends AbstractDevOpsAction implements SimpleBuildStep
             return true;
         }
 
-        public ListBoxModel doFillLifecycleStageItems(@QueryParameter("lifecycleStage") final String selection) {
-            return fillTestType();
+        public ListBoxModel doFillLifecycleStageItems(@AncestorInPath ItemGroup context,
+                                                      @QueryParameter final String toolchainName,
+                                                      @QueryParameter final String credentialsId,
+                                                      @QueryParameter("lifecycleStage") final String selection) {
+            return fillTestType(credentialsId, toolchainName, context);
         }
 
-        public ListBoxModel doFillAdditionalLifecycleStageItems(@QueryParameter("additionalLifecycleStage") final String selection) {
-            return fillTestType();
+        public ListBoxModel doFillAdditionalLifecycleStageItems(@AncestorInPath ItemGroup context,
+                                                                @RelativePath("..") @QueryParameter final String toolchainName,
+                                                                @RelativePath("..") @QueryParameter final String credentialsId,
+                                                                @QueryParameter("additionalLifecycleStage") final String selection) {
+            return fillTestType(credentialsId, toolchainName, context);
         }
 
         /**
          * fill the dropdown list of rule type
          * @return the dropdown list model
          */
-        public ListBoxModel fillTestType() {
+        public ListBoxModel fillTestType(String credentialsId, String toolchainId, ItemGroup context) {
             ListBoxModel model = new ListBoxModel();
-            model.add(getMessage(UNIT_TEST), "unittest");
-            model.add(getMessage(FVT), "fvt");
-            model.add(getMessage(CODE_COVERAGE), "code");
-            model.add(getMessage(STATIC_SCAN), "staticsecurityscan");
-            model.add(getMessage(DYNAMIC_SCAN), "dynamicsecurityscan");
-            return model;
+            String environment = "prod";
+            String targetAPI = chooseTargetAPI(environment);
+            String iamAPI = chooseIAMAPI(environment);
+            String OTCbrokerUrl = getOTCBrokerServer(environment);
+            String bluemixToken = "";
+
+            try {
+                StandardCredentials credentials = findCredentials(credentialsId, context);
+                bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, null);
+                Map<String, String> endpoints = getAllEndpoints(OTCbrokerUrl, bluemixToken, toolchainId);
+                String dlmsUrl = endpoints.get(DLMS) + CUSTOM_DATA_SET;
+                dlmsUrl = dlmsUrl.replace("{toolchain_id}", URLEncoder.encode(toolchainId, "UTF-8").replaceAll("\\+", "%20"));
+                CloseableHttpClient httpClient = HttpClients.createDefault();
+                HttpGet get = new HttpGet(dlmsUrl);
+                get = addProxyInformation(get);
+                get.setHeader("Authorization", bluemixToken);
+                CloseableHttpResponse response = httpClient.execute(get);
+                int statusCode = response.getStatusLine().getStatusCode();
+                JsonParser parser = new JsonParser();
+                String resStr = EntityUtils.toString(response.getEntity());
+
+                if (isDebugMode()) {
+                    LOGGER.info("Trying to get a list of quality data set");
+                    LOGGER.info("Request: " + get.getMethod() + " " + get.getURI());
+                    LOGGER.info("Response: " + response.getStatusLine() + "\n" + resStr);
+                }
+
+                if (statusCode == 200) {
+                    JsonElement element = parser.parse(resStr);
+                    JsonObject resObj = element.getAsJsonObject();
+                    JsonArray array = resObj.getAsJsonArray("lifecycle_stages");
+                    for (JsonElement e : array) {
+                        JsonObject obj = e.getAsJsonObject();
+                        model.add(obj.get("label").getAsString(), obj.get("lifecycle_stage").getAsString());
+                    }
+                }
+                return model;
+            } catch (Exception e) {
+                if (isDebugMode()) {
+                    LOGGER.info("Fail to get the list of quality data sets");
+                    e.printStackTrace();
+                }
+                return new ListBoxModel();
+            }
         }
 
         /**

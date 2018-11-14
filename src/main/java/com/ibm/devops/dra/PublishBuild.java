@@ -90,8 +90,6 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
 
     private PrintStream printStream;
     private File root;
-    private static String bluemixToken;
-    private static String preCredentials;
 
     @DataBoundConstructor
     public PublishBuild(String applicationName, String credentialsId, String toolchainName, OptionalBuildInfo additionalBuildInfo) {
@@ -365,11 +363,8 @@ public class PublishBuild extends AbstractDevOpsAction implements SimpleBuildSte
             String targetAPI = chooseTargetAPI(environment);
             String iamAPI = chooseIAMAPI(environment);
             try {
-                if (!credentialsId.equals(preCredentials) || isNullOrEmpty(bluemixToken)) {
-                    preCredentials = credentialsId;
-                    StandardCredentials credentials = findCredentials(credentialsId, context);
-                    bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, null);
-                }
+                StandardCredentials credentials = findCredentials(credentialsId, context);
+                getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, null);
                 return FormValidation.okWithMarkup(getMessage(TEST_CONNECTION_SUCCEED));
             } catch (Exception e) {
                 e.printStackTrace();

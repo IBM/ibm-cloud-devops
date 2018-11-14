@@ -92,8 +92,6 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
     private String env;
 
     private PrintStream printStream;
-    private static String bluemixToken;
-    private static String preCredentials;
 
     @DataBoundConstructor
     public PublishSQ(String credentialsId,
@@ -492,11 +490,8 @@ public class PublishSQ extends AbstractDevOpsAction implements SimpleBuildStep {
             String targetAPI = chooseTargetAPI(environment);
             String iamAPI = chooseIAMAPI(environment);
             try {
-                if (!credentialsId.equals(preCredentials) || isNullOrEmpty(bluemixToken)) {
-                    preCredentials = credentialsId;
-                    StandardCredentials credentials = findCredentials(credentialsId, context);
-                    bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, null);
-                }
+                StandardCredentials credentials = findCredentials(credentialsId, context);
+                getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, null);
                 return FormValidation.okWithMarkup(getMessage(TEST_CONNECTION_SUCCEED));
             } catch (Exception e) {
                 e.printStackTrace();

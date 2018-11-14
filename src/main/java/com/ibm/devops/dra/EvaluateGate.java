@@ -66,8 +66,6 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
     private String envName;
     private boolean isDeploy;
     private PrintStream printStream;
-    private static String bluemixToken;
-    private static String preCredentials;
 
     //fields to support jenkins pipeline
     private String username;
@@ -312,11 +310,8 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             String targetAPI = chooseTargetAPI(environment);
             String iamAPI = chooseIAMAPI(environment);
             try {
-                if (!credentialsId.equals(preCredentials) || isNullOrEmpty(bluemixToken)) {
-                    preCredentials = credentialsId;
-                    StandardCredentials credentials = findCredentials(credentialsId, context);
-                    bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, null);
-                }
+                StandardCredentials credentials = findCredentials(credentialsId, context);
+                getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, null);
                 return FormValidation.okWithMarkup(getMessage(TEST_CONNECTION_SUCCEED));
             } catch (Exception e) {
                 e.printStackTrace();
@@ -373,13 +368,10 @@ public class EvaluateGate extends AbstractDevOpsAction implements SimpleBuildSte
             String environment = "prod";
             String targetAPI = chooseTargetAPI(environment);
             String iamAPI = chooseIAMAPI(environment);
+            String bluemixToken = "";
             try {
-                // if user changes to a different credential, need to get a new token
-                if (!credentialsId.equals(preCredentials) || isNullOrEmpty(bluemixToken)) {
-                    StandardCredentials credentials = findCredentials(credentialsId, context);
-                    bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, null);
-                    preCredentials = credentialsId;
-                }
+                StandardCredentials credentials = findCredentials(credentialsId, context);
+                bluemixToken = getTokenForFreeStyleJob(credentials, iamAPI, targetAPI, null);
             } catch (Exception e) {
                 if (isDebugMode()) {
                     LOGGER.info("Fail to get the Bluemix token");
