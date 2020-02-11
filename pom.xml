@@ -114,7 +114,7 @@
     <repository>
       <id>spring-snapshots</id>
       <name>Spring Snapshots</name>
-      <url>http://repo.spring.io/snapshot</url>
+      <url>https://repo.spring.io/snapshot</url>
       <snapshots>
         <enabled>true</enabled>
       </snapshots>
@@ -124,7 +124,7 @@
   <pluginRepositories>
     <pluginRepository>
       <id>repo.jenkins-ci.org</id>
-      <url>http://repo.jenkins-ci.org/public/</url>
+      <url>https://repo.jenkins-ci.org/public/</url>
     </pluginRepository>
   </pluginRepositories>
 
